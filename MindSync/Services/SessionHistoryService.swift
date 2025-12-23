@@ -14,7 +14,6 @@ final class SessionHistoryService {
     /// Saves a session
     /// - Note: This operation loads all existing sessions, appends the new one, and saves the entire array
     ///         back to UserDefaults. This creates unnecessary overhead as the session count approaches 100.
-    ///         If encoding fails, the operation will be retried once. If it fails again, the session is lost.
     func save(session: Session) {
         var sessions = loadAll()
         sessions.append(session)
@@ -24,23 +23,13 @@ final class SessionHistoryService {
             sessions = Array(sessions.suffix(100))
         }
         
-        // Attempt to encode and save with retry logic
-        var attempts = 0
-        let maxAttempts = 2
-        
-        while attempts < maxAttempts {
-            do {
-                let data = try JSONEncoder().encode(sessions)
-                userDefaults.set(data, forKey: sessionsKey)
-                return // Success
-            } catch {
-                attempts += 1
-                logger.error("Failed to encode sessions (attempt \(attempts)/\(maxAttempts)): \(error.localizedDescription, privacy: .private)")
-                
-                if attempts >= maxAttempts {
-                    logger.error("Session could not be saved after \(maxAttempts) attempts. Session data may be lost.")
-                }
-            }
+        do {
+            let data = try JSONEncoder().encode(sessions)
+            userDefaults.set(data, forKey: sessionsKey)
+        } catch {
+            logger.error("Failed to encode sessions: \(error.localizedDescription, privacy: .private)")
+            // Note: Encoding failures are typically deterministic (e.g., non-encodable data)
+            // and retrying without changes won't help. The session data is lost in this case.
         }
     }
     

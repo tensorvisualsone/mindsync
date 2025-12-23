@@ -71,11 +71,11 @@ final class SessionViewModel: ObservableObject {
         cachedPreferences = UserPreferences.load()
         
         // Set the light controller based on current preferences
-        lightController = switch cachedPreferences.preferredLightSource {
+        switch cachedPreferences.preferredLightSource {
         case .flashlight:
-            services.flashlightController
+            lightController = services.flashlightController
         case .screen:
-            services.screenController
+            lightController = services.screenController
         }
         
         do {
@@ -118,14 +118,12 @@ final class SessionViewModel: ObservableObject {
             state = .running
             
         } catch {
-            // Guaranteed cleanup using defer pattern to ensure resources are always released
-            // even if an exception occurs during cleanup or state assignment
-            defer {
-                errorMessage = error.localizedDescription
-                state = .error
-            }
+            // Set error state first to ensure it's always set, even if cleanup fails
+            errorMessage = error.localizedDescription
+            state = .error
             
-            // Ensure cleanup if starting playback or light controller fails
+            // Cleanup resources - errors during cleanup are silently ignored
+            // to ensure the error state from the original failure is preserved
             audioPlayback.stop()
             lightController?.stop()
         }
