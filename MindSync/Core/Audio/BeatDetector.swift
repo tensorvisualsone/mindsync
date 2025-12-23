@@ -26,6 +26,10 @@ final class BeatDetector {
     /// Detects beat positions in PCM data
     /// - Parameter samples: PCM samples (mono, 44.1kHz)
     /// - Returns: Array of timestamps in seconds for each beat
+    /// - Note: For very long audio files (e.g., >30 minutes), this method may consume significant memory
+    ///         as it processes the entire file and creates arrays (spectralFluxValues, beatTimestamps)
+    ///         that scale with file length. Consider adding file length validation with user warnings
+    ///         for extremely long files.
     func detectBeats(in samples: [Float]) async -> [TimeInterval] {
         // Capture needed properties for the detached task
         let sampleRate = self.sampleRate

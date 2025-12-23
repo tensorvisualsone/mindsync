@@ -8,6 +8,10 @@ final class AudioFileReader {
     /// - Parameter url: URL of the audio file
     /// - Returns: Array of Float samples (mono, 44.1kHz)
     /// - Throws: AudioAnalysisError
+    /// - Note: This method loads the entire audio file into memory as a single array of Float samples.
+    ///         For very long audio files, this may cause memory pressure or crashes on devices with
+    ///         limited RAM. Consider implementing chunked reading or streaming, or adding validation
+    ///         to warn users about files longer than a reasonable threshold (e.g., 30 minutes).
     func readPCM(from url: URL) async throws -> [Float] {
         let asset = AVAsset(url: url)
 

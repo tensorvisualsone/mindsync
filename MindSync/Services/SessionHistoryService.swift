@@ -2,12 +2,18 @@ import Foundation
 import os.log
 
 /// Service for session history management
+/// - Note: Current implementation loads and saves all sessions to UserDefaults on every save operation,
+///         which scales poorly with the number of sessions (up to 100). For better performance, consider
+///         using a more efficient storage approach such as individual keys for recent sessions, a database,
+///         or incremental updates rather than rewriting the entire array each time.
 final class SessionHistoryService {
     private let userDefaults = UserDefaults.standard
     private let sessionsKey = "savedSessions"
     private let logger = Logger(subsystem: "com.mindsync", category: "SessionHistory")
     
     /// Saves a session
+    /// - Note: This operation loads all existing sessions, appends the new one, and saves the entire array
+    ///         back to UserDefaults. This creates unnecessary overhead as the session count approaches 100.
     func save(session: Session) {
         var sessions = loadAll()
         sessions.append(session)
