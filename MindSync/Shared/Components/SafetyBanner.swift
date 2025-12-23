@@ -12,6 +12,7 @@ struct SafetyBanner: View {
                 Image(systemName: warningLevel.icon)
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(iconColor)
+                    .accessibilityHidden(true) // Icon is decorative, message provides context
                 
                 // Warning message
                 if let message = warningLevel.message {
@@ -29,6 +30,8 @@ struct SafetyBanner: View {
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.7))
                     }
+                    .accessibilityLabel("Warnung schließen")
+                    .accessibilityHint("Schließt die thermische Warnung")
                 }
             }
             .padding(.horizontal, 16)
@@ -37,7 +40,20 @@ struct SafetyBanner: View {
             .cornerRadius(12)
             .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
             .transition(.move(edge: .top).combined(with: .opacity))
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: warningLevel)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(accessibilityLabel)
+            .accessibilityAddTraits(.isStaticText)
+        }
+    }
+    
+    private var accessibilityLabel: String {
+        switch warningLevel {
+        case .none:
+            return ""
+        case .reduced:
+            return "Warnung: Intensität reduziert wegen Gerätewärme"
+        case .critical:
+            return "Kritische Warnung: Taschenlampe deaktiviert wegen Überhitzung"
         }
     }
     

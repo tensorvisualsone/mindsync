@@ -104,10 +104,8 @@ final class SessionViewModel: ObservableObject {
         do {
             try lightController?.start()
             
-            // Calculate remaining script time and resume from current position
-            let elapsed = Date().timeIntervalSince(session.startedAt)
-            let resumeTime = Date().addingTimeInterval(-elapsed)
-            lightController?.execute(script: currentScript, syncedTo: resumeTime)
+            // Resume from current session position using original session start time
+            lightController?.execute(script: currentScript, syncedTo: session.startedAt)
             
         } catch {
             // If screen controller also fails, stop the session
@@ -116,10 +114,10 @@ final class SessionViewModel: ObservableObject {
     }
     
     deinit {
-        // Ensure playback is stopped before clearing callback to avoid delegate callbacks after deallocation
-        audioPlayback.stop()
-        // Clear callback to prevent stale references
-        audioPlayback.onPlaybackComplete = nil
+        // Note: Cleanup is handled by stopSession() which should be called before deallocation.
+        // The AudioPlaybackService handles its own lifecycle and will stop when deallocated.
+        // We intentionally don't call MainActor-isolated methods from deinit to avoid
+        // Swift 6 concurrency warnings.
     }
     
     /// Handles playback completion

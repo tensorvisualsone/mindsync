@@ -44,6 +44,7 @@ struct SessionView: View {
                 
                 Spacer()
             }
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.thermalWarningLevel)
         }
         .preferredColorScheme(.dark)
         .task {
