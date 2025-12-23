@@ -35,6 +35,15 @@ struct SessionView: View {
             case .error:
                 errorView
             }
+            
+            // Thermal warning banner overlay
+            VStack {
+                SafetyBanner(warningLevel: viewModel.thermalWarningLevel)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                
+                Spacer()
+            }
         }
         .preferredColorScheme(.dark)
         .task {

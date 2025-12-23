@@ -107,7 +107,7 @@ final class FlashlightController: NSObject, LightControlling {
         setIntensity(0.0)
     }
 
-    private func updateLight() {
+    fileprivate func updateLight() {
         guard let script = currentScript,
               let startTime = scriptStartTime else {
             return

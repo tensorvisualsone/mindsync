@@ -38,6 +38,8 @@ final class BeatDetector {
         let sampleRate = self.sampleRate
         let fftSize = self.fftSize
         let hopSize = self.hopSize
+        let fftSetup = self.fftSetup
+        let log2n = self.log2n
         
         // Run on background queue to prevent blocking the main thread
         return await Task.detached(priority: .userInitiated) { [self] in
@@ -60,7 +62,7 @@ final class BeatDetector {
                 let frame = Array(samples[frameIndex..<frameIndex + fftSize])
 
                 // Perform FFT
-                let magnitude = self.performFFT(on: frame)
+                let magnitude = self.performFFT(on: frame, fftSetup: fftSetup, fftSize: fftSize, log2n: log2n)
 
                 // Calculate spectral flux
                 var spectralFlux: Float = 0
@@ -110,31 +112,39 @@ final class BeatDetector {
         }.value
     }
 
-    /// Performs FFT on a frame
-    private func performFFT(on frame: [Float]) -> [Float] {
+    /// Performs FFT on a frame - nonisolated to allow calling from background tasks
+    private nonisolated func performFFT(on frame: [Float], fftSetup: FFTSetup, fftSize: Int, log2n: vDSP_Length) -> [Float] {
         // Apply Hann window
         var windowed = frame
         var window = [Float](repeating: 0, count: fftSize)
         vDSP_hann_window(&window, vDSP_Length(fftSize), Int32(vDSP_HANN_NORM))
         vDSP_vmul(frame, 1, window, 1, &windowed, 1, vDSP_Length(fftSize))
 
-        // Create complex buffer
+        // Create complex buffer with proper pointer lifetime management
         var realp = [Float](repeating: 0, count: fftSize / 2)
         var imagp = [Float](repeating: 0, count: fftSize / 2)
-        var splitComplex = DSPSplitComplex(realp: &realp, imagp: &imagp)
-
-        windowed.withUnsafeMutableBufferPointer { buffer in
-            buffer.baseAddress?.withMemoryRebound(to: DSPComplex.self, capacity: fftSize / 2) { complexBuffer in
-                vDSP_ctoz(complexBuffer, 2, &splitComplex, 1, vDSP_Length(fftSize / 2))
+        var magnitude = [Float](repeating: 0, count: fftSize / 2)
+        
+        realp.withUnsafeMutableBufferPointer { realpBuffer in
+            imagp.withUnsafeMutableBufferPointer { imagpBuffer in
+                var splitComplex = DSPSplitComplex(
+                    realp: realpBuffer.baseAddress!,
+                    imagp: imagpBuffer.baseAddress!
+                )
+                
+                windowed.withUnsafeMutableBufferPointer { buffer in
+                    buffer.baseAddress?.withMemoryRebound(to: DSPComplex.self, capacity: fftSize / 2) { complexBuffer in
+                        vDSP_ctoz(complexBuffer, 2, &splitComplex, 1, vDSP_Length(fftSize / 2))
+                    }
+                }
+                
+                // Perform FFT (using reusable setup)
+                vDSP_fft_zrip(fftSetup, &splitComplex, 1, log2n, FFTDirection(FFT_FORWARD))
+                
+                // Calculate magnitude
+                vDSP_zvabs(&splitComplex, 1, &magnitude, 1, vDSP_Length(fftSize / 2))
             }
         }
-
-        // Perform FFT (using reusable setup)
-        vDSP_fft_zrip(fftSetup, &splitComplex, 1, log2n, FFTDirection(FFT_FORWARD))
-
-        // Calculate magnitude
-        var magnitude = [Float](repeating: 0, count: fftSize / 2)
-        vDSP_zvabs(&splitComplex, 1, &magnitude, 1, vDSP_Length(fftSize / 2))
 
         return magnitude
     }
