@@ -25,6 +25,11 @@ final class SessionViewModel: ObservableObject {
     @Published var currentSession: Session?
     @Published var thermalWarningLevel: ThermalWarningLevel = .none
     
+    // Screen controller for UI binding (only published when screen mode is active)
+    var screenController: ScreenController? {
+        lightController as? ScreenController
+    }
+    
     // Cancellables
     private var cancellables = Set<AnyCancellable>()
     
@@ -159,10 +164,18 @@ final class SessionViewModel: ObservableObject {
             // Generate LightScript using cached preferences
             let mode = cachedPreferences.preferredMode
             let lightSource = cachedPreferences.preferredLightSource
+            let screenColor = cachedPreferences.screenColor
+            
+            // Set color on screen controller if using screen mode
+            if lightSource == .screen, let screenController = lightController as? ScreenController {
+                screenController.setColor(screenColor)
+            }
+            
             let script = entrainmentEngine.generateLightScript(
                 from: track,
                 mode: mode,
-                lightSource: lightSource
+                lightSource: lightSource,
+                screenColor: lightSource == .screen ? screenColor : nil
             )
             currentScript = script
             

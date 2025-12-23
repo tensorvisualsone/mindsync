@@ -24,12 +24,24 @@ struct LightEvent: Codable {
     }
 
     /// Verfügbare Farben für Bildschirm-Modus
-    enum LightColor: String, Codable {
+    enum LightColor: String, Codable, CaseIterable, Identifiable {
         case white
         case red
         case blue
         case green
         case custom  // Für zukünftige RGB-Zyklen
+        
+        var id: String { rawValue }
+        
+        var displayName: String {
+            switch self {
+            case .white: return "Weiß"
+            case .red: return "Rot"
+            case .blue: return "Blau"
+            case .green: return "Grün"
+            case .custom: return "Eigene Farbe"
+            }
+        }
     }
 }
 
