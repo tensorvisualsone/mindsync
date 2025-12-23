@@ -13,7 +13,10 @@ final class BeatDetector {
     
     init() {
         self.log2n = vDSP_Length(log2(Double(fftSize)))
-        self.fftSetup = vDSP_create_fftsetup(log2n, FFTRadix(kFFTRadix2))!
+        guard let setup = vDSP_create_fftsetup(log2n, FFTRadix(kFFTRadix2)) else {
+            fatalError("Failed to create FFT setup. This should never happen with valid parameters.")
+        }
+        self.fftSetup = setup
     }
     
     deinit {
