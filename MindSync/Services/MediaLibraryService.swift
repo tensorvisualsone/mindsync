@@ -2,32 +2,32 @@ import Foundation
 import MediaPlayer
 import AVFoundation
 
-/// Service für Zugriff auf die Musikbibliothek
+/// Service for accessing the music library
 final class MediaLibraryService {
     var authorizationStatus: MPMediaLibraryAuthorizationStatus {
         MPMediaLibrary.authorizationStatus()
     }
 
-    /// Fordert Berechtigung für Musikbibliothek an
+    /// Requests permission for music library
     func requestAuthorization() async -> MPMediaLibraryAuthorizationStatus {
         await MPMediaLibrary.requestAuthorization()
     }
 
-    /// Prüft ob ein Item analysierbar ist (nicht DRM-geschützt)
+    /// Checks if an item can be analyzed (not DRM-protected)
     func canAnalyze(item: MPMediaItem) -> Bool {
         guard let url = item.assetURL else { return false }
         let asset = AVAsset(url: url)
         
-        // DRM-geschützte Inhalte können nicht analysiert werden
+        // DRM-protected content cannot be analyzed
         if asset.hasProtectedContent {
             return false
         }
         
-        // Für nicht geschützte Inhalte prüfen, ob das Asset lesbar ist
+        // For unprotected content, check if the asset is readable
         return asset.isReadable
     }
 
-    /// Holt die Asset-URL für ein Item
+    /// Gets the asset URL for an item
     func getAssetURL(for item: MPMediaItem) -> URL? {
         item.assetURL
     }

@@ -1,7 +1,7 @@
 import Foundation
 import Accelerate
 
-/// Service zur Beat-Erkennung mittels FFT und Spectral Flux
+/// Service for beat detection using FFT and Spectral Flux
 final class BeatDetector {
     private let sampleRate: Double = 44100.0
     private let fftSize: Int = 2048
@@ -23,9 +23,13 @@ final class BeatDetector {
         vDSP_destroy_fftsetup(fftSetup)
     }
 
-    /// Erkennt Beat-Positionen in PCM-Daten
-    /// - Parameter samples: PCM-Samples (mono, 44.1kHz)
-    /// - Returns: Array von Zeitstempeln in Sekunden für jeden Beat
+    /// Detects beat positions in PCM data
+    /// - Parameter samples: PCM samples (mono, 44.1kHz)
+    /// - Returns: Array of timestamps in seconds for each beat
+    /// - Note: For very long audio files (e.g., >30 minutes), this method may consume significant memory
+    ///         as it processes the entire file and creates arrays (spectralFluxValues, beatTimestamps)
+    ///         that scale with file length. Consider adding file length validation with user warnings
+    ///         for extremely long files.
     func detectBeats(in samples: [Float]) async -> [TimeInterval] {
         // Capture needed properties for the detached task
         let sampleRate = self.sampleRate
@@ -44,13 +48,13 @@ final class BeatDetector {
             var spectralFluxValues: [Float] = []
 
             while frameIndex + fftSize < frameCount {
-                // Extrahiere Frame
+                // Extract frame
                 let frame = Array(samples[frameIndex..<frameIndex + fftSize])
 
-                // FFT durchführen
+                // Perform FFT
                 let magnitude = self.performFFT(on: frame)
 
-                // Spectral Flux berechnen
+                // Calculate spectral flux
                 var spectralFlux: Float = 0
                 for i in 0..<min(magnitude.count, previousMagnitude.count) {
                     let diff = magnitude[i] - previousMagnitude[i]
@@ -93,15 +97,15 @@ final class BeatDetector {
         }.value
     }
 
-    /// Führt FFT auf einem Frame durch
+    /// Performs FFT on a frame
     private func performFFT(on frame: [Float]) -> [Float] {
-        // Hann-Fenster anwenden
+        // Apply Hann window
         var windowed = frame
         var window = [Float](repeating: 0, count: fftSize)
         vDSP_hann_window(&window, vDSP_Length(fftSize), Int32(vDSP_HANN_NORM))
         vDSP_vmul(frame, 1, window, 1, &windowed, 1, vDSP_Length(fftSize))
 
-        // Complex-Buffer erstellen
+        // Create complex buffer
         var realp = [Float](repeating: 0, count: fftSize / 2)
         var imagp = [Float](repeating: 0, count: fftSize / 2)
         var splitComplex = DSPSplitComplex(realp: &realp, imagp: &imagp)
@@ -112,10 +116,10 @@ final class BeatDetector {
             }
         }
 
-        // FFT ausführen (using reusable setup)
+        // Perform FFT (using reusable setup)
         vDSP_fft_zrip(fftSetup, &splitComplex, 1, log2n, FFTDirection(FFT_FORWARD))
 
-        // Magnitude berechnen
+        // Calculate magnitude
         var magnitude = [Float](repeating: 0, count: fftSize / 2)
         vDSP_zvabs(&splitComplex, 1, &magnitude, 1, vDSP_Length(fftSize / 2))
 

@@ -3,7 +3,7 @@ import MediaPlayer
 
 struct HomeView: View {
     @State private var showingSourceSelection = false
-    @State private var selectedSong: MPMediaItem?
+    @State private var selectedMediaItem: MPMediaItem?
     @State private var showingSession = false
     @State private var preferences = UserPreferences.load()
     
@@ -19,15 +19,15 @@ struct HomeView: View {
                     .foregroundStyle(.secondary)
                     .padding(.horizontal)
 
-                Button("Session starten") {
+                Button("Start Session") {
                     showingSourceSelection = true
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 
-                // Aktueller Modus anzeigen
+                // Show current mode
                 VStack(spacing: 8) {
-                    Text("Aktueller Modus")
+                    Text("Current Mode")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     HStack(spacing: 8) {
@@ -49,14 +49,14 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showingSourceSelection) {
                 SourceSelectionView { item in
-                    selectedSong = item
+                    selectedMediaItem = item
                     showingSourceSelection = false
                     showingSession = true
                 }
             }
             .fullScreenCover(isPresented: $showingSession) {
-                if let song = selectedSong {
-                    SessionView(song: song)
+                if let mediaItem = selectedMediaItem {
+                    SessionView(song: mediaItem)
                 }
             }
         }

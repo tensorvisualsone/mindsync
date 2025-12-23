@@ -1,30 +1,30 @@
 import Foundation
 
-/// Engine zur Erzeugung von LightScripts aus AudioTracks und EntrainmentMode
+/// Engine for generating LightScripts from AudioTracks and EntrainmentMode
 final class EntrainmentEngine {
     
-    /// Erzeugt ein LightScript aus einem AudioTrack und einem EntrainmentMode
+    /// Generates a LightScript from an AudioTrack and EntrainmentMode
     /// - Parameters:
-    ///   - track: Der analysierte AudioTrack mit Beat-Timestamps
-    ///   - mode: Der gewählte EntrainmentMode (Alpha/Theta/Gamma)
-    ///   - lightSource: Die gewählte Lichtquelle (für Frequenz-Limits)
-    /// - Returns: Ein LightScript mit synchronisierten Licht-Ereignissen
+    ///   - track: The analyzed AudioTrack with beat timestamps
+    ///   - mode: The selected EntrainmentMode (Alpha/Theta/Gamma)
+    ///   - lightSource: The selected light source (for frequency limits)
+    /// - Returns: A LightScript with synchronized light events
     func generateLightScript(
         from track: AudioTrack,
         mode: EntrainmentMode,
         lightSource: LightSource
     ) -> LightScript {
-        // Berechne Multiplikator N, sodass f_target im Zielband liegt
+        // Calculate multiplier N so that f_target is in target band
         let multiplier = calculateMultiplier(
             bpm: track.bpm,
             targetRange: mode.frequencyRange,
             maxFrequency: lightSource.maxFrequency
         )
         
-        // Ziel-Frequenz berechnen: f_target = (BPM / 60) × N
+        // Calculate target frequency: f_target = (BPM / 60) × N
         let targetFrequency = (track.bpm / 60.0) * Double(multiplier)
         
-        // Generiere Licht-Ereignisse basierend auf Beat-Timestamps
+        // Generate light events based on beat timestamps
         let events = generateLightEvents(
             beatTimestamps: track.beatTimestamps,
             targetFrequency: targetFrequency,
@@ -41,45 +41,45 @@ final class EntrainmentEngine {
         )
     }
     
-    /// Berechnet den Multiplikator N für BPM-zu-Hz-Mapping
+    /// Calculates the multiplier N for BPM-to-Hz mapping
     /// - Parameters:
-    ///   - bpm: Beats Per Minute des Songs
-    ///   - targetRange: Ziel-Frequenzband (z.B. 8-12 Hz für Alpha)
-    ///   - maxFrequency: Maximale Frequenz der Lichtquelle
-    /// - Returns: Ganzzahliger Multiplikator N
+    ///   - bpm: Beats Per Minute of the song
+    ///   - targetRange: Target frequency band (e.g. 8-12 Hz for Alpha)
+    ///   - maxFrequency: Maximum frequency of the light source
+    /// - Returns: Integer multiplier N
     private func calculateMultiplier(
         bpm: Double,
         targetRange: ClosedRange<Double>,
         maxFrequency: Double
     ) -> Int {
-        // Grundfrequenz: BPM / 60 (Hz)
+        // Base frequency: BPM / 60 (Hz)
         let baseFrequency = bpm / 60.0
         
-        // Finde kleinsten Multiplikator, der ins Zielband führt
+        // Find smallest multiplier that leads to target band
         var multiplier = 1
         while true {
             let frequency = baseFrequency * Double(multiplier)
             
-            // Wenn wir im Zielband sind, verwende diesen Multiplikator
+            // If we're in the target band, use this multiplier
             if targetRange.contains(frequency) {
                 return multiplier
             }
             
-            // Wenn wir über dem Zielband sind, verwende den vorherigen
+            // If we're above the target band, use the previous one
             if frequency > targetRange.upperBound {
                 return max(1, multiplier - 1)
             }
             
-            // Wenn wir über der max. Frequenz sind, begrenze
+            // If we're above max frequency, limit
             if frequency > maxFrequency {
                 return max(1, multiplier - 1)
             }
             
             multiplier += 1
             
-            // Sicherheits-Check: verhindere Endlosschleife
-            if multiplier > 100 {
-                // Fallback: verwende Multiplikator für mittlere Ziel-Frequenz
+            // Safety check: prevent infinite loop with reasonable upper bound
+            if multiplier > 50 {
+                // Fallback: use multiplier for middle target frequency
                 let targetMid = (targetRange.lowerBound + targetRange.upperBound) / 2.0
                 let fallbackMultiplier = Int((targetMid / baseFrequency).rounded())
                 return max(1, fallbackMultiplier)
@@ -87,7 +87,7 @@ final class EntrainmentEngine {
         }
     }
     
-    /// Generiert Licht-Ereignisse aus Beat-Timestamps
+    /// Generates light events from beat timestamps
     private func generateLightEvents(
         beatTimestamps: [TimeInterval],
         targetFrequency: Double,
@@ -95,7 +95,7 @@ final class EntrainmentEngine {
         trackDuration: TimeInterval
     ) -> [LightEvent] {
         guard !beatTimestamps.isEmpty else {
-            // Fallback: gleichmäßige Pulsation wenn keine Beats erkannt
+            // Fallback: uniform pulsation if no beats detected
             return generateFallbackEvents(
                 frequency: targetFrequency,
                 duration: trackDuration,
@@ -104,33 +104,33 @@ final class EntrainmentEngine {
         }
         
         var events: [LightEvent] = []
-        let period = 1.0 / targetFrequency  // Dauer eines Zyklus in Sekunden
+        let period = 1.0 / targetFrequency  // Duration of one cycle in seconds
         
-        // Für jeden Beat ein Licht-Ereignis erzeugen
+        // Create a light event for each beat
         for beatTimestamp in beatTimestamps {
-            // Wähle Wellenform basierend auf Modus
+            // Select waveform based on mode
             let waveform: LightEvent.Waveform = {
                 switch mode {
-                case .alpha: return .sine      // Sanft für Entspannung
-                case .theta: return .sine     // Sanft für Trip
-                case .gamma: return .square   // Hart für Fokus
+                case .alpha: return .sine      // Smooth for relaxation
+                case .theta: return .sine     // Smooth for trip
+                case .gamma: return .square   // Hard for focus
                 }
             }()
             
-            // Intensität basierend auf Modus
+            // Intensity based on mode
             let intensity: Float = {
                 switch mode {
-                case .alpha: return 0.4  // Sanfter für Entspannung
-                case .theta: return 0.3  // Sehr sanft für Trip
-                case .gamma: return 0.7  // Intensiver für Fokus
+                case .alpha: return 0.4  // Softer for relaxation
+                case .theta: return 0.3  // Very soft for trip
+                case .gamma: return 0.7  // More intense for focus
                 }
             }()
             
-            // Dauer: halbe Periode für Rechteck, volle Periode für Sinus
+            // Duration: half period for square, full period for sine
             let duration: TimeInterval = {
                 switch waveform {
-                case .square: return period / 2.0  // Kurz für hartes Blinken
-                case .sine: return period         // Länger für sanftes Pulsieren
+                case .square: return period / 2.0  // Short for hard blink
+                case .sine: return period         // Longer for soft pulse
                 case .triangle: return period
                 }
             }()
@@ -140,7 +140,7 @@ final class EntrainmentEngine {
                 intensity: intensity,
                 duration: duration,
                 waveform: waveform,
-                color: nil  // Wird später für Screen-Modus gesetzt
+                color: nil  // Will be set later for screen mode
             )
             
             events.append(event)
@@ -149,7 +149,7 @@ final class EntrainmentEngine {
         return events
     }
     
-    /// Fallback: Generiert gleichmäßige Pulsation wenn keine Beats erkannt wurden
+    /// Fallback: Generates uniform pulsation if no beats were detected
     private func generateFallbackEvents(
         frequency: Double,
         duration: TimeInterval,

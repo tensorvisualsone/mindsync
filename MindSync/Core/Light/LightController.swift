@@ -1,28 +1,28 @@
 import Foundation
 
-/// Protocol für Licht-Steuerung
+/// Protocol for light control
 protocol LightControlling {
-    /// Aktuelle Lichtquelle
+    /// Current light source
     var source: LightSource { get }
 
-    /// Startet die Licht-Ausgabe
+    /// Starts light output
     func start() throws
 
-    /// Stoppt die Licht-Ausgabe
+    /// Stops light output
     func stop()
 
-    /// Setzt die Intensität (0.0 - 1.0)
+    /// Sets intensity (0.0 - 1.0)
     func setIntensity(_ intensity: Float)
 
-    /// Setzt die Farbe (nur für Bildschirm-Modus)
+    /// Sets color (screen mode only)
     func setColor(_ color: LightEvent.LightColor)
 
-    /// Führt ein LightScript aus
-    /// - Parameter script: Das auszuführende LightScript
-    /// - Parameter startTime: Referenz-Zeitpunkt für Synchronisation
+    /// Executes a LightScript
+    /// - Parameter script: The LightScript to execute
+    /// - Parameter startTime: Reference time for synchronization
     func execute(script: LightScript, syncedTo startTime: Date)
 
-    /// Bricht die aktuelle Ausführung ab
+    /// Cancels the current execution
     func cancelExecution()
 }
 

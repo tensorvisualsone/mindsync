@@ -1,6 +1,6 @@
 import Foundation
 
-/// Service zur BPM-Schätzung aus Beat-Timestamps
+/// Service for BPM estimation from beat timestamps
 final class TempoEstimator {
     // Constants for BPM estimation
     private let minBPM: Double = 60.0
@@ -9,29 +9,29 @@ final class TempoEstimator {
     private let defaultInterval: TimeInterval = 0.5 // 120 BPM equivalent
     private let iqrOutlierMultiplier: Double = 1.5 // Standard IQR outlier detection threshold
     
-    /// Schätzt das Tempo (BPM) aus Beat-Timestamps
-    /// - Parameter beatTimestamps: Array von Zeitstempeln in Sekunden
-    /// - Returns: Geschätztes BPM (Beats Per Minute)
+    /// Estimates tempo (BPM) from beat timestamps
+    /// - Parameter beatTimestamps: Array of timestamps in seconds
+    /// - Returns: Estimated BPM (Beats Per Minute)
     func estimateBPM(from beatTimestamps: [TimeInterval]) -> Double {
         guard beatTimestamps.count >= 2 else {
             return defaultBPM
         }
 
-        // Berechne Inter-Onset-Intervalle
+        // Calculate inter-onset intervals
         var intervals: [TimeInterval] = []
         for i in 1..<beatTimestamps.count {
             let interval = beatTimestamps[i] - beatTimestamps[i - 1]
             intervals.append(interval)
         }
 
-        // Robustere Schätzung des dominanten Tempos:
-        // 1. Sortiere Intervalle und entferne Ausreißer per IQR.
-        // 2. Wandle Intervalle in BPM-Kandidaten um und falte sie in den Zielbereich.
-        // 3. Wähle das am häufigsten vorkommende BPM (Histogramm / Clustering).
+        // Robust estimation of dominant tempo:
+        // 1. Sort intervals and remove outliers using IQR.
+        // 2. Convert intervals to BPM candidates and fold them into target range.
+        // 3. Select most common BPM (histogram / clustering).
 
-        // Sicherstellen, dass wir genug Intervalle haben
+        // Ensure we have enough intervals
         guard intervals.count >= 2 else {
-            // Fallback: Median der wenigen Intervalle
+            // Fallback: Median of few intervals
             let singleInterval = max(0.01, intervals.first ?? defaultInterval)
             let fallbackBpm = 60.0 / singleInterval
             return clampBPM(fallbackBpm)
@@ -39,7 +39,7 @@ final class TempoEstimator {
 
         let sortedIntervals = intervals.sorted()
 
-        // IQR-basiertes Ausreißer-Filtering
+        // IQR-based outlier filtering
         let count = sortedIntervals.count
         let q1Index = count / 4
         let q3Index = (3 * count) / 4
@@ -54,16 +54,16 @@ final class TempoEstimator {
             interval > 0 && interval >= lowerBound && interval <= upperBound
         }
 
-        // Falls Filtering alles entfernt hat, auf ursprüngliche Intervalle zurückfallen
+        // If filtering removed everything, fall back to original intervals
         let intervalsForEstimation = filteredIntervals.isEmpty ? sortedIntervals : filteredIntervals
 
-        // Wandle Intervalle in BPM-Kandidaten um und falte sie in den Bereich minBPM–maxBPM
+        // Convert intervals to BPM candidates and fold them into minBPM-maxBPM range
         var bpmCandidates: [Double] = []
         for interval in intervalsForEstimation {
             guard interval > 0 else { continue }
             var bpm = 60.0 / interval
 
-            // Faltung in den sinnvollen Tempobereich (z. B. halbes/doppeltes Tempo)
+            // Fold into sensible tempo range (e.g. half/double tempo)
             while bpm < minBPM {
                 bpm *= 2.0
             }
@@ -73,28 +73,28 @@ final class TempoEstimator {
             bpmCandidates.append(bpm)
         }
 
-        // Wenn keine gültigen Kandidaten vorhanden sind, Median-Fallback
+        // If no valid candidates, median fallback
         guard !bpmCandidates.isEmpty else {
             let medianInterval = intervalsForEstimation[intervalsForEstimation.count / 2]
             let fallbackBpm = 60.0 / max(0.01, medianInterval)
             return clampBPM(fallbackBpm)
         }
 
-        // Erzeuge ein einfaches Histogramm (1-BPM-Bins) und wähle das häufigste BPM
+        // Create a simple histogram (1-BPM bins) and select most common BPM
         var histogram: [Int: Int] = [:]
         for bpm in bpmCandidates {
             let bin = Int(round(bpm))
             histogram[bin, default: 0] += 1
         }
 
-        // Finde den dominanten BPM-Bin (highest count)
+        // Find dominant BPM bin (highest count)
         let dominantBin = histogram.max { a, b in a.value < b.value }?.key
 
         let estimatedBpm: Double
         if let dominantBin = dominantBin {
             estimatedBpm = Double(dominantBin)
         } else {
-            // Letzter Fallback: Mittelwert der Kandidaten
+            // Last fallback: Average of candidates
             let sum = bpmCandidates.reduce(0.0, +)
             estimatedBpm = sum / Double(bpmCandidates.count)
         }

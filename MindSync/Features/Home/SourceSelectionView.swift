@@ -1,7 +1,7 @@
 import SwiftUI
 import MediaPlayer
 
-/// View zur Auswahl der Audio-Quelle
+/// View for audio source selection
 struct SourceSelectionView: View {
     private let mediaLibraryService = ServiceContainer.shared.mediaLibraryService
     @State private var authorizationStatus: MPMediaLibraryAuthorizationStatus = .notDetermined
@@ -15,19 +15,19 @@ struct SourceSelectionView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 32) {
-                Text("Audio-Quelle wählen")
+                Text("Select Audio Source")
                     .font(.title.bold())
                 
-                // Lokale Musikbibliothek
+                // Local music library
                 Button(action: {
                     requestMediaLibraryAccess()
                 }) {
                     VStack(spacing: 12) {
                         Image(systemName: "music.note.list")
                             .font(.system(size: 50))
-                        Text("Musikbibliothek")
+                        Text("Music Library")
                             .font(.headline)
-                        Text("Wähle einen Song aus deiner lokalen Musikbibliothek")
+                        Text("Choose a song from your local music library")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -40,16 +40,16 @@ struct SourceSelectionView: View {
                 .buttonStyle(.plain)
                 .disabled(authorizationStatus == .denied)
                 
-                // Mikrofon-Modus (für später)
+                // Microphone mode (for later)
                 Button(action: {
-                    // TODO: Mikrofon-Modus implementieren (Phase 8)
+                    // TODO: Implement microphone mode (Phase 8)
                 }) {
                     VStack(spacing: 12) {
                         Image(systemName: "mic.fill")
                             .font(.system(size: 50))
-                        Text("Mikrofon")
+                        Text("Microphone")
                             .font(.headline)
-                        Text("Analysiere Musik von externen Quellen")
+                        Text("Analyze music from external sources")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -60,10 +60,10 @@ struct SourceSelectionView: View {
                     .cornerRadius(16)
                 }
                 .buttonStyle(.plain)
-                .disabled(true)  // Noch nicht implementiert
+                .disabled(true)  // Not yet implemented
                 
                 if authorizationStatus == .denied {
-                    Text("Zugriff auf Musikbibliothek verweigert. Bitte in den Einstellungen aktivieren.")
+                    Text("Access to music library denied. Please enable in Settings.")
                         .font(.caption)
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
@@ -71,7 +71,7 @@ struct SourceSelectionView: View {
                 }
             }
             .padding()
-            .navigationTitle("Audio-Quelle")
+            .navigationTitle("Audio Source")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingMediaPicker) {
                 MediaPickerView(
@@ -83,7 +83,7 @@ struct SourceSelectionView: View {
                     }
                 )
             }
-            .alert("Fehler", isPresented: $showingError) {
+            .alert("Error", isPresented: $showingError) {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(errorMessage)
@@ -102,7 +102,7 @@ struct SourceSelectionView: View {
                 if status == .authorized {
                     showingMediaPicker = true
                 } else if status == .denied {
-                    errorMessage = "Zugriff auf Musikbibliothek wurde verweigert. Bitte in den Einstellungen aktivieren."
+                    errorMessage = "Access to music library was denied. Please enable in Settings."
                     showingError = true
                 }
             }
@@ -110,19 +110,19 @@ struct SourceSelectionView: View {
     }
     
     private func handleItemSelection(_ item: MPMediaItem) {
-        // Prüfe ob Song analysierbar ist
+        // Check if song can be analyzed
         if mediaLibraryService.canAnalyze(item: item) {
             selectedItem = item
             onSongSelected(item)
             showingMediaPicker = false
         } else {
-            errorMessage = "Dieser Song ist DRM-geschützt und kann nicht analysiert werden. Bitte wähle einen anderen Song oder verwende den Mikrofon-Modus."
+            errorMessage = "This song is DRM-protected and cannot be analyzed. Please choose another song or use microphone mode."
             showingError = true
         }
     }
 }
 
-/// Wrapper für MPMediaPickerController
+/// Wrapper for MPMediaPickerController
 struct MediaPickerView: UIViewControllerRepresentable {
     let onItemSelected: (MPMediaItem) -> Void
     let onCancel: () -> Void
@@ -131,12 +131,12 @@ struct MediaPickerView: UIViewControllerRepresentable {
         let picker = MPMediaPickerController(mediaTypes: .music)
         picker.delegate = context.coordinator
         picker.allowsPickingMultipleItems = false
-        picker.showsCloudItems = false  // Nur lokale Dateien
+        picker.showsCloudItems = false  // Only local files
         return picker
     }
     
     func updateUIViewController(_ uiViewController: MPMediaPickerController, context: Context) {
-        // Keine Updates nötig
+        // No updates needed
     }
     
     func makeCoordinator() -> Coordinator {
