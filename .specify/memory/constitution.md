@@ -179,4 +179,4 @@ Qualitätssicherung für neue Features.
     zulässig; kurzfristige Ausnahmen MÜSSEN klar begrenzt und später
     aufgeräumt werden.
 
-**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): Set original ratification date once agreed | **Last Amended**: 2025-12-23
+**Version**: 1.0.0 | **Ratified**: 2025-12-23 | **Last Amended**: 2025-12-23
