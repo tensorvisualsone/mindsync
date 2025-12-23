@@ -3,7 +3,7 @@ import MediaPlayer
 
 /// View zur Auswahl der Audio-Quelle
 struct SourceSelectionView: View {
-    @StateObject private var mediaLibraryService = MediaLibraryService()
+    private let mediaLibraryService = ServiceContainer.shared.mediaLibraryService
     @State private var authorizationStatus: MPMediaLibraryAuthorizationStatus = .notDetermined
     @State private var showingMediaPicker = false
     @State private var selectedItem: MPMediaItem?
@@ -87,6 +87,9 @@ struct SourceSelectionView: View {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(errorMessage)
+            }
+            .onAppear {
+                authorizationStatus = mediaLibraryService.authorizationStatus
             }
         }
     }

@@ -6,45 +6,91 @@ final class BeatDetector {
     private let sampleRate: Double = 44100.0
     private let fftSize: Int = 2048
     private let hopSize: Int = 512
+    
+    // Reusable FFT setup to avoid creating/destroying on every frame
+    private let fftSetup: FFTSetup
+    private let log2n: vDSP_Length
+    
+    init() {
+        self.log2n = vDSP_Length(log2(Double(fftSize)))
+        guard let setup = vDSP_create_fftsetup(log2n, FFTRadix(kFFTRadix2)) else {
+            fatalError("Failed to create FFT setup with log2n=\(log2n). This may indicate insufficient memory or invalid FFT size.")
+        }
+        self.fftSetup = setup
+    }
+    
+    deinit {
+        vDSP_destroy_fftsetup(fftSetup)
+    }
 
     /// Erkennt Beat-Positionen in PCM-Daten
     /// - Parameter samples: PCM-Samples (mono, 44.1kHz)
     /// - Returns: Array von Zeitstempeln in Sekunden für jeden Beat
-    func detectBeats(in samples: [Float]) -> [TimeInterval] {
-        var beatTimestamps: [TimeInterval] = []
-        var previousMagnitude: [Float] = Array(repeating: 0, count: fftSize / 2)
+    func detectBeats(in samples: [Float]) async -> [TimeInterval] {
+        // Capture needed properties for the detached task
+        let sampleRate = self.sampleRate
+        let fftSize = self.fftSize
+        let hopSize = self.hopSize
+        
+        // Run on background queue to prevent blocking the main thread
+        return await Task.detached(priority: .userInitiated) { [self] in
+            var beatTimestamps: [TimeInterval] = []
+            var previousMagnitude: [Float] = Array(repeating: 0, count: fftSize / 2)
 
-        let frameCount = samples.count
-        var frameIndex = 0
+            let frameCount = samples.count
+            var frameIndex = 0
+            
+            // Calculate adaptive threshold based on spectral flux statistics
+            var spectralFluxValues: [Float] = []
 
-        while frameIndex + fftSize < frameCount {
-            // Extrahiere Frame
-            let frame = Array(samples[frameIndex..<frameIndex + fftSize])
+            while frameIndex + fftSize < frameCount {
+                // Extrahiere Frame
+                let frame = Array(samples[frameIndex..<frameIndex + fftSize])
 
-            // FFT durchführen
-            let magnitude = performFFT(on: frame)
+                // FFT durchführen
+                let magnitude = self.performFFT(on: frame)
 
-            // Spectral Flux berechnen
-            var spectralFlux: Float = 0
-            for i in 0..<min(magnitude.count, previousMagnitude.count) {
-                let diff = magnitude[i] - previousMagnitude[i]
-                if diff > 0 {
-                    spectralFlux += diff
+                // Spectral Flux berechnen
+                var spectralFlux: Float = 0
+                for i in 0..<min(magnitude.count, previousMagnitude.count) {
+                    let diff = magnitude[i] - previousMagnitude[i]
+                    if diff > 0 {
+                        spectralFlux += diff
+                    }
                 }
+                
+                spectralFluxValues.append(spectralFlux)
+                previousMagnitude = magnitude
+                frameIndex += hopSize
+            }
+            
+            // Calculate adaptive threshold using single-pass algorithm (mean + 0.5 * std deviation)
+            var sum: Float = 0
+            var sumOfSquares: Float = 0
+            for flux in spectralFluxValues {
+                sum += flux
+                sumOfSquares += flux * flux
+            }
+            let count = Float(spectralFluxValues.count)
+            let mean = sum / count
+            let variance = (sumOfSquares / count) - (mean * mean)
+            let stdDev = sqrt(max(0, variance)) // max(0, ...) to handle floating point errors
+            let adaptiveThreshold = mean + 0.5 * stdDev
+            
+            // Detect beats using adaptive threshold
+            frameIndex = 0
+            var fluxIndex = 0
+            while frameIndex + fftSize < frameCount {
+                if fluxIndex < spectralFluxValues.count && spectralFluxValues[fluxIndex] > adaptiveThreshold {
+                    let timestamp = Double(frameIndex) / sampleRate
+                    beatTimestamps.append(timestamp)
+                }
+                frameIndex += hopSize
+                fluxIndex += 1
             }
 
-            // Beat-Threshold (adaptiv basierend auf Durchschnitt)
-            let threshold: Float = 0.3
-            if spectralFlux > threshold {
-                let timestamp = Double(frameIndex) / sampleRate
-                beatTimestamps.append(timestamp)
-            }
-
-            previousMagnitude = magnitude
-            frameIndex += hopSize
-        }
-
-        return beatTimestamps
+            return beatTimestamps
+        }.value
     }
 
     /// Führt FFT auf einem Frame durch
@@ -54,14 +100,6 @@ final class BeatDetector {
         var window = [Float](repeating: 0, count: fftSize)
         vDSP_hann_window(&window, vDSP_Length(fftSize), Int32(vDSP_HANN_NORM))
         vDSP_vmul(frame, 1, window, 1, &windowed, 1, vDSP_Length(fftSize))
-
-        // FFT vorbereiten
-        let log2n = vDSP_Length(log2(Double(fftSize)))
-        let fftSetup = vDSP_create_fftsetup(log2n, FFTRadix(kFFTRadix2))
-
-        defer {
-            vDSP_destroy_fftsetup(fftSetup)
-        }
 
         // Complex-Buffer erstellen
         var realp = [Float](repeating: 0, count: fftSize / 2)
@@ -74,7 +112,7 @@ final class BeatDetector {
             }
         }
 
-        // FFT ausführen
+        // FFT ausführen (using reusable setup)
         vDSP_fft_zrip(fftSetup, &splitComplex, 1, log2n, FFTDirection(FFT_FORWARD))
 
         // Magnitude berechnen

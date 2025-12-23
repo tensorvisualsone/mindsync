@@ -12,6 +12,9 @@ final class SessionViewModel: ObservableObject {
     private let audioPlayback: AudioPlaybackService
     private let entrainmentEngine: EntrainmentEngine
     
+    // Cached preferences to avoid repeated UserDefaults access
+    private var cachedPreferences: UserPreferences
+    
     // Published State
     @Published var state: SessionState = .idle
     @Published var currentTrack: AudioTrack?
@@ -23,9 +26,9 @@ final class SessionViewModel: ObservableObject {
     // Cancellables
     private var cancellables = Set<AnyCancellable>()
     
-    // Aktuelle Lichtquelle
+    // Current light controller based on cached preferences
     private var lightController: LightControlling {
-        switch UserPreferences.load().preferredLightSource {
+        switch cachedPreferences.preferredLightSource {
         case .flashlight:
             return services.flashlightController
         case .screen:
@@ -35,10 +38,18 @@ final class SessionViewModel: ObservableObject {
     
     init() {
         self.audioAnalyzer = services.audioAnalyzer
-        self.audioPlayback = AudioPlaybackService()
+        self.audioPlayback = services.audioPlayback
+        self.cachedPreferences = UserPreferences.load()
         
         // EntrainmentEngine aus ServiceContainer
         self.entrainmentEngine = services.entrainmentEngine
+        
+        // Setup playback completion callback
+        audioPlayback.onPlaybackComplete = { [weak self] in
+            Task { @MainActor in
+                self?.handlePlaybackComplete()
+            }
+        }
         
         // Höre auf Analyse-Fortschritt
         audioAnalyzer.progressPublisher
@@ -47,6 +58,12 @@ final class SessionViewModel: ObservableObject {
                 self?.analysisProgress = progress
             }
             .store(in: &cancellables)
+    }
+    
+    /// Handles playback completion
+    private func handlePlaybackComplete() {
+        guard state == .running else { return }
+        stopSession()
     }
     
     /// Startet eine Session mit einem ausgewählten Song
@@ -68,9 +85,9 @@ final class SessionViewModel: ObservableObject {
             let track = try await audioAnalyzer.analyze(url: assetURL, mediaItem: mediaItem)
             currentTrack = track
             
-            // Generiere LightScript
-            let mode = UserPreferences.load().preferredMode
-            let lightSource = UserPreferences.load().preferredLightSource
+            // Generiere LightScript using cached preferences
+            let mode = cachedPreferences.preferredMode
+            let lightSource = cachedPreferences.preferredLightSource
             let script = entrainmentEngine.generateLightScript(
                 from: track,
                 mode: mode,
@@ -94,7 +111,14 @@ final class SessionViewModel: ObservableObject {
             
             state = .running
             
+            // Auto-save session immediately when running state is reached
+            services.sessionHistoryService.save(session: session)
+            
         } catch {
+            // Ensure cleanup if starting playback or light controller fails
+            audioPlayback.stop()
+            lightController.stop()
+            
             errorMessage = error.localizedDescription
             state = .error
         }
@@ -118,6 +142,12 @@ final class SessionViewModel: ObservableObject {
         currentTrack = nil
         currentScript = nil
         currentSession = nil
+    }
+    
+    /// Resets the session state (called when view is dismissed)
+    func reset() {
+        errorMessage = nil
+        state = .idle
     }
     
     /// Startet Audio-Wiedergabe und Licht-Synchronisation

@@ -110,6 +110,8 @@ struct SessionView: View {
                 // TODO: Resume-Funktionalität
             }
             .buttonStyle(.borderedProminent)
+            .disabled(true)
+            .opacity(0.5)
         }
     }
     
@@ -130,6 +132,7 @@ struct SessionView: View {
             }
             
             Button("Zurück") {
+                viewModel.reset()
                 dismiss()
             }
             .buttonStyle(.borderedProminent)

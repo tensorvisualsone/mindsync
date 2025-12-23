@@ -16,8 +16,14 @@ final class MediaLibraryService {
     /// Prüft ob ein Item analysierbar ist (nicht DRM-geschützt)
     func canAnalyze(item: MPMediaItem) -> Bool {
         guard let url = item.assetURL else { return false }
-        // Prüfe ob AVAssetReader die Datei lesen kann
         let asset = AVAsset(url: url)
+        
+        // DRM-geschützte Inhalte können nicht analysiert werden
+        if asset.hasProtectedContent {
+            return false
+        }
+        
+        // Für nicht geschützte Inhalte prüfen, ob das Asset lesbar ist
         return asset.isReadable
     }
 

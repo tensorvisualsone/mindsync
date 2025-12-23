@@ -81,7 +81,8 @@ final class EntrainmentEngine {
             if multiplier > 100 {
                 // Fallback: verwende Multiplikator für mittlere Ziel-Frequenz
                 let targetMid = (targetRange.lowerBound + targetRange.upperBound) / 2.0
-                return max(1, Int(targetMid / baseFrequency))
+                let fallbackMultiplier = Int((targetMid / baseFrequency).rounded())
+                return max(1, fallbackMultiplier)
             }
         }
     }

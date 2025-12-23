@@ -2,7 +2,7 @@ import Foundation
 import AVFoundation
 
 /// Controller für Taschenlampen-Steuerung
-final class FlashlightController: LightControlling {
+final class FlashlightController: NSObject, LightControlling {
     var source: LightSource { .flashlight }
 
     private var device: AVCaptureDevice?
@@ -10,8 +10,11 @@ final class FlashlightController: LightControlling {
     private var currentScript: LightScript?
     private var scriptStartTime: Date?
     private var displayLink: CADisplayLink?
+    private let thermalManager: ThermalManager
 
-    init() {
+    init(thermalManager: ThermalManager) {
+        self.thermalManager = thermalManager
+        super.init()
         device = AVCaptureDevice.default(for: .video)
     }
 
@@ -35,7 +38,11 @@ final class FlashlightController: LightControlling {
 
     func setIntensity(_ intensity: Float) {
         guard let device = device, isLocked else { return }
-        let clampedIntensity = max(0.0, min(1.0, intensity))
+        
+        // Apply thermal limits
+        let maxIntensity = thermalManager.maxFlashlightIntensity
+        let clampedIntensity = max(0.0, min(maxIntensity, intensity))
+        
         try? device.setTorchModeOn(level: clampedIntensity)
     }
 
@@ -49,11 +56,16 @@ final class FlashlightController: LightControlling {
 
         // CADisplayLink für präzises Timing
         displayLink = CADisplayLink(target: self, selector: #selector(updateLight))
-        displayLink?.preferredFrameRateRange = CAFrameRateRange(
-            minimum: 60,
-            maximum: 120,
-            preferred: 120
-        )
+        if #available(iOS 15.0, *) {
+            displayLink?.preferredFrameRateRange = CAFrameRateRange(
+                minimum: 60,
+                maximum: 120,
+                preferred: 120
+            )
+        } else {
+            // Fallback for iOS versions before 15.0
+            displayLink?.preferredFramesPerSecond = 120
+        }
         displayLink?.add(to: .main, forMode: .common)
     }
 
