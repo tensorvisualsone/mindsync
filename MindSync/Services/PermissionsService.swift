@@ -1,6 +1,26 @@
 import Foundation
+import AVFoundation
+import MediaPlayer
 
-/// Platzhalter für Berechtigungs-Service
+/// Service für Berechtigungs-Prüfung
 final class PermissionsService {
-    // Wird in Phase 4 (US1) implementiert
+    /// Mikrofon-Berechtigung
+    var microphoneStatus: AVAudioSession.RecordPermission {
+        AVAudioSession.sharedInstance().recordPermission
+    }
+
+    /// Musikbibliothek-Berechtigung
+    var mediaLibraryStatus: MPMediaLibraryAuthorizationStatus {
+        MPMediaLibrary.authorizationStatus()
+    }
+
+    /// Fordert Mikrofon-Berechtigung an
+    func requestMicrophoneAccess() async -> Bool {
+        await AVAudioSession.sharedInstance().requestRecordPermission()
+    }
+
+    /// Fordert Musikbibliothek-Berechtigung an
+    func requestMediaLibraryAccess() async -> MPMediaLibraryAuthorizationStatus {
+        await MPMediaLibrary.requestAuthorization()
+    }
 }
