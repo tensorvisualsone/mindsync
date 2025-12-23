@@ -131,10 +131,10 @@ Before making changes, review:
 ## Testing
 
 ```bash
-# Unit Tests
+# Unit Tests (adjust device name as needed for your Xcode version)
 xcodebuild test -scheme MindSync -destination 'platform=iOS Simulator,name=iPhone 15 Pro'
 
-# UI Tests
+# UI Tests (adjust device name as needed for your Xcode version)
 xcodebuild test -scheme MindSyncUITests -destination 'platform=iOS Simulator,name=iPhone 15 Pro'
 ```
 
@@ -175,14 +175,11 @@ xcodebuild test -scheme MindSyncUITests -destination 'platform=iOS Simulator,nam
 ## Helpful Commands
 
 ```bash
-# Navigate to project
-cd /path/to/mindsync
-
-# Open documentation
+# Open documentation (from repository root)
 open specs/001-audio-strobe-sync/quickstart.md
 open .specify/memory/constitution.md
 
-# View project in Xcode
+# View project in Xcode (from repository root)
 open MindSync.xcodeproj  # or .xcworkspace if present
 ```
 
