@@ -2,12 +2,19 @@ import Foundation
 
 /// Service zur BPM-Schätzung aus Beat-Timestamps
 final class TempoEstimator {
+    // Constants for BPM estimation
+    private let minBPM: Double = 60.0
+    private let maxBPM: Double = 200.0
+    private let defaultBPM: Double = 120.0
+    private let defaultInterval: TimeInterval = 0.5 // 120 BPM equivalent
+    private let iqrOutlierMultiplier: Double = 1.5 // Standard IQR outlier detection threshold
+    
     /// Schätzt das Tempo (BPM) aus Beat-Timestamps
     /// - Parameter beatTimestamps: Array von Zeitstempeln in Sekunden
     /// - Returns: Geschätztes BPM (Beats Per Minute)
     func estimateBPM(from beatTimestamps: [TimeInterval]) -> Double {
         guard beatTimestamps.count >= 2 else {
-            return 120.0 // Default
+            return defaultBPM
         }
 
         // Berechne Inter-Onset-Intervalle
@@ -25,9 +32,9 @@ final class TempoEstimator {
         // Sicherstellen, dass wir genug Intervalle haben
         guard intervals.count >= 2 else {
             // Fallback: Median der wenigen Intervalle
-            let singleInterval = max(0.01, intervals.first ?? 0.5)
+            let singleInterval = max(0.01, intervals.first ?? defaultInterval)
             let fallbackBpm = 60.0 / singleInterval
-            return max(60.0, min(200.0, fallbackBpm))
+            return clampBPM(fallbackBpm)
         }
 
         let sortedIntervals = intervals.sorted()
@@ -40,8 +47,8 @@ final class TempoEstimator {
         let q3 = sortedIntervals[q3Index]
         let iqr = q3 - q1
 
-        let lowerBound = q1 - 1.5 * iqr
-        let upperBound = q3 + 1.5 * iqr
+        let lowerBound = q1 - iqrOutlierMultiplier * iqr
+        let upperBound = q3 + iqrOutlierMultiplier * iqr
 
         let filteredIntervals = sortedIntervals.filter { interval in
             interval > 0 && interval >= lowerBound && interval <= upperBound
@@ -50,17 +57,17 @@ final class TempoEstimator {
         // Falls Filtering alles entfernt hat, auf ursprüngliche Intervalle zurückfallen
         let intervalsForEstimation = filteredIntervals.isEmpty ? sortedIntervals : filteredIntervals
 
-        // Wandle Intervalle in BPM-Kandidaten um und falte sie in den Bereich 60–200 BPM
+        // Wandle Intervalle in BPM-Kandidaten um und falte sie in den Bereich minBPM–maxBPM
         var bpmCandidates: [Double] = []
         for interval in intervalsForEstimation {
             guard interval > 0 else { continue }
             var bpm = 60.0 / interval
 
             // Faltung in den sinnvollen Tempobereich (z. B. halbes/doppeltes Tempo)
-            while bpm < 60.0 {
+            while bpm < minBPM {
                 bpm *= 2.0
             }
-            while bpm > 200.0 {
+            while bpm > maxBPM {
                 bpm /= 2.0
             }
             bpmCandidates.append(bpm)
@@ -70,7 +77,7 @@ final class TempoEstimator {
         guard !bpmCandidates.isEmpty else {
             let medianInterval = intervalsForEstimation[intervalsForEstimation.count / 2]
             let fallbackBpm = 60.0 / max(0.01, medianInterval)
-            return max(60.0, min(200.0, fallbackBpm))
+            return clampBPM(fallbackBpm)
         }
 
         // Erzeuge ein einfaches Histogramm (1-BPM-Bins) und wähle das häufigste BPM
@@ -92,7 +99,11 @@ final class TempoEstimator {
             estimatedBpm = sum / Double(bpmCandidates.count)
         }
 
-        // Begrenze auf sinnvollen Bereich (60-200 BPM)
-        return max(60.0, min(200.0, estimatedBpm))
+        return clampBPM(estimatedBpm)
+    }
+    
+    /// Clamps BPM value to valid range
+    private func clampBPM(_ bpm: Double) -> Double {
+        return max(minBPM, min(maxBPM, bpm))
     }
 }
