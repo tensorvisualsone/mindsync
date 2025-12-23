@@ -10,13 +10,21 @@ final class AudioFileReader {
     /// - Throws: AudioAnalysisError
     /// - Note: This method loads the entire audio file into memory as a single array of Float samples.
     ///         For very long audio files, this may cause memory pressure or crashes on devices with
-    ///         limited RAM. Consider implementing chunked reading or streaming, or adding validation
-    ///         to warn users about files longer than a reasonable threshold (e.g., 30 minutes).
+    ///         limited RAM. Files longer than 30 minutes will throw an error to prevent memory issues.
     func readPCM(from url: URL) async throws -> [Float] {
         let asset = AVAsset(url: url)
 
         guard asset.isReadable else {
             throw AudioAnalysisError.drmProtected
+        }
+        
+        // Check duration to prevent memory issues with very long files
+        let duration = try await asset.load(.duration)
+        let durationInSeconds = CMTimeGetSeconds(duration)
+        let maxDurationInSeconds: Double = 30 * 60 // 30 minutes
+        
+        if durationInSeconds > maxDurationInSeconds {
+            throw AudioAnalysisError.fileTooLong(duration: durationInSeconds)
         }
 
         guard let audioTrack = try await asset.loadTracks(withMediaType: .audio).first else {
@@ -91,6 +99,7 @@ enum AudioAnalysisError: Error, LocalizedError {
     case unsupportedFormat
     case analysisFailure(underlying: Error)
     case cancelled
+    case fileTooLong(duration: Double)
 
     var errorDescription: String? {
         switch self {
@@ -104,6 +113,9 @@ enum AudioAnalysisError: Error, LocalizedError {
             return "Analysis failed: \(e.localizedDescription)"
         case .cancelled:
             return "Analysis cancelled"
+        case .fileTooLong(let duration):
+            let minutes = Int(duration / 60)
+            return "Audio file is too long (\(minutes) minutes). Maximum supported length is 30 minutes."
         }
     }
 }

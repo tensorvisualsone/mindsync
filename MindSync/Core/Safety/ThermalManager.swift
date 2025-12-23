@@ -1,7 +1,6 @@
 import Foundation
 
-/// Manager for thermal monitoring
-/// Will be fully implemented in Phase 6 (US6)
+/// Evaluates the current thermal state and derives safe flashlight intensity and screen fallback behavior.
 final class ThermalManager {
     /// Current thermal state
     var currentState: ProcessInfo.ThermalState {

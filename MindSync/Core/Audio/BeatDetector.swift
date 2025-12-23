@@ -48,6 +48,11 @@ final class BeatDetector {
             var spectralFluxValues: [Float] = []
 
             while frameIndex + fftSize < frameCount {
+                // Check for cancellation
+                if Task.isCancelled {
+                    return []
+                }
+                
                 // Extract frame
                 let frame = Array(samples[frameIndex..<frameIndex + fftSize])
 
@@ -85,6 +90,11 @@ final class BeatDetector {
             frameIndex = 0
             var fluxIndex = 0
             while frameIndex + fftSize < frameCount {
+                // Check for cancellation
+                if Task.isCancelled {
+                    return []
+                }
+                
                 if fluxIndex < spectralFluxValues.count && spectralFluxValues[fluxIndex] > adaptiveThreshold {
                     let timestamp = Double(frameIndex) / sampleRate
                     beatTimestamps.append(timestamp)
