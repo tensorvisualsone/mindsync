@@ -4,9 +4,14 @@ import MediaPlayer
 
 /// Service for permission checking
 final class PermissionsService {
-    /// Microphone permission
-    var microphoneStatus: AVAudioSession.RecordPermission {
-        AVAudioSession.sharedInstance().recordPermission
+    /// Microphone permission status
+    var microphoneStatus: AVAudioApplication.RecordPermission {
+        AVAudioApplication.shared.recordPermission
+    }
+    
+    /// Whether microphone access is granted
+    var hasMicrophoneAccess: Bool {
+        microphoneStatus == .granted
     }
 
     /// Music library permission
@@ -16,7 +21,11 @@ final class PermissionsService {
 
     /// Requests microphone permission
     func requestMicrophoneAccess() async -> Bool {
-        await AVAudioSession.sharedInstance().requestRecordPermission()
+        await withCheckedContinuation { continuation in
+            AVAudioApplication.requestRecordPermission { granted in
+                continuation.resume(returning: granted)
+            }
+        }
     }
 
     /// Requests music library permission
