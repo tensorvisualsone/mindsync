@@ -77,8 +77,8 @@ final class EntrainmentEngine {
             
             multiplier += 1
             
-            // Safety check: prevent infinite loop
-            if multiplier > 100 {
+            // Safety check: prevent infinite loop with reasonable upper bound
+            if multiplier > 50 {
                 // Fallback: use multiplier for middle target frequency
                 let targetMid = (targetRange.lowerBound + targetRange.upperBound) / 2.0
                 let fallbackMultiplier = Int((targetMid / baseFrequency).rounded())
