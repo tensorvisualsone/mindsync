@@ -59,10 +59,17 @@ final class BeatDetector {
                 frameIndex += self.hopSize
             }
             
-            // Calculate adaptive threshold (mean + 0.5 * std deviation)
-            let mean = spectralFluxValues.reduce(0, +) / Float(spectralFluxValues.count)
-            let variance = spectralFluxValues.map { pow($0 - mean, 2) }.reduce(0, +) / Float(spectralFluxValues.count)
-            let stdDev = sqrt(variance)
+            // Calculate adaptive threshold using single-pass algorithm (mean + 0.5 * std deviation)
+            var sum: Float = 0
+            var sumOfSquares: Float = 0
+            for flux in spectralFluxValues {
+                sum += flux
+                sumOfSquares += flux * flux
+            }
+            let count = Float(spectralFluxValues.count)
+            let mean = sum / count
+            let variance = (sumOfSquares / count) - (mean * mean)
+            let stdDev = sqrt(max(0, variance)) // max(0, ...) to handle floating point errors
             let adaptiveThreshold = mean + 0.5 * stdDev
             
             // Detect beats using adaptive threshold

@@ -1,9 +1,11 @@
 import Foundation
+import os.log
 
 /// Service für Session-Historie-Verwaltung
 final class SessionHistoryService {
     private let userDefaults = UserDefaults.standard
     private let sessionsKey = "savedSessions"
+    private let logger = Logger(subsystem: "com.mindsync", category: "SessionHistory")
     
     /// Speichert eine Session
     func save(session: Session) {
@@ -19,7 +21,7 @@ final class SessionHistoryService {
             let data = try JSONEncoder().encode(sessions)
             userDefaults.set(data, forKey: sessionsKey)
         } catch {
-            print("SessionHistoryService.save: Failed to encode sessions: \(error)")
+            logger.error("Failed to encode sessions: \(error.localizedDescription, privacy: .public)")
         }
     }
     
