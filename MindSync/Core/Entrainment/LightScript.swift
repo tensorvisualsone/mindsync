@@ -7,6 +7,14 @@ struct LightEvent: Codable {
     let duration: TimeInterval     // Wie lange das Licht an bleibt
     let waveform: Waveform         // Form des Lichtsignals
     let color: LightColor?         // Nur für Bildschirm-Modus
+    
+    init(timestamp: TimeInterval, intensity: Float, duration: TimeInterval, waveform: Waveform, color: LightColor?) {
+        self.timestamp = timestamp
+        self.intensity = max(0.0, min(1.0, intensity)) // Clamp intensity to valid range
+        self.duration = duration
+        self.waveform = waveform
+        self.color = color
+    }
 
     /// Verfügbare Wellenformen
     enum Waveform: String, Codable {
