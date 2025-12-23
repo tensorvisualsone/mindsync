@@ -23,6 +23,7 @@ final class SessionViewModel: ObservableObject {
     @Published var analysisProgress: AnalysisProgress?
     @Published var errorMessage: String?
     @Published var currentSession: Session?
+    @Published var thermalWarningLevel: ThermalWarningLevel = .none
     
     // Cancellables
     private var cancellables = Set<AnyCancellable>()
@@ -53,13 +54,70 @@ final class SessionViewModel: ObservableObject {
                 self?.analysisProgress = progress
             }
             .store(in: &cancellables)
+        
+        // Listen to thermal state changes
+        services.thermalManager.$warningLevel
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] level in
+                self?.handleThermalWarning(level)
+            }
+            .store(in: &cancellables)
+    }
+    
+    /// Handles thermal warning level changes during session
+    private func handleThermalWarning(_ level: ThermalWarningLevel) {
+        thermalWarningLevel = level
+        
+        // Only handle thermal events during running sessions
+        guard state == .running else { return }
+        
+        switch level {
+        case .none:
+            // All good, no action needed
+            break
+            
+        case .reduced:
+            // Intensity is automatically reduced by FlashlightController
+            // Just show the warning banner (handled by published property)
+            break
+            
+        case .critical:
+            // Automatic fallback to screen mode if available
+            handleCriticalThermalState()
+        }
+    }
+    
+    /// Handles critical thermal state - attempts fallback to screen mode
+    private func handleCriticalThermalState() {
+        guard let currentScript = currentScript,
+              let session = currentSession,
+              lightController?.source == .flashlight else {
+            return
+        }
+        
+        // Stop flashlight
+        lightController?.stop()
+        
+        // Switch to screen controller
+        lightController = services.screenController
+        
+        do {
+            try lightController?.start()
+            
+            // Resume from current session position using original session start time
+            lightController?.execute(script: currentScript, syncedTo: session.startedAt)
+            
+        } catch {
+            // If screen controller also fails, stop the session
+            stopSession()
+        }
     }
     
     deinit {
-        // Ensure playback is stopped before clearing callback to avoid delegate callbacks after deallocation
-        audioPlayback.stop()
-        // Clear callback to prevent stale references
-        audioPlayback.onPlaybackComplete = nil
+        // Note: Cleanup is handled by stopSession() which should be called before deallocation.
+        // The AudioPlaybackService handles its own lifecycle and will stop when deallocated.
+        // We intentionally don't call MainActor-isolated methods from deinit to avoid
+        // Swift 6 concurrency warnings.
     }
     
     /// Handles playback completion

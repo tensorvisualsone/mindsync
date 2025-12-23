@@ -1,15 +1,19 @@
 import XCTest
+import Combine
 @testable import MindSync
 
 final class ThermalManagerTests: XCTestCase {
     var thermalManager: ThermalManager!
+    var cancellables: Set<AnyCancellable>!
     
     override func setUp() {
         super.setUp()
         thermalManager = ThermalManager()
+        cancellables = Set<AnyCancellable>()
     }
     
     override func tearDown() {
+        cancellables = nil
         thermalManager = nil
         super.tearDown()
     }
@@ -22,6 +26,70 @@ final class ThermalManagerTests: XCTestCase {
         
         // Then: Should return a valid thermal state (no assertion needed, test passes if no crash)
         _ = state
+    }
+    
+    // MARK: - Warning Level Tests
+    
+    func testWarningLevel_IsPublished() {
+        // Given
+        var receivedLevel: ThermalWarningLevel?
+        let expectation = expectation(description: "Warning level published")
+        
+        thermalManager.$warningLevel
+            .first()
+            .sink { level in
+                receivedLevel = level
+                expectation.fulfill()
+            }
+            .store(in: &cancellables)
+        
+        // Then
+        wait(for: [expectation], timeout: 1.0)
+        XCTAssertNotNil(receivedLevel)
+    }
+    
+    func testWarningLevel_MatchesThermalState() {
+        // When
+        let state = thermalManager.thermalState
+        let warningLevel = thermalManager.warningLevel
+        
+        // Then
+        switch state {
+        case .nominal, .fair:
+            XCTAssertEqual(warningLevel, .none)
+        case .serious:
+            XCTAssertEqual(warningLevel, .reduced)
+        case .critical:
+            XCTAssertEqual(warningLevel, .critical)
+        @unknown default:
+            XCTAssertEqual(warningLevel, .reduced)
+        }
+    }
+    
+    // MARK: - Warning Level Message Tests
+    
+    func testWarningLevel_NoneHasNoMessage() {
+        XCTAssertNil(ThermalWarningLevel.none.message)
+    }
+    
+    func testWarningLevel_ReducedHasMessage() {
+        XCTAssertNotNil(ThermalWarningLevel.reduced.message)
+        XCTAssertTrue(ThermalWarningLevel.reduced.message!.contains("reduziert"))
+    }
+    
+    func testWarningLevel_CriticalHasMessage() {
+        XCTAssertNotNil(ThermalWarningLevel.critical.message)
+        XCTAssertTrue(ThermalWarningLevel.critical.message!.contains("deaktiviert"))
+    }
+    
+    // MARK: - Warning Level Icon Tests
+    
+    func testWarningLevel_ReducedHasIcon() {
+        XCTAssertFalse(ThermalWarningLevel.reduced.icon.isEmpty)
+    }
+    
+    func testWarningLevel_CriticalHasIcon() {
+        XCTAssertFalse(ThermalWarningLevel.critical.icon.isEmpty)
     }
     
     // MARK: - Flashlight Intensity Tests
