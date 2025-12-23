@@ -32,11 +32,11 @@ final class ServiceContainer: ObservableObject {
         self.mediaLibraryService = MediaLibraryService()
         self.permissionsService = PermissionsService()
 
-        // Light & Safety
-        self.flashlightController = FlashlightController()
+        // Light & Safety - Initialize ThermalManager first to avoid circular dependency
+        self.thermalManager = ThermalManager()
+        self.flashlightController = FlashlightController(thermalManager: self.thermalManager)
         self.screenController = ScreenController()
         self.entrainmentEngine = EntrainmentEngine()
-        self.thermalManager = ThermalManager()
         self.fallDetector = FallDetector()
     }
 }

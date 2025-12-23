@@ -27,15 +27,14 @@ final class BeatDetector {
     /// - Parameter samples: PCM-Samples (mono, 44.1kHz)
     /// - Returns: Array von Zeitstempeln in Sekunden für jeden Beat
     func detectBeats(in samples: [Float]) async -> [TimeInterval] {
-        // Capture needed properties to avoid retaining self
+        // Capture needed properties to avoid unnecessary self references
         let sampleRate = self.sampleRate
         let fftSize = self.fftSize
         let hopSize = self.hopSize
         
         // Run on background queue to prevent blocking the main thread
-        return await Task.detached(priority: .userInitiated) { [weak self] in
-            guard let self = self else { return [] }
-            
+        // Note: Task.detached doesn't capture calling context, so we capture self explicitly
+        return await Task.detached(priority: .userInitiated) { [self] in
             var beatTimestamps: [TimeInterval] = []
             var previousMagnitude: [Float] = Array(repeating: 0, count: fftSize / 2)
 

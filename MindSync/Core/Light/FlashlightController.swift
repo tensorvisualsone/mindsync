@@ -12,7 +12,7 @@ final class FlashlightController: NSObject, LightControlling {
     private var displayLink: CADisplayLink?
     private let thermalManager: ThermalManager
 
-    init(thermalManager: ThermalManager = ServiceContainer.shared.thermalManager) {
+    init(thermalManager: ThermalManager) {
         self.thermalManager = thermalManager
         super.init()
         device = AVCaptureDevice.default(for: .video)
