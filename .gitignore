@@ -1,0 +1,195 @@
+# =============================================================================
+# MindSync iOS App - .gitignore
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Xcode
+# -----------------------------------------------------------------------------
+
+## Build generated
+build/
+DerivedData/
+*.build/
+
+## Index store
+IndexStoreDB/
+
+## Various settings
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+
+## Other
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+*.hmap
+
+## Obj-C/Swift specific
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+## Swift Package Manager
+.swiftpm/
+.build/
+Packages/
+Package.pins
+Package.resolved
+*.xcodeproj
+.netrc
+
+# -----------------------------------------------------------------------------
+# CocoaPods (falls später verwendet)
+# -----------------------------------------------------------------------------
+Pods/
+*.xcworkspace
+!default.xcworkspace
+Podfile.lock
+
+# -----------------------------------------------------------------------------
+# Carthage (falls später verwendet)
+# -----------------------------------------------------------------------------
+Carthage/Build/
+Carthage/Checkouts/
+
+# -----------------------------------------------------------------------------
+# fastlane
+# -----------------------------------------------------------------------------
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# -----------------------------------------------------------------------------
+# Code Injection
+# -----------------------------------------------------------------------------
+iOSInjectionProject/
+
+# -----------------------------------------------------------------------------
+# macOS
+# -----------------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Icon must end with two \r
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# -----------------------------------------------------------------------------
+# IDEs und Editoren
+# -----------------------------------------------------------------------------
+
+## VS Code
+.vscode/
+*.code-workspace
+
+## JetBrains (AppCode)
+.idea/
+*.iml
+
+## Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+## Vim
+*.swp
+*.swo
+*~
+
+# -----------------------------------------------------------------------------
+# Environment & Secrets
+# -----------------------------------------------------------------------------
+.env
+.env.local
+.env.*.local
+*.pem
+*.p12
+*.mobileprovision
+*.provisionprofile
+secrets/
+Secrets/
+
+# -----------------------------------------------------------------------------
+# Testing & Coverage
+# -----------------------------------------------------------------------------
+coverage/
+*.lcov
+.coverage
+htmlcov/
+test-results/
+xcov_report/
+
+# -----------------------------------------------------------------------------
+# Logs & Crash Reports
+# -----------------------------------------------------------------------------
+*.log
+logs/
+crash_reports/
+
+# -----------------------------------------------------------------------------
+# Misc
+# -----------------------------------------------------------------------------
+*.bak
+*.tmp
+*.temp
+*.orig
+Thumbs.db
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+
+# Large media files (keep originals elsewhere)
+*.mp3
+*.wav
+*.aac
+*.m4a
+*.mov
+*.mp4
+
+# -----------------------------------------------------------------------------
+# Project-specific
+# -----------------------------------------------------------------------------
+
+# Cached LightScripts (generated at runtime)
+LightScriptCache/
+
+# User session history (privacy)
+SessionHistory/
+
