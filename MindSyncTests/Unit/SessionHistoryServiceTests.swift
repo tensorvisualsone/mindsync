@@ -3,22 +3,17 @@ import XCTest
 
 final class SessionHistoryServiceTests: XCTestCase {
     var service: SessionHistoryService!
-    var userDefaults: UserDefaults!
     
     override func setUp() {
         super.setUp()
-        // Use a test suite name to avoid conflicts with production data
-        userDefaults = UserDefaults(suiteName: "TestSessionHistory")!
-        // Create service with test user defaults
         service = SessionHistoryService()
-        // Clear any existing test data
-        userDefaults.removeObject(forKey: "savedSessions")
+        // Clear any existing data before each test
+        service.clearAll()
     }
     
     override func tearDown() {
-        // Clean up test data
-        userDefaults.removeObject(forKey: "savedSessions")
-        userDefaults = nil
+        // Clean up after each test
+        service.clearAll()
         service = nil
         super.tearDown()
     }
@@ -77,7 +72,8 @@ final class SessionHistoryServiceTests: XCTestCase {
         let loadedSessions = service.loadAll()
         XCTAssertEqual(loadedSessions.count, 100, "Expected exactly 100 sessions")
         
-        // Verify it kept the most recent ones
+        // Verify it kept the most recent ones (oldest kept = Track 5, newest = Track 104)
+        // loadedSessions is ordered from oldest to newest
         XCTAssertEqual(loadedSessions.first?.trackTitle, "Track 5", "Expected oldest kept session to be Track 5")
         XCTAssertEqual(loadedSessions.last?.trackTitle, "Track 104", "Expected newest session to be Track 104")
     }

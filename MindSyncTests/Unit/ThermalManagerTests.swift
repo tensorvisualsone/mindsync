@@ -20,14 +20,8 @@ final class ThermalManagerTests: XCTestCase {
         // When
         let state = thermalManager.currentState
         
-        // Then: Should return a valid thermal state
-        // We can't control the actual device state, but we can verify it's a valid enum value
-        switch state {
-        case .nominal, .fair, .serious, .critical:
-            XCTAssertTrue(true, "Valid thermal state")
-        @unknown default:
-            XCTAssertTrue(true, "Unknown but valid thermal state")
-        }
+        // Then: Should return a valid thermal state (no assertion needed, test passes if no crash)
+        _ = state
     }
     
     // MARK: - Flashlight Intensity Tests
@@ -78,14 +72,6 @@ final class ThermalManagerTests: XCTestCase {
     }
     
     // MARK: - Screen Fallback Tests
-    
-    func testShouldSwitchToScreen_ReturnsBool() {
-        // When
-        let shouldSwitch = thermalManager.shouldSwitchToScreen
-        
-        // Then: Should return a boolean value
-        XCTAssertTrue(shouldSwitch || !shouldSwitch, "Should return boolean value")
-    }
     
     func testShouldSwitchToScreen_WithNominalOrFairState_ReturnsFalse() {
         // Given: Device in nominal or fair state
