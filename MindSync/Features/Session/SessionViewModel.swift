@@ -56,6 +56,8 @@ final class SessionViewModel: ObservableObject {
     }
     
     deinit {
+        // Ensure playback is stopped before clearing callback to avoid delegate callbacks after deallocation
+        audioPlayback.stop()
         // Clear callback to prevent stale references
         audioPlayback.onPlaybackComplete = nil
     }
@@ -87,7 +89,7 @@ final class SessionViewModel: ObservableObject {
             // Check if item can be analyzed
             guard services.mediaLibraryService.canAnalyze(item: mediaItem),
                   let assetURL = services.mediaLibraryService.getAssetURL(for: mediaItem) else {
-                errorMessage = "This song is DRM-protected and cannot be analyzed. Please use microphone mode or choose another song."
+                errorMessage = "Dieser Titel ist durch DRM geschützt und kann nicht analysiert werden. Bitte nutze den Mikrofonmodus oder wähle einen anderen Titel."
                 state = .error
                 return
             }

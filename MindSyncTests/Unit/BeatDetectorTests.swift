@@ -7,6 +7,7 @@ final class BeatDetectorTests: XCTestCase {
     override func setUp() {
         super.setUp()
         beatDetector = BeatDetector()
+        XCTAssertNotNil(beatDetector, "BeatDetector initialization should succeed")
     }
     
     override func tearDown() {
@@ -15,6 +16,12 @@ final class BeatDetectorTests: XCTestCase {
     }
     
     // MARK: - Basic Beat Detection Tests
+    
+    func testBeatDetector_Initialization_Succeeds() {
+        // Given/When: BeatDetector is initialized in setUp
+        // Then: Should not be nil
+        XCTAssertNotNil(beatDetector, "BeatDetector should initialize successfully")
+    }
     
     func testDetectBeats_WithEmptySamples_ReturnsEmptyArray() async {
         // Given: Empty audio samples

@@ -15,7 +15,7 @@ struct SourceSelectionView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 32) {
-                Text("Select Audio Source")
+                Text("Audioquelle auswählen")
                     .font(.title.bold())
                 
                 // Local music library
@@ -25,9 +25,9 @@ struct SourceSelectionView: View {
                     VStack(spacing: 12) {
                         Image(systemName: "music.note.list")
                             .font(.system(size: 50))
-                        Text("Music Library")
+                        Text("Musikbibliothek")
                             .font(.headline)
-                        Text("Choose a song from your local music library")
+                        Text("Wähle einen Song aus deiner lokalen Musikbibliothek")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -47,9 +47,9 @@ struct SourceSelectionView: View {
                     VStack(spacing: 12) {
                         Image(systemName: "mic.fill")
                             .font(.system(size: 50))
-                        Text("Microphone")
+                        Text("Mikrofon")
                             .font(.headline)
-                        Text("Analyze music from external sources")
+                        Text("Musik aus externen Quellen analysieren")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -63,7 +63,7 @@ struct SourceSelectionView: View {
                 .disabled(true)  // Not yet implemented
                 
                 if authorizationStatus == .denied {
-                    Text("Access to music library denied. Please enable in Settings.")
+                    Text("Zugriff auf Musikbibliothek verweigert. Bitte in den Einstellungen aktivieren.")
                         .font(.caption)
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
@@ -71,7 +71,7 @@ struct SourceSelectionView: View {
                 }
             }
             .padding()
-            .navigationTitle("Audio Source")
+            .navigationTitle("Audioquelle")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingMediaPicker) {
                 MediaPickerView(
@@ -83,7 +83,7 @@ struct SourceSelectionView: View {
                     }
                 )
             }
-            .alert("Error", isPresented: $showingError) {
+            .alert("Fehler", isPresented: $showingError) {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(errorMessage)
@@ -102,7 +102,7 @@ struct SourceSelectionView: View {
                 if status == .authorized {
                     showingMediaPicker = true
                 } else if status == .denied {
-                    errorMessage = "Access to music library was denied. Please enable in Settings."
+                    errorMessage = "Zugriff auf Musikbibliothek wurde verweigert. Bitte in den Einstellungen aktivieren."
                     showingError = true
                 }
             }
@@ -116,7 +116,7 @@ struct SourceSelectionView: View {
             onSongSelected(item)
             showingMediaPicker = false
         } else {
-            errorMessage = "This song is DRM-protected and cannot be analyzed. Please choose another song or use microphone mode."
+            errorMessage = "Dieser Titel ist durch DRM geschützt und kann nicht analysiert werden. Bitte wähle einen anderen Titel oder nutze den Mikrofonmodus."
             showingError = true
         }
     }

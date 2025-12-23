@@ -14,6 +14,12 @@ final class AudioPlaybackService: NSObject {
     func play(url: URL) throws {
         stop()
         
+        // Configure audio session to ensure audio plays even in silent mode
+        // and handles interruptions appropriately for a safety-critical app
+        let audioSession = AVAudioSession.sharedInstance()
+        try audioSession.setCategory(.playback, mode: .default, options: [])
+        try audioSession.setActive(true)
+        
         let player = try AVAudioPlayer(contentsOf: url)
         player.delegate = self
         audioPlayer = player
