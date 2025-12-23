@@ -2,11 +2,27 @@ import Foundation
 import AVFoundation
 import MediaPlayer
 
+/// Microphone permission status
+enum MicrophonePermissionStatus {
+    case undetermined
+    case denied
+    case granted
+}
+
 /// Service for permission checking
 final class PermissionsService {
     /// Microphone permission status
-    var microphoneStatus: AVAudioApplication.RecordPermission {
-        AVAudioApplication.shared.recordPermission
+    var microphoneStatus: MicrophonePermissionStatus {
+        switch AVAudioApplication.shared.recordPermission {
+        case .undetermined:
+            return .undetermined
+        case .denied:
+            return .denied
+        case .granted:
+            return .granted
+        @unknown default:
+            return .denied
+        }
     }
     
     /// Whether microphone access is granted
