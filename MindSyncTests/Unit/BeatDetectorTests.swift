@@ -2,11 +2,12 @@ import XCTest
 @testable import MindSync
 
 final class BeatDetectorTests: XCTestCase {
-    var beatDetector: BeatDetector!
+    var beatDetector: BeatDetector?
     
     override func setUp() {
         super.setUp()
         beatDetector = BeatDetector()
+        XCTAssertNotNil(beatDetector, "BeatDetector initialization should succeed")
     }
     
     override func tearDown() {
@@ -16,8 +17,18 @@ final class BeatDetectorTests: XCTestCase {
     
     // MARK: - Basic Beat Detection Tests
     
+    func testBeatDetector_Initialization_Succeeds() {
+        // Given/When: BeatDetector is initialized in setUp
+        // Then: Should not be nil
+        XCTAssertNotNil(beatDetector, "BeatDetector should initialize successfully")
+    }
+    
     func testDetectBeats_WithEmptySamples_ReturnsEmptyArray() async {
         // Given: Empty audio samples
+        guard let beatDetector = beatDetector else {
+            XCTFail("BeatDetector should be initialized")
+            return
+        }
         let samples: [Float] = []
         
         // When
@@ -29,6 +40,10 @@ final class BeatDetectorTests: XCTestCase {
     
     func testDetectBeats_WithVeryShortSamples_ReturnsEmptyArray() async {
         // Given: Audio samples shorter than FFT size (2048)
+        guard let beatDetector = beatDetector else {
+            XCTFail("BeatDetector should be initialized")
+            return
+        }
         let samples = [Float](repeating: 0.5, count: 1000)
         
         // When
@@ -40,6 +55,10 @@ final class BeatDetectorTests: XCTestCase {
     
     func testDetectBeats_WithSilence_ReturnsFewerBeats() async {
         // Given: Silent audio (all zeros)
+        guard let beatDetector = beatDetector else {
+            XCTFail("BeatDetector should be initialized")
+            return
+        }
         let samples = [Float](repeating: 0.0, count: 44100) // 1 second of silence
         
         // When
@@ -51,6 +70,10 @@ final class BeatDetectorTests: XCTestCase {
     
     func testDetectBeats_WithConstantTone_ReturnsFewerBeats() async {
         // Given: Constant tone (no spectral flux changes)
+        guard let beatDetector = beatDetector else {
+            XCTFail("BeatDetector should be initialized")
+            return
+        }
         let samples = [Float](repeating: 0.5, count: 44100) // 1 second of constant tone
         
         // When
@@ -64,6 +87,10 @@ final class BeatDetectorTests: XCTestCase {
     
     func testDetectBeats_WithSimulatedBeats_DetectsBeats() async {
         // Given: Simulated audio with clear beat patterns
+        guard let beatDetector = beatDetector else {
+            XCTFail("BeatDetector should be initialized")
+            return
+        }
         // Create 4 seconds of audio at 44.1kHz with beats every 0.5s (120 BPM)
         let sampleRate = 44100
         let duration = 4 // seconds
@@ -95,6 +122,10 @@ final class BeatDetectorTests: XCTestCase {
     
     func testDetectBeats_WithTaskCancellation_ReturnsEmptyArray() async {
         // Given: Long audio samples
+        guard let beatDetector = beatDetector else {
+            XCTFail("BeatDetector should be initialized")
+            return
+        }
         let samples = [Float](repeating: 0.5, count: 441000) // 10 seconds
         
         // When: Start detection and cancel immediately
@@ -112,6 +143,10 @@ final class BeatDetectorTests: XCTestCase {
     
     func testDetectBeats_ReturnsTimestampsInAscendingOrder() async {
         // Given: Audio with multiple beats
+        guard let beatDetector = beatDetector else {
+            XCTFail("BeatDetector should be initialized")
+            return
+        }
         let sampleRate = 44100
         var samples = [Float](repeating: 0.0, count: sampleRate * 2) // 2 seconds
         
@@ -132,6 +167,10 @@ final class BeatDetectorTests: XCTestCase {
     
     func testDetectBeats_ReturnsNonNegativeTimestamps() async {
         // Given: Audio samples
+        guard let beatDetector = beatDetector else {
+            XCTFail("BeatDetector should be initialized")
+            return
+        }
         let samples = [Float](repeating: 0.5, count: 44100)
         
         // When
@@ -145,6 +184,10 @@ final class BeatDetectorTests: XCTestCase {
     
     func testDetectBeats_ReturnsTimestampsWithinAudioDuration() async {
         // Given: 2 seconds of audio at 44.1kHz
+        guard let beatDetector = beatDetector else {
+            XCTFail("BeatDetector should be initialized")
+            return
+        }
         let sampleRate = 44100.0
         let duration = 2.0 // seconds
         let totalSamples = Int(sampleRate * duration)

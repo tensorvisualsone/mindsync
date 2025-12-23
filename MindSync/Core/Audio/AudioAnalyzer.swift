@@ -5,7 +5,7 @@ import MediaPlayer
 /// Main orchestrator for audio analysis
 final class AudioAnalyzer {
     private let fileReader = AudioFileReader()
-    private let beatDetector = BeatDetector()
+    private let beatDetector: BeatDetector?
     private let tempoEstimator = TempoEstimator()
 
     private var cancellables = Set<AnyCancellable>()
@@ -13,6 +13,10 @@ final class AudioAnalyzer {
 
     /// Progress publisher for UI updates
     let progressPublisher = PassthroughSubject<AnalysisProgress, Never>()
+    
+    init() {
+        self.beatDetector = BeatDetector()
+    }
 
     /// Analyzes a local audio track
     func analyze(url: URL, mediaItem: MPMediaItem) async throws -> AudioTrack {
@@ -58,7 +62,14 @@ final class AudioAnalyzer {
             message: "Detecting beats..."
         ))
 
-        let beatTimestamps = await beatDetector.detectBeats(in: samples)
+        let beatTimestamps: [TimeInterval]
+        if let beatDetector = beatDetector {
+            beatTimestamps = await beatDetector.detectBeats(in: samples)
+        } else {
+            // Fallback: If BeatDetector initialization failed, return empty beat timestamps
+            // This allows analysis to continue without beat detection
+            beatTimestamps = []
+        }
         let bpm = tempoEstimator.estimateBPM(from: beatTimestamps)
 
         guard !isCancelled else {

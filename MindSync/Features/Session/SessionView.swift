@@ -81,7 +81,7 @@ struct SessionView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "stop.circle.fill")
                         .font(.system(size: 60))
-                    Text("Stop")
+                    Text("Stoppen")
                         .font(.headline)
                 }
                 .foregroundStyle(.white)
@@ -102,11 +102,11 @@ struct SessionView: View {
     
     private var pausedSessionView: some View {
         VStack(spacing: 24) {
-            Text("Paused")
+            Text("Pausiert")
                 .font(.title.bold())
                 .foregroundStyle(.white)
             
-            Button("Resume") {
+            Button("Fortsetzen") {
                 // TODO: Resume functionality
             }
             .buttonStyle(.borderedProminent)
@@ -131,7 +131,7 @@ struct SessionView: View {
                     .padding(.horizontal)
             }
             
-            Button("Back") {
+            Button("Zurück") {
                 viewModel.reset()
                 dismiss()
             }

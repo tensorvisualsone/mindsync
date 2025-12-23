@@ -45,7 +45,10 @@ final class TempoEstimator {
         // Helper to compute the median of a sorted slice
         func median(of slice: ArraySlice<TimeInterval>) -> TimeInterval {
             let sliceCount = slice.count
-            precondition(sliceCount > 0, "median(of:) requires a non-empty slice")
+            guard sliceCount > 0 else {
+                // Fallback to default interval to avoid crashing on empty slices
+                return defaultInterval
+            }
 
             let midOffset = sliceCount / 2
             let midIndex = slice.startIndex.advanced(by: midOffset)

@@ -11,10 +11,13 @@ final class BeatDetector {
     private let fftSetup: FFTSetup
     private let log2n: vDSP_Length
     
-    init() {
+    init?() {
         self.log2n = vDSP_Length(log2(Double(fftSize)))
         guard let setup = vDSP_create_fftsetup(log2n, FFTRadix(kFFTRadix2)) else {
-            fatalError("Failed to create FFT setup with log2n=\(log2n). This may indicate insufficient memory or invalid FFT size.")
+            // Fail BeatDetector initialization gracefully if FFT setup cannot be created.
+            // This allows the caller to handle the error (e.g. disable beat detection)
+            // instead of crashing the app in a safety-critical context.
+            return nil
         }
         self.fftSetup = setup
     }

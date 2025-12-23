@@ -104,18 +104,18 @@ enum AudioAnalysisError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .fileNotFound:
-            return "Audio file not found"
+            return "Audiodatei wurde nicht gefunden"
         case .drmProtected:
-            return "DRM-protected file cannot be analyzed"
+            return "DRM-geschützte Datei kann nicht analysiert werden"
         case .unsupportedFormat:
-            return "Audio format is not supported"
+            return "Audioformat wird nicht unterstützt"
         case .analysisFailure(let e):
-            return "Analysis failed: \(e.localizedDescription)"
+            return "Analyse fehlgeschlagen: \(e.localizedDescription)"
         case .cancelled:
-            return "Analysis cancelled"
+            return "Analyse abgebrochen"
         case .fileTooLong(let duration):
             let minutes = Int(duration / 60)
-            return "Audio file is too long (\(minutes) minutes). Maximum supported length is 30 minutes."
+            return "Audiodatei ist zu lang (\(minutes) Minuten). Die maximal unterstützte Länge beträgt 30 Minuten."
         }
     }
 }

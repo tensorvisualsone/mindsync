@@ -44,12 +44,15 @@ final class FlashlightController: NSObject, LightControlling {
             throw LightControlError.torchUnavailable
         }
 
+        var didLockConfiguration = false
+        defer {
+            isLocked = didLockConfiguration
+        }
+
         do {
             try device.lockForConfiguration()
-            isLocked = true
+            didLockConfiguration = true
         } catch {
-            // Ensure device isn't left in an inconsistent state
-            isLocked = false
             throw LightControlError.configurationFailed
         }
     }
@@ -86,16 +89,11 @@ final class FlashlightController: NSObject, LightControlling {
         let target = WeakDisplayLinkTarget(target: self)
         displayLinkTarget = target
         displayLink = CADisplayLink(target: target, selector: #selector(WeakDisplayLinkTarget.updateLight))
-        if #available(iOS 15.0, *) {
-            displayLink?.preferredFrameRateRange = CAFrameRateRange(
-                minimum: 60,
-                maximum: 120,
-                preferred: 120
-            )
-        } else {
-            // Fallback for iOS versions before 15.0
-            displayLink?.preferredFramesPerSecond = 120
-        }
+        displayLink?.preferredFrameRateRange = CAFrameRateRange(
+            minimum: 60,
+            maximum: 120,
+            preferred: 120
+        )
         displayLink?.add(to: .main, forMode: .common)
     }
 
@@ -109,7 +107,7 @@ final class FlashlightController: NSObject, LightControlling {
         setIntensity(0.0)
     }
 
-    fileprivate func updateLight() {
+    private func updateLight() {
         guard let script = currentScript,
               let startTime = scriptStartTime else {
             return
