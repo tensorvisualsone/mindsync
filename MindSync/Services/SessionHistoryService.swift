@@ -28,6 +28,8 @@ final class SessionHistoryService {
             userDefaults.set(data, forKey: sessionsKey)
         } catch {
             logger.error("Failed to encode sessions: \(error.localizedDescription, privacy: .private)")
+            // Note: Encoding failures are typically deterministic (e.g., non-encodable data)
+            // and retrying without changes won't help. The session data is lost in this case.
         }
     }
     
