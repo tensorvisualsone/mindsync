@@ -57,6 +57,19 @@ struct HomeView: View {
             .fullScreenCover(isPresented: $showingSession) {
                 if let mediaItem = selectedMediaItem {
                     SessionView(song: mediaItem)
+                } else {
+                    VStack(spacing: 16) {
+                        Text("Unable to start session")
+                            .font(.headline)
+                        Text("No media item was selected. Please dismiss and try starting a new session.")
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(.secondary)
+                        Button("Dismiss") {
+                            showingSession = false
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .padding()
                 }
             }
         }

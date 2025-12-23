@@ -13,6 +13,7 @@ final class SessionViewModel: ObservableObject {
     private let entrainmentEngine: EntrainmentEngine
     
     // Cached preferences to avoid repeated UserDefaults access
+    // Updated when starting a session to ensure current values are used
     private var cachedPreferences: UserPreferences
     
     // Published State
@@ -27,14 +28,8 @@ final class SessionViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     
     // Current light controller based on cached preferences
-    private var lightController: LightControlling {
-        switch cachedPreferences.preferredLightSource {
-        case .flashlight:
-            return services.flashlightController
-        case .screen:
-            return services.screenController
-        }
-    }
+    // Computed once per session to avoid repeated calculations
+    private var lightController: LightControlling?
     
     init() {
         self.audioAnalyzer = services.audioAnalyzer
@@ -71,6 +66,17 @@ final class SessionViewModel: ObservableObject {
         guard state == .idle else { return }
         
         state = .analyzing
+        
+        // Refresh cached preferences to ensure we use current user settings
+        cachedPreferences = UserPreferences.load()
+        
+        // Set the light controller based on current preferences
+        lightController = switch cachedPreferences.preferredLightSource {
+        case .flashlight:
+            services.flashlightController
+        case .screen:
+            services.screenController
+        }
         
         do {
             // Check if item can be analyzed
@@ -112,24 +118,28 @@ final class SessionViewModel: ObservableObject {
             state = .running
             
         } catch {
+            // Use defer-like cleanup pattern to ensure resources are always released
+            defer {
+                errorMessage = error.localizedDescription
+                state = .error
+            }
+            
             // Ensure cleanup if starting playback or light controller fails
             audioPlayback.stop()
-            lightController.stop()
-            
-            errorMessage = error.localizedDescription
-            state = .error
+            lightController?.stop()
         }
     }
     
     /// Stops the current session
     func stopSession() {
-        guard state == .running else { return }
+        // Allow cleanup from any state except .idle to prevent resource leaks
+        guard state != .idle else { return }
         
         audioPlayback.stop()
-        lightController.stop()
+        lightController?.stop()
         
-        // End session and save to history
-        if var session = currentSession {
+        // End session and save to history only if it was running
+        if var session = currentSession, state == .running {
             session.endedAt = Date()
             session.endReason = .userStopped
             services.sessionHistoryService.save(session: session)
@@ -139,6 +149,7 @@ final class SessionViewModel: ObservableObject {
         currentTrack = nil
         currentScript = nil
         currentSession = nil
+        lightController = nil
     }
     
     /// Resets the session state (called when view is dismissed)
@@ -149,6 +160,10 @@ final class SessionViewModel: ObservableObject {
     
     /// Starts audio playback and light synchronization
     private func startPlaybackAndLight(url: URL, script: LightScript) throws {
+        guard let lightController = lightController else {
+            throw NSError(domain: "SessionViewModel", code: -1, userInfo: [NSLocalizedDescriptionKey: "Light controller not initialized"])
+        }
+        
         // Start audio playback
         try audioPlayback.play(url: url)
         
