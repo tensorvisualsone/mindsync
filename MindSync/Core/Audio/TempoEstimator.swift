@@ -88,7 +88,7 @@ final class TempoEstimator {
         }
 
         // Finde den dominanten BPM-Bin
-        let dominantBin = histogram.max { a, b in a.value < b.value }?.key
+        let dominantBin = histogram.max { a, b in a.value > b.value }?.key
 
         let estimatedBpm: Double
         if let dominantBin = dominantBin {

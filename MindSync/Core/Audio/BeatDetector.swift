@@ -27,10 +27,17 @@ final class BeatDetector {
     /// - Parameter samples: PCM-Samples (mono, 44.1kHz)
     /// - Returns: Array von Zeitstempeln in Sekunden für jeden Beat
     func detectBeats(in samples: [Float]) async -> [TimeInterval] {
+        // Capture needed properties to avoid retaining self
+        let sampleRate = self.sampleRate
+        let fftSize = self.fftSize
+        let hopSize = self.hopSize
+        
         // Run on background queue to prevent blocking the main thread
-        return await Task.detached(priority: .userInitiated) { [self] in
+        return await Task.detached(priority: .userInitiated) { [weak self] in
+            guard let self = self else { return [] }
+            
             var beatTimestamps: [TimeInterval] = []
-            var previousMagnitude: [Float] = Array(repeating: 0, count: self.fftSize / 2)
+            var previousMagnitude: [Float] = Array(repeating: 0, count: fftSize / 2)
 
             let frameCount = samples.count
             var frameIndex = 0
@@ -38,9 +45,9 @@ final class BeatDetector {
             // Calculate adaptive threshold based on spectral flux statistics
             var spectralFluxValues: [Float] = []
 
-            while frameIndex + self.fftSize < frameCount {
+            while frameIndex + fftSize < frameCount {
                 // Extrahiere Frame
-                let frame = Array(samples[frameIndex..<frameIndex + self.fftSize])
+                let frame = Array(samples[frameIndex..<frameIndex + fftSize])
 
                 // FFT durchführen
                 let magnitude = self.performFFT(on: frame)
@@ -56,7 +63,7 @@ final class BeatDetector {
                 
                 spectralFluxValues.append(spectralFlux)
                 previousMagnitude = magnitude
-                frameIndex += self.hopSize
+                frameIndex += hopSize
             }
             
             // Calculate adaptive threshold using single-pass algorithm (mean + 0.5 * std deviation)
@@ -75,12 +82,12 @@ final class BeatDetector {
             // Detect beats using adaptive threshold
             frameIndex = 0
             var fluxIndex = 0
-            while frameIndex + self.fftSize < frameCount {
+            while frameIndex + fftSize < frameCount {
                 if fluxIndex < spectralFluxValues.count && spectralFluxValues[fluxIndex] > adaptiveThreshold {
-                    let timestamp = Double(frameIndex) / self.sampleRate
+                    let timestamp = Double(frameIndex) / sampleRate
                     beatTimestamps.append(timestamp)
                 }
-                frameIndex += self.hopSize
+                frameIndex += hopSize
                 fluxIndex += 1
             }
 

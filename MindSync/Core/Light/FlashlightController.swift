@@ -63,7 +63,7 @@ final class FlashlightController: NSObject, LightControlling {
                 preferred: 120
             )
         } else {
-            // Fallback für iOS-Versionen vor 15.0
+            // Fallback for iOS versions before 15.0
             displayLink?.preferredFramesPerSecond = 120
         }
         displayLink?.add(to: .main, forMode: .common)

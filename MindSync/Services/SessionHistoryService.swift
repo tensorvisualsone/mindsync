@@ -21,7 +21,7 @@ final class SessionHistoryService {
             let data = try JSONEncoder().encode(sessions)
             userDefaults.set(data, forKey: sessionsKey)
         } catch {
-            logger.error("Failed to encode sessions: \(error.localizedDescription, privacy: .public)")
+            logger.error("Failed to encode sessions: \(error.localizedDescription, privacy: .private)")
         }
     }
     
