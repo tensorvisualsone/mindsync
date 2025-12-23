@@ -5,6 +5,7 @@ struct HomeView: View {
     @State private var showingSourceSelection = false
     @State private var selectedSong: MPMediaItem?
     @State private var showingSession = false
+    @State private var preferences = UserPreferences.load()
     
     var body: some View {
         NavigationStack {
@@ -25,14 +26,13 @@ struct HomeView: View {
                 .controlSize(.large)
                 
                 // Aktueller Modus anzeigen
-                let mode = UserPreferences.load().preferredMode
                 VStack(spacing: 8) {
                     Text("Aktueller Modus")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     HStack(spacing: 8) {
-                        Image(systemName: mode.iconName)
-                        Text(mode.displayName)
+                        Image(systemName: preferences.preferredMode.iconName)
+                        Text(preferences.preferredMode.displayName)
                             .font(.headline)
                     }
                 }
@@ -43,6 +43,10 @@ struct HomeView: View {
             .padding()
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                // Reload preferences when view appears
+                preferences = UserPreferences.load()
+            }
             .sheet(isPresented: $showingSourceSelection) {
                 SourceSelectionView { item in
                     selectedSong = item

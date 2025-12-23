@@ -15,8 +15,11 @@ final class SessionHistoryService {
             sessions = Array(sessions.suffix(100))
         }
         
-        if let data = try? JSONEncoder().encode(sessions) {
+        do {
+            let data = try JSONEncoder().encode(sessions)
             userDefaults.set(data, forKey: sessionsKey)
+        } catch {
+            print("SessionHistoryService.save: Failed to encode sessions: \(error)")
         }
     }
     

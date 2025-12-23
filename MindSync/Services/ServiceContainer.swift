@@ -9,6 +9,7 @@ final class ServiceContainer: ObservableObject {
     // Core Services
     let audioAnalyzer: AudioAnalyzer
     let microphoneAnalyzer: MicrophoneAnalyzer
+    let audioPlayback: AudioPlaybackService
     let sessionHistoryService: SessionHistoryService
     let mediaLibraryService: MediaLibraryService
     let permissionsService: PermissionsService
@@ -24,6 +25,7 @@ final class ServiceContainer: ObservableObject {
         // Audio
         self.audioAnalyzer = AudioAnalyzer()
         self.microphoneAnalyzer = MicrophoneAnalyzer()
+        self.audioPlayback = AudioPlaybackService()
 
         // Sessions & History
         self.sessionHistoryService = SessionHistoryService()

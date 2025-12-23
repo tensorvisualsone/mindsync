@@ -2,15 +2,21 @@ import Foundation
 import AVFoundation
 
 /// Service für Audio-Wiedergabe
-final class AudioPlaybackService {
+final class AudioPlaybackService: NSObject {
     private var audioPlayer: AVAudioPlayer?
+    
+    /// Callback when playback completes
+    var onPlaybackComplete: (() -> Void)?
 
     /// Spielt eine Audio-Datei ab
     /// - Parameter url: URL der Audio-Datei
     /// - Throws: Fehler wenn Wiedergabe nicht möglich
     func play(url: URL) throws {
         stop()
-        audioPlayer = try AVAudioPlayer(contentsOf: url)
+        
+        let player = try AVAudioPlayer(contentsOf: url)
+        player.delegate = self
+        audioPlayer = player
         audioPlayer?.prepareToPlay()
         audioPlayer?.play()
     }
@@ -39,5 +45,13 @@ final class AudioPlaybackService {
     /// Ist die Wiedergabe aktiv?
     var isPlaying: Bool {
         audioPlayer?.isPlaying ?? false
+    }
+}
+
+// MARK: - AVAudioPlayerDelegate
+
+extension AudioPlaybackService: AVAudioPlayerDelegate {
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        onPlaybackComplete?()
     }
 }
