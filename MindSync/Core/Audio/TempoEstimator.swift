@@ -39,12 +39,41 @@ final class TempoEstimator {
 
         let sortedIntervals = intervals.sorted()
 
-        // IQR-based outlier filtering
+        // IQR-based outlier filtering with proper quartile calculation
         let count = sortedIntervals.count
-        let q1Index = count / 4
-        let q3Index = (3 * count) / 4
-        let q1 = sortedIntervals[q1Index]
-        let q3 = sortedIntervals[q3Index]
+        
+        // Helper to compute the median of a sorted slice
+        func median(of slice: ArraySlice<TimeInterval>) -> TimeInterval {
+            let sliceCount = slice.count
+            precondition(sliceCount > 0, "median(of:) requires a non-empty slice")
+
+            let midOffset = sliceCount / 2
+            let midIndex = slice.startIndex.advanced(by: midOffset)
+
+            if sliceCount % 2 == 0 {
+                let prevIndex = slice.index(before: midIndex)
+                return (slice[prevIndex] + slice[midIndex]) / 2.0
+            } else {
+                return slice[midIndex]
+            }
+        }
+
+        // Compute Q1 and Q3 as medians of the lower and upper halves
+        let lowerHalf: ArraySlice<TimeInterval>
+        let upperHalf: ArraySlice<TimeInterval>
+
+        if count % 2 == 0 {
+            // Even number of observations: split exactly in half
+            lowerHalf = sortedIntervals[0..<(count / 2)]
+            upperHalf = sortedIntervals[(count / 2)..<count]
+        } else {
+            // Odd number of observations: exclude the median element
+            lowerHalf = sortedIntervals[0..<(count / 2)]
+            upperHalf = sortedIntervals[(count / 2 + 1)..<count]
+        }
+
+        let q1 = median(of: lowerHalf)
+        let q3 = median(of: upperHalf)
         let iqr = q3 - q1
 
         let lowerBound = q1 - iqrOutlierMultiplier * iqr

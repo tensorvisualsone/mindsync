@@ -55,6 +55,11 @@ final class SessionViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
+    deinit {
+        // Clear callback to prevent stale references
+        audioPlayback.onPlaybackComplete = nil
+    }
+    
     /// Handles playback completion
     private func handlePlaybackComplete() {
         guard state == .running else { return }
@@ -160,7 +165,7 @@ final class SessionViewModel: ObservableObject {
     /// Starts audio playback and light synchronization
     private func startPlaybackAndLight(url: URL, script: LightScript) throws {
         guard let lightController = lightController else {
-            throw NSError(domain: "SessionViewModel", code: -1, userInfo: [NSLocalizedDescriptionKey: "Light controller not initialized"])
+            throw LightControlError.configurationFailed
         }
         
         // Start audio playback

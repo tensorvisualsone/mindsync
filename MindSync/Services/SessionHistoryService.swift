@@ -35,11 +35,20 @@ final class SessionHistoryService {
     
     /// Loads all saved sessions
     func loadAll() -> [Session] {
-        guard let data = userDefaults.data(forKey: sessionsKey),
-              let sessions = try? JSONDecoder().decode([Session].self, from: data) else {
+        // If there is no data stored yet, return an empty array.
+        guard let data = userDefaults.data(forKey: sessionsKey) else {
             return []
         }
-        return sessions
+        
+        do {
+            let sessions = try JSONDecoder().decode([Session].self, from: data)
+            return sessions
+        } catch {
+            logger.error("Failed to decode sessions from UserDefaults: \(error.localizedDescription, privacy: .private)")
+            // We return an empty array to keep callers resilient, but the error is logged
+            // so that data corruption or incompatible schema changes are not silent.
+            return []
+        }
     }
     
     /// Deletes all saved sessions

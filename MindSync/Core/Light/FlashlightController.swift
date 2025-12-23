@@ -32,14 +32,26 @@ final class FlashlightController: NSObject, LightControlling {
         super.init()
         device = AVCaptureDevice.default(for: .video)
     }
+    
+    deinit {
+        displayLink?.invalidate()
+        displayLink = nil
+        displayLinkTarget = nil
+    }
 
     func start() throws {
         guard let device = device, device.hasTorch else {
             throw LightControlError.torchUnavailable
         }
 
-        try device.lockForConfiguration()
-        isLocked = true
+        do {
+            try device.lockForConfiguration()
+            isLocked = true
+        } catch {
+            // Ensure device isn't left in an inconsistent state
+            isLocked = false
+            throw LightControlError.configurationFailed
+        }
     }
 
     func stop() {
