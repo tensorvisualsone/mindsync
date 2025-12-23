@@ -34,4 +34,24 @@ struct UserPreferences: Codable {
             hapticFeedbackEnabled: true
         )
     }
+    
+    // MARK: - Persistence
+    
+    private static let userDefaultsKey = "userPreferences"
+    
+    /// Lädt die gespeicherten Präferenzen aus UserDefaults
+    static func load() -> UserPreferences {
+        guard let data = UserDefaults.standard.data(forKey: userDefaultsKey),
+              let preferences = try? JSONDecoder().decode(UserPreferences.self, from: data) else {
+            return .default
+        }
+        return preferences
+    }
+    
+    /// Speichert die aktuellen Präferenzen in UserDefaults
+    func save() {
+        if let data = try? JSONEncoder().encode(self) {
+            UserDefaults.standard.set(data, forKey: Self.userDefaultsKey)
+        }
+    }
 }

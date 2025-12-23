@@ -10,17 +10,17 @@ final class OnboardingUITests: XCTestCase {
         app.launch()
 
         // Prüfe, dass der Hinweistext angezeigt wird
-        XCTAssertTrue(app.staticTexts["Wichtige Sicherheitshinweise"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["onboarding.title"].waitForExistence(timeout: 5))
 
         // Optional: Details öffnen
-        app.buttons["Mehr erfahren"].tap()
-        XCTAssertTrue(app.navigationBars["Sicherheit"].waitForExistence(timeout: 5))
-        app.buttons["Close"].firstMatch.tap()
+        app.buttons["onboarding.learnMoreButton"].tap()
+        XCTAssertTrue(app.otherElements["epilepsyWarning.view"].waitForExistence(timeout: 5))
+        app.buttons["epilepsyWarning.closeButton"].tap()
 
         // Disclaimer akzeptieren
-        app.buttons["Ich verstehe und akzeptiere"].tap()
+        app.buttons["onboarding.acceptButton"].tap()
 
         // Erwartung: Home-Screen erscheint (Platzhalter-Check)
-        XCTAssertTrue(app.staticTexts["MindSync"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["home.title"].waitForExistence(timeout: 5))
     }
 }

@@ -29,7 +29,13 @@ enum ThermalState: Int, Comparable {
 
 /// Sicherheitskonstanten (nicht veränderbar)
 enum SafetyLimits {
-    /// PSE-Gefahrenzone (Hz)
+    /// PSE-Gefahrenzone (Hz).
+    /// Literatur nennt typischerweise einen Haupt-Risikobereich von ca. 15–25 Hz
+    /// (mit besonderer Sensitivität um 20 Hz). Wir verwenden hier bewusst einen
+    /// konservativen Bereich von 3–30 Hz, um die Gefahrenspanne eher zu über‑
+    /// approximieren als zu unterschätzen und die Logik der Sicherheitsprüfungen
+    /// zu vereinfachen. Bei neuen klinischen Leitlinien sollten diese Werte
+    /// entsprechend überprüft werden.
     static let pseMinFrequency: Double = 3.0
     static let pseMaxFrequency: Double = 30.0
 

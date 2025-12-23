@@ -114,6 +114,9 @@ Temporary Items
 # IDEs und Editoren
 # -----------------------------------------------------------------------------
 
+## Build Server
+buildServer.json
+
 ## VS Code
 .vscode/
 *.code-workspace
