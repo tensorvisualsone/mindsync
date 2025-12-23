@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct EpilepsyWarningView: View {
+    @Environment(\.dismiss) private var dismiss
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -33,6 +35,15 @@ struct EpilepsyWarningView: View {
         }
         .navigationTitle("Sicherheit")
         .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("epilepsyWarning.view")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Close") {
+                    dismiss()
+                }
+                .accessibilityIdentifier("epilepsyWarning.closeButton")
+            }
+        }
     }
 }
 

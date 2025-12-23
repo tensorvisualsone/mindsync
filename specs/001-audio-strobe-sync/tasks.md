@@ -5,11 +5,11 @@
 
 **Tests**: Tests werden für P1- und P2-User-Stories explizit angelegt (TDD-Ansatz für kritische Teile).
 
-**Organization**: Tasks sind nach Phasen und User Stories gruppiert, sodass jede Story unabhängig implementier- und testbar ist.
+**Organization**: Tasks sind nach Phasen und User Stories gruppiert, sodass jede Story unabhängig implementierbar und testbar ist.
 
 ## Format: `[ID] [P?] [Story] Description`
 
-- **[P]**: Kann in Parallel laufen (andere Dateien, keine direkten Abhängigkeiten)
+- **[P]**: Kann parallel laufen (andere Dateien, keine direkten Abhängigkeiten)
 - **[Story]**: US1–US6 entsprechend der Spezifikation
 - Alle Tasks enthalten exakte Dateipfade
 

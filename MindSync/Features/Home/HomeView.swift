@@ -6,6 +6,7 @@ struct HomeView: View {
             VStack(spacing: 24) {
                 Text("MindSync")
                     .font(.largeTitle.bold())
+                    .accessibilityIdentifier("home.title")
 
                 Text("Audio-synchronisiertes Stroboskop für veränderte Bewusstseinszustände.")
                     .multilineTextAlignment(.center)
