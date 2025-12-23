@@ -58,7 +58,7 @@ final class AudioAnalyzer {
             message: "Erkenne Beats..."
         ))
 
-        let beatTimestamps = beatDetector.detectBeats(in: samples)
+        let beatTimestamps = await beatDetector.detectBeats(in: samples)
         let bpm = tempoEstimator.estimateBPM(from: beatTimestamps)
 
         guard !isCancelled else {
