@@ -12,9 +12,11 @@ final class AudioFileReader {
     ///         For very long audio files, this may cause memory pressure or crashes on devices with
     ///         limited RAM. Files longer than 30 minutes will throw an error to prevent memory issues.
     func readPCM(from url: URL) async throws -> [Float] {
-        let asset = AVAsset(url: url)
+        let asset = AVURLAsset(url: url)
 
-        guard asset.isReadable else {
+        // Check if asset is readable (async load for iOS 16+)
+        let isReadable = try await asset.load(.isReadable)
+        guard isReadable else {
             throw AudioAnalysisError.drmProtected
         }
         
@@ -78,9 +80,11 @@ final class AudioFileReader {
                 continue
             }
 
-            let floatPointer = pointer.bindMemory(to: Float.self, capacity: length / MemoryLayout<Float>.size)
+            // Convert Int8 pointer to Float pointer using raw pointer rebinding
             let frameCount = length / MemoryLayout<Float>.size
-            let frameArray = Array(UnsafeBufferPointer(start: floatPointer, count: frameCount))
+            let rawPointer = UnsafeMutableRawPointer(pointer)
+            let floatPointer = rawPointer.assumingMemoryBound(to: Float.self)
+            let frameArray = Array(UnsafeBufferPointer<Float>(start: floatPointer, count: frameCount))
             samples.append(contentsOf: frameArray)
         }
 
