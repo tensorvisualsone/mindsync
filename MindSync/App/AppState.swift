@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// Globaler App-Status (Platzhalter für spätere Erweiterungen)
 final class AppState: ObservableObject {
