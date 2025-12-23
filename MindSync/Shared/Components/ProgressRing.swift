@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Ringförmiger Fortschrittsindikator
+/// Ring-shaped progress indicator
 struct ProgressRing: View {
     let progress: Double  // 0.0 - 1.0
     
@@ -11,11 +11,11 @@ struct ProgressRing: View {
     
     var body: some View {
         ZStack {
-            // Hintergrund-Ring
+            // Background ring
             Circle()
                 .stroke(Color(.systemGray5), lineWidth: lineWidth)
             
-            // Fortschritts-Ring
+            // Progress ring
             Circle()
                 .trim(from: 0, to: clampedProgress)
                 .stroke(

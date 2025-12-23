@@ -3,7 +3,7 @@ import SwiftUI
 import Combine
 import MediaPlayer
 
-/// ViewModel für die Session-Ansicht
+/// ViewModel for session view
 @MainActor
 final class SessionViewModel: ObservableObject {
     // Services
@@ -41,7 +41,7 @@ final class SessionViewModel: ObservableObject {
         self.audioPlayback = services.audioPlayback
         self.cachedPreferences = UserPreferences.load()
         
-        // EntrainmentEngine aus ServiceContainer
+        // EntrainmentEngine from ServiceContainer
         self.entrainmentEngine = services.entrainmentEngine
         
         // Setup playback completion callback
@@ -51,7 +51,7 @@ final class SessionViewModel: ObservableObject {
             }
         }
         
-        // Höre auf Analyse-Fortschritt
+        // Listen to analysis progress
         audioAnalyzer.progressPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] progress in
@@ -66,26 +66,26 @@ final class SessionViewModel: ObservableObject {
         stopSession()
     }
     
-    /// Startet eine Session mit einem ausgewählten Song
+    /// Starts a session with a selected media item
     func startSession(with mediaItem: MPMediaItem) async {
         guard state == .idle else { return }
         
         state = .analyzing
         
         do {
-            // Prüfe ob Song analysierbar ist
+            // Check if item can be analyzed
             guard services.mediaLibraryService.canAnalyze(item: mediaItem),
                   let assetURL = services.mediaLibraryService.getAssetURL(for: mediaItem) else {
-                errorMessage = "Dieser Song ist DRM-geschützt und kann nicht analysiert werden. Bitte verwenden Sie den Mikrofon-Modus oder einen anderen Song."
+                errorMessage = "This song is DRM-protected and cannot be analyzed. Please use microphone mode or choose another song."
                 state = .error
                 return
             }
             
-            // Analysiere Audio
+            // Analyze audio
             let track = try await audioAnalyzer.analyze(url: assetURL, mediaItem: mediaItem)
             currentTrack = track
             
-            // Generiere LightScript using cached preferences
+            // Generate LightScript using cached preferences
             let mode = cachedPreferences.preferredMode
             let lightSource = cachedPreferences.preferredLightSource
             let script = entrainmentEngine.generateLightScript(
@@ -95,7 +95,7 @@ final class SessionViewModel: ObservableObject {
             )
             currentScript = script
             
-            // Erstelle Session
+            // Create session
             let session = Session(
                 mode: mode,
                 lightSource: lightSource,
@@ -106,13 +106,10 @@ final class SessionViewModel: ObservableObject {
             )
             currentSession = session
             
-            // Starte Wiedergabe und Licht
+            // Start playback and light
             try startPlaybackAndLight(url: assetURL, script: script)
             
             state = .running
-            
-            // Auto-save session immediately when running state is reached
-            services.sessionHistoryService.save(session: session)
             
         } catch {
             // Ensure cleanup if starting playback or light controller fails
@@ -124,14 +121,14 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
-    /// Stoppt die aktuelle Session
+    /// Stops the current session
     func stopSession() {
         guard state == .running else { return }
         
         audioPlayback.stop()
         lightController.stop()
         
-        // Session beenden
+        // End session and save to history
         if var session = currentSession {
             session.endedAt = Date()
             session.endReason = .userStopped
@@ -150,26 +147,26 @@ final class SessionViewModel: ObservableObject {
         state = .idle
     }
     
-    /// Startet Audio-Wiedergabe und Licht-Synchronisation
+    /// Starts audio playback and light synchronization
     private func startPlaybackAndLight(url: URL, script: LightScript) throws {
-        // Starte Audio-Wiedergabe
+        // Start audio playback
         try audioPlayback.play(url: url)
         
-        // Starte Licht-Controller
+        // Start light controller
         try lightController.start()
         
-        // Starte LightScript-Ausführung synchronisiert mit Audio
+        // Start LightScript execution synchronized with audio
         let startTime = Date()
         lightController.execute(script: script, syncedTo: startTime)
     }
 }
 
-/// Zustände einer Session
+/// Session states
 enum SessionState {
-    case idle           // Keine aktive Session
-    case analyzing      // Audio wird analysiert
-    case running        // Session läuft
-    case paused        // Session pausiert
-    case error         // Fehler aufgetreten
+    case idle           // No active session
+    case analyzing      // Audio is being analyzed
+    case running        // Session is running
+    case paused        // Session paused
+    case error         // Error occurred
 }
 

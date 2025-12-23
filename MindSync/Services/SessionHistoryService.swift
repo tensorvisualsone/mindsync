@@ -1,18 +1,18 @@
 import Foundation
 import os.log
 
-/// Service für Session-Historie-Verwaltung
+/// Service for session history management
 final class SessionHistoryService {
     private let userDefaults = UserDefaults.standard
     private let sessionsKey = "savedSessions"
     private let logger = Logger(subsystem: "com.mindsync", category: "SessionHistory")
     
-    /// Speichert eine Session
+    /// Saves a session
     func save(session: Session) {
         var sessions = loadAll()
         sessions.append(session)
         
-        // Begrenze auf letzte 100 Sessions
+        // Limit to last 100 sessions
         if sessions.count > 100 {
             sessions = Array(sessions.suffix(100))
         }
@@ -25,7 +25,7 @@ final class SessionHistoryService {
         }
     }
     
-    /// Lädt alle gespeicherten Sessions
+    /// Loads all saved sessions
     func loadAll() -> [Session] {
         guard let data = userDefaults.data(forKey: sessionsKey),
               let sessions = try? JSONDecoder().decode([Session].self, from: data) else {
@@ -34,7 +34,7 @@ final class SessionHistoryService {
         return sessions
     }
     
-    /// Löscht alle gespeicherten Sessions
+    /// Deletes all saved sessions
     func clearAll() {
         userDefaults.removeObject(forKey: sessionsKey)
     }

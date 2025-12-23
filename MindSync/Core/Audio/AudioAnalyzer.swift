@@ -2,7 +2,7 @@ import Foundation
 import Combine
 import MediaPlayer
 
-/// Haupt-Orchestrator für Audio-Analyse
+/// Main orchestrator for audio analysis
 final class AudioAnalyzer {
     private let fileReader = AudioFileReader()
     private let beatDetector = BeatDetector()
@@ -11,31 +11,31 @@ final class AudioAnalyzer {
     private var cancellables = Set<AnyCancellable>()
     private var isCancelled = false
 
-    /// Fortschritts-Publisher für UI-Updates
+    /// Progress publisher for UI updates
     let progressPublisher = PassthroughSubject<AnalysisProgress, Never>()
 
-    /// Analysiert einen lokalen Audio-Track
+    /// Analyzes a local audio track
     func analyze(url: URL, mediaItem: MPMediaItem) async throws -> AudioTrack {
         isCancelled = false
 
-        // Metadaten extrahieren
-        let title = mediaItem.title ?? "Unbekannt"
+        // Extract metadata
+        let title = mediaItem.title ?? "Unknown"
         let artist = mediaItem.artist
         let albumTitle = mediaItem.albumTitle
         let duration = mediaItem.playbackDuration
 
-        // Fortschritt: Lade Audio
+        // Progress: Load audio
         progressPublisher.send(AnalysisProgress(
             phase: .loading,
             progress: 0.1,
-            message: "Lade Audio..."
+            message: "Loading audio..."
         ))
 
-        // PCM-Daten lesen
+        // Read PCM data
         progressPublisher.send(AnalysisProgress(
             phase: .extracting,
             progress: 0.3,
-            message: "Extrahiere PCM-Daten..."
+            message: "Extracting PCM data..."
         ))
 
         let samples = try await fileReader.readPCM(from: url)
@@ -44,18 +44,18 @@ final class AudioAnalyzer {
             throw AudioAnalysisError.cancelled
         }
 
-        // Fortschritt: Analysiere Frequenzen
+        // Progress: Analyze frequencies
         progressPublisher.send(AnalysisProgress(
             phase: .analyzing,
             progress: 0.6,
-            message: "Analysiere Frequenzen..."
+            message: "Analyzing frequencies..."
         ))
 
-        // Beat-Detection
+        // Beat detection
         progressPublisher.send(AnalysisProgress(
             phase: .detecting,
             progress: 0.8,
-            message: "Erkenne Beats..."
+            message: "Detecting beats..."
         ))
 
         let beatTimestamps = await beatDetector.detectBeats(in: samples)
@@ -65,14 +65,14 @@ final class AudioAnalyzer {
             throw AudioAnalysisError.cancelled
         }
 
-        // Fortschritt: Fertig
+        // Progress: Complete
         progressPublisher.send(AnalysisProgress(
             phase: .complete,
             progress: 1.0,
-            message: "Fertig!"
+            message: "Complete!"
         ))
 
-        // AudioTrack erstellen
+        // Create AudioTrack
         return AudioTrack(
             title: title,
             artist: artist,
@@ -84,24 +84,24 @@ final class AudioAnalyzer {
         )
     }
 
-    /// Bricht die laufende Analyse ab
+    /// Cancels the running analysis
     func cancel() {
         isCancelled = true
     }
 }
 
-/// Fortschritt der Audio-Analyse
+/// Audio analysis progress
 struct AnalysisProgress {
     let phase: Phase
     let progress: Double  // 0.0 - 1.0
     let message: String
 
     enum Phase: String {
-        case loading = "Lade Audio..."
-        case extracting = "Extrahiere PCM-Daten..."
-        case analyzing = "Analysiere Frequenzen..."
-        case detecting = "Erkenne Beats..."
-        case mapping = "Erstelle LightScript..."
-        case complete = "Fertig!"
+        case loading = "Loading audio..."
+        case extracting = "Extracting PCM data..."
+        case analyzing = "Analyzing frequencies..."
+        case detecting = "Detecting beats..."
+        case mapping = "Creating LightScript..."
+        case complete = "Complete!"
     }
 }

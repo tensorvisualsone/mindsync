@@ -2,24 +2,24 @@ import Foundation
 import AVFoundation
 import MediaPlayer
 
-/// Service für Berechtigungs-Prüfung
+/// Service for permission checking
 final class PermissionsService {
-    /// Mikrofon-Berechtigung
+    /// Microphone permission
     var microphoneStatus: AVAudioSession.RecordPermission {
         AVAudioSession.sharedInstance().recordPermission
     }
 
-    /// Musikbibliothek-Berechtigung
+    /// Music library permission
     var mediaLibraryStatus: MPMediaLibraryAuthorizationStatus {
         MPMediaLibrary.authorizationStatus()
     }
 
-    /// Fordert Mikrofon-Berechtigung an
+    /// Requests microphone permission
     func requestMicrophoneAccess() async -> Bool {
         await AVAudioSession.sharedInstance().requestRecordPermission()
     }
 
-    /// Fordert Musikbibliothek-Berechtigung an
+    /// Requests music library permission
     func requestMediaLibraryAccess() async -> MPMediaLibraryAuthorizationStatus {
         await MPMediaLibrary.requestAuthorization()
     }

@@ -1,14 +1,14 @@
 import Foundation
 
-/// Manager für thermisches Monitoring
-/// Wird in Phase 6 (US6) vollständig implementiert
+/// Manager for thermal monitoring
+/// Will be fully implemented in Phase 6 (US6)
 final class ThermalManager {
-    /// Aktueller thermischer Zustand
+    /// Current thermal state
     var currentState: ProcessInfo.ThermalState {
         ProcessInfo.processInfo.thermalState
     }
     
-    /// Maximale erlaubte Taschenlampen-Intensität basierend auf thermischem Zustand
+    /// Maximum allowed flashlight intensity based on thermal state
     var maxFlashlightIntensity: Float {
         switch currentState {
         case .nominal, .fair:
@@ -22,7 +22,7 @@ final class ThermalManager {
         }
     }
     
-    /// Sollte auf Bildschirm-Modus gewechselt werden?
+    /// Should switch to screen mode?
     var shouldSwitchToScreen: Bool {
         currentState == .serious || currentState == .critical
     }

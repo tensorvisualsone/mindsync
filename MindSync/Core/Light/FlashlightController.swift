@@ -1,7 +1,7 @@
 import Foundation
 import AVFoundation
 
-/// Controller für Taschenlampen-Steuerung
+/// Controller for flashlight control
 final class FlashlightController: NSObject, LightControlling {
     var source: LightSource { .flashlight }
 
@@ -47,14 +47,14 @@ final class FlashlightController: NSObject, LightControlling {
     }
 
     func setColor(_ color: LightEvent.LightColor) {
-        // Taschenlampe unterstützt keine Farben
+        // Flashlight does not support colors
     }
 
     func execute(script: LightScript, syncedTo startTime: Date) {
         currentScript = script
         scriptStartTime = startTime
 
-        // CADisplayLink für präzises Timing
+        // CADisplayLink for precise timing
         displayLink = CADisplayLink(target: self, selector: #selector(updateLight))
         if #available(iOS 15.0, *) {
             displayLink?.preferredFrameRateRange = CAFrameRateRange(
@@ -85,13 +85,13 @@ final class FlashlightController: NSObject, LightControlling {
 
         let elapsed = Date().timeIntervalSince(startTime)
 
-        // Finde aktuelles Event
+        // Find current event
         if let currentEvent = script.events.first(where: { event in
             elapsed >= event.timestamp && elapsed < event.timestamp + event.duration
         }) {
             setIntensity(currentEvent.intensity)
         } else if elapsed >= script.duration {
-            // Script zu Ende
+            // Script finished
             cancelExecution()
         }
     }

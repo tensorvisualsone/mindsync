@@ -5,20 +5,20 @@ struct SessionView: View {
     @StateObject private var viewModel = SessionViewModel()
     @Environment(\.dismiss) private var dismiss
     
-    let song: MPMediaItem?
+    let mediaItem: MPMediaItem?
     
     init(song: MPMediaItem? = nil) {
-        self.song = song
+        self.mediaItem = song
     }
     
     var body: some View {
         ZStack {
-            // Dunkler Hintergrund für Session
+            // Dark background for session
             Color.black.ignoresSafeArea()
             
             switch viewModel.state {
             case .idle:
-                // Sollte nicht hier sein - wird von HomeView navigiert
+                // Should not be here - navigated from HomeView
                 EmptyView()
                 
             case .analyzing:
@@ -38,8 +38,8 @@ struct SessionView: View {
         }
         .preferredColorScheme(.dark)
         .task {
-            if let song = song {
-                await viewModel.startSession(with: song)
+            if let mediaItem = mediaItem {
+                await viewModel.startSession(with: mediaItem)
             }
         }
     }
@@ -48,7 +48,7 @@ struct SessionView: View {
     
     private var runningSessionView: some View {
         VStack(spacing: 32) {
-            // Track-Info
+            // Track info
             if let track = viewModel.currentTrack {
                 VStack(spacing: 8) {
                     Text(track.title)
@@ -73,7 +73,7 @@ struct SessionView: View {
             
             Spacer()
             
-            // Stop-Button (groß, für einfache Bedienung)
+            // Stop button (large, for easy operation)
             Button(action: {
                 viewModel.stopSession()
                 dismiss()
@@ -81,7 +81,7 @@ struct SessionView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "stop.circle.fill")
                         .font(.system(size: 60))
-                    Text("Stoppen")
+                    Text("Stop")
                         .font(.headline)
                 }
                 .foregroundStyle(.white)
@@ -102,12 +102,12 @@ struct SessionView: View {
     
     private var pausedSessionView: some View {
         VStack(spacing: 24) {
-            Text("Pausiert")
+            Text("Paused")
                 .font(.title.bold())
                 .foregroundStyle(.white)
             
-            Button("Fortsetzen") {
-                // TODO: Resume-Funktionalität
+            Button("Resume") {
+                // TODO: Resume functionality
             }
             .buttonStyle(.borderedProminent)
             .disabled(true)
@@ -131,7 +131,7 @@ struct SessionView: View {
                     .padding(.horizontal)
             }
             
-            Button("Zurück") {
+            Button("Back") {
                 viewModel.reset()
                 dismiss()
             }

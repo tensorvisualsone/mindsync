@@ -2,11 +2,11 @@ import Foundation
 import AVFoundation
 import Accelerate
 
-/// Service zum Lesen von PCM-Daten aus Audio-Dateien
+/// Service for reading PCM data from audio files
 final class AudioFileReader {
-    /// Liest PCM-Daten aus einer Audio-Datei
-    /// - Parameter url: URL der Audio-Datei
-    /// - Returns: Array von Float-Samples (mono, 44.1kHz)
+    /// Reads PCM data from an audio file
+    /// - Parameter url: URL of the audio file
+    /// - Returns: Array of Float samples (mono, 44.1kHz)
     /// - Throws: AudioAnalysisError
     func readPCM(from url: URL) async throws -> [Float] {
         let asset = AVAsset(url: url)
@@ -80,7 +80,7 @@ final class AudioFileReader {
     }
 }
 
-/// Fehler-Typen für Audio-Analyse
+/// Error types for audio analysis
 enum AudioAnalysisError: Error, LocalizedError {
     case fileNotFound
     case drmProtected
@@ -91,15 +91,15 @@ enum AudioAnalysisError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .fileNotFound:
-            return "Audio-Datei nicht gefunden"
+            return "Audio file not found"
         case .drmProtected:
-            return "DRM-geschützte Datei kann nicht analysiert werden"
+            return "DRM-protected file cannot be analyzed"
         case .unsupportedFormat:
-            return "Audio-Format wird nicht unterstützt"
+            return "Audio format is not supported"
         case .analysisFailure(let e):
-            return "Analyse fehlgeschlagen: \(e.localizedDescription)"
+            return "Analysis failed: \(e.localizedDescription)"
         case .cancelled:
-            return "Analyse abgebrochen"
+            return "Analysis cancelled"
         }
     }
 }
