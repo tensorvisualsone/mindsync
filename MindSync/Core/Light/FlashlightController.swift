@@ -53,8 +53,6 @@ final class FlashlightController: NSObject, LightControlling {
             try device.lockForConfiguration()
             didLockConfiguration = true
         } catch {
-            // Ensure device isn't left in an inconsistent state
-            didLockConfiguration = false
             throw LightControlError.configurationFailed
         }
     }
