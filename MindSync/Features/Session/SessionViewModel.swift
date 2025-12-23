@@ -118,7 +118,8 @@ final class SessionViewModel: ObservableObject {
             state = .running
             
         } catch {
-            // Use defer-like cleanup pattern to ensure resources are always released
+            // Guaranteed cleanup using defer pattern to ensure resources are always released
+            // even if an exception occurs during cleanup or state assignment
             defer {
                 errorMessage = error.localizedDescription
                 state = .error

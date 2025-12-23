@@ -38,8 +38,6 @@ final class SessionHistoryService {
                 logger.error("Failed to encode sessions (attempt \(attempts)/\(maxAttempts)): \(error.localizedDescription, privacy: .private)")
                 
                 if attempts >= maxAttempts {
-                    // If encoding still fails after retry, try saving without the new session
-                    // This prevents losing all history if one session is problematic
                     logger.error("Session could not be saved after \(maxAttempts) attempts. Session data may be lost.")
                 }
             }
