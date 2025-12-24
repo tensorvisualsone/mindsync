@@ -43,6 +43,10 @@ struct SettingsView: View {
                         set: { newValue in
                             preferences.preferredMode = newValue
                             preferences.save()
+                            // Haptic feedback for mode change
+                            if preferences.hapticFeedbackEnabled {
+                                HapticFeedback.light()
+                            }
                         }
                     )) {
                         ForEach(EntrainmentMode.allCases) { mode in

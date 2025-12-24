@@ -24,6 +24,12 @@ protocol LightControlling {
 
     /// Cancels the current execution
     func cancelExecution()
+    
+    /// Pauses the current execution (light stays off but script position is preserved)
+    func pauseExecution()
+    
+    /// Resumes the current execution from the paused position
+    func resumeExecution()
 }
 
 enum LightControlError: Error {

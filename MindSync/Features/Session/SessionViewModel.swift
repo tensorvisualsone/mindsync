@@ -190,6 +190,11 @@ final class SessionViewModel: ObservableObject {
             
             state = .running
             
+            // Haptic feedback for session start (if enabled)
+            if cachedPreferences.hapticFeedbackEnabled {
+                HapticFeedback.medium()
+            }
+            
         } catch {
             // Set error state first to ensure it's always set, even if cleanup fails
             errorMessage = error.localizedDescription
@@ -202,6 +207,36 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
+    /// Pauses the current session
+    func pauseSession() {
+        guard state == .running else { return }
+        
+        audioPlayback.pause()
+        lightController?.pauseExecution()
+        
+        state = .paused
+        
+        // Haptic feedback for pause (if enabled)
+        if cachedPreferences.hapticFeedbackEnabled {
+            HapticFeedback.light()
+        }
+    }
+    
+    /// Resumes the current session
+    func resumeSession() {
+        guard state == .paused else { return }
+        
+        audioPlayback.resume()
+        lightController?.resumeExecution()
+        
+        state = .running
+        
+        // Haptic feedback for resume (if enabled)
+        if cachedPreferences.hapticFeedbackEnabled {
+            HapticFeedback.medium()
+        }
+    }
+    
     /// Stops the current session
     func stopSession() {
         // Allow cleanup from any state except .idle to prevent resource leaks
@@ -210,8 +245,8 @@ final class SessionViewModel: ObservableObject {
         audioPlayback.stop()
         lightController?.stop()
         
-        // End session and save to history only if it was running
-        if var session = currentSession, state == .running {
+        // End session and save to history only if it was running or paused
+        if var session = currentSession, state == .running || state == .paused {
             session.endedAt = Date()
             session.endReason = .userStopped
             services.sessionHistoryService.save(session: session)
@@ -222,6 +257,11 @@ final class SessionViewModel: ObservableObject {
         currentScript = nil
         currentSession = nil
         lightController = nil
+        
+        // Haptic feedback for session stop (if enabled)
+        if cachedPreferences.hapticFeedbackEnabled {
+            HapticFeedback.heavy()
+        }
     }
     
     /// Resets the session state (called when view is dismissed)

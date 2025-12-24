@@ -89,11 +89,35 @@ struct SessionView: View {
             
             Spacer()
             
-            // Stop button (large, for easy operation)
-            Button(action: {
-                viewModel.stopSession()
-                dismiss()
-            }) {
+            // Pause/Resume and Stop buttons
+            HStack(spacing: 16) {
+                // Pause/Resume button
+                Button(action: {
+                    if viewModel.state == .running {
+                        viewModel.pauseSession()
+                    } else if viewModel.state == .paused {
+                        viewModel.resumeSession()
+                    }
+                }) {
+                    VStack(spacing: 8) {
+                        Image(systemName: viewModel.state == .running ? "pause.circle.fill" : "play.circle.fill")
+                            .font(.system(size: 50))
+                        Text(viewModel.state == .running ? "Pausieren" : "Fortsetzen")
+                            .font(.headline)
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .background(Color.blue.opacity(0.3))
+                    .cornerRadius(16)
+                }
+                .buttonStyle(.plain)
+                
+                // Stop button (large, for easy operation)
+                Button(action: {
+                    viewModel.stopSession()
+                    dismiss()
+                }) {
                 VStack(spacing: 8) {
                     Image(systemName: "stop.circle.fill")
                         .font(.system(size: 60))
@@ -105,8 +129,9 @@ struct SessionView: View {
                 .padding(.vertical, 20)
                 .background(Color.red.opacity(0.3))
                 .cornerRadius(16)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
             .padding(.horizontal)
             
             Spacer()
@@ -123,11 +148,15 @@ struct SessionView: View {
                 .foregroundStyle(.white)
             
             Button("Fortsetzen") {
-                // TODO: Resume functionality
+                viewModel.resumeSession()
             }
             .buttonStyle(.borderedProminent)
-            .disabled(true)
-            .opacity(0.5)
+            
+            Button("Stoppen") {
+                viewModel.stopSession()
+                dismiss()
+            }
+            .buttonStyle(.bordered)
         }
     }
     
