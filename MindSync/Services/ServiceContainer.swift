@@ -5,21 +5,33 @@ import Combine
 @MainActor
 final class ServiceContainer: ObservableObject {
     nonisolated(unsafe) static var shared: ServiceContainer {
-        // Access must be from Main Actor context
-        // This is safe because ServiceContainer is @MainActor
-        // and all access should be from Main Actor context
+        // Ensure initialization happens on Main Actor
         if Thread.isMainThread {
             return _sharedInstance
         } else {
-            // This should not happen, but if it does, we need to dispatch to main
+            // Force initialization on main thread
+            // This prevents crashes when accessed from background threads
             return DispatchQueue.main.sync {
                 _sharedInstance
             }
         }
     }
     
-    @MainActor
-    private static let _sharedInstance = ServiceContainer()
+    nonisolated(unsafe) private static var _sharedInstance: ServiceContainer = {
+        // Initialize on Main Actor
+        // This closure will be called once, and we ensure it's on the main thread
+        if Thread.isMainThread {
+            return MainActor.assumeIsolated {
+                ServiceContainer()
+            }
+        } else {
+            return DispatchQueue.main.sync {
+                MainActor.assumeIsolated {
+                    ServiceContainer()
+                }
+            }
+        }
+    }()
 
     // Core Services
     let audioAnalyzer: AudioAnalyzer
