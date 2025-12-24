@@ -20,6 +20,9 @@ final class ServiceContainer: ObservableObject {
     let entrainmentEngine: EntrainmentEngine
     let thermalManager: ThermalManager
     let fallDetector: FallDetector
+    
+    // Affirmationen
+    let affirmationService: AffirmationOverlayService
 
     private init() {
         // Audio
@@ -38,5 +41,8 @@ final class ServiceContainer: ObservableObject {
         self.screenController = ScreenController()
         self.entrainmentEngine = EntrainmentEngine()
         self.fallDetector = FallDetector()
+        
+        // Affirmationen
+        self.affirmationService = AffirmationOverlayService()
     }
 }

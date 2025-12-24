@@ -19,6 +19,9 @@ struct UserPreferences: Codable {
 
     // UI
     var hapticFeedbackEnabled: Bool
+    
+    // Affirmationen
+    var selectedAffirmationURL: URL? // URL zum Sprachmemo des Users
 
     static var `default`: UserPreferences {
         UserPreferences(
@@ -31,7 +34,8 @@ struct UserPreferences: Codable {
             fallDetectionEnabled: true,
             thermalProtectionEnabled: true,
             maxSessionDuration: nil,
-            hapticFeedbackEnabled: true
+            hapticFeedbackEnabled: true,
+            selectedAffirmationURL: nil
         )
     }
     

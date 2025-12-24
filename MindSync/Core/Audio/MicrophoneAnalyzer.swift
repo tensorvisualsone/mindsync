@@ -35,6 +35,11 @@ final class MicrophoneAnalyzer {
     private var frameIndex: Int = 0
     private var startTime: Date?
     
+    // Moving Average für dynamischen Threshold (wie von Gemini empfohlen)
+    private var averageEnergy: Float = 0.0
+    private let smoothingFactor: Float = 0.95 // 95% alt, 5% neu
+    private let thresholdMultiplier: Float = 1.4 // Dynamischer Threshold = averageEnergy * 1.4
+    
     // Publishers
     let beatEventPublisher = PassthroughSubject<TimeInterval, Never>()
     let bpmPublisher = PassthroughSubject<Double, Never>()
@@ -116,6 +121,7 @@ final class MicrophoneAnalyzer {
         beatTimestamps.removeAll()
         spectralFluxValues.removeAll()
         lastBeatTime = 0
+        averageEnergy = 0.0 // Reset Moving Average
         
         logger.info("Microphone analysis started")
     }
@@ -176,27 +182,30 @@ final class MicrophoneAnalyzer {
             spectralFluxValues.append(spectralFlux)
             previousMagnitude = magnitude
             
-            // Calculate adaptive threshold after collecting some data
-            if spectralFluxValues.count >= 50 {
-                updateAdaptiveThreshold()
+            // Moving Average für dynamischen Threshold (wie von Gemini empfohlen)
+            // Der Threshold passt sich kontinuierlich an die aktuelle Lautstärke an
+            averageEnergy = (averageEnergy * smoothingFactor) + (spectralFlux * (1.0 - smoothingFactor))
+            
+            // Dynamischer Threshold basierend auf Moving Average
+            // Funktioniert besser bei Songs, die leise anfangen und laut enden
+            let dynamicThreshold = averageEnergy * thresholdMultiplier
+            
+            // Detect beats mit dynamischem Threshold
+            if spectralFlux > dynamicThreshold {
+                let currentTime = Date().timeIntervalSince(startTime ?? Date())
                 
-                // Detect beats
-                if spectralFlux > adaptiveThreshold {
-                    let currentTime = Date().timeIntervalSince(startTime ?? Date())
+                // Prevent duplicate beats (minimum interval: ~100ms)
+                if currentTime - lastBeatTime > 0.1 {
+                    beatTimestamps.append(currentTime)
+                    lastBeatTime = currentTime
                     
-                    // Prevent duplicate beats (minimum interval: ~100ms)
-                    if currentTime - lastBeatTime > 0.1 {
-                        beatTimestamps.append(currentTime)
-                        lastBeatTime = currentTime
-                        
-                        // Publish beat event
-                        beatEventPublisher.send(currentTime)
-                        
-                        // Update BPM estimate periodically
-                        if beatTimestamps.count >= 10 {
-                            let bpm = tempoEstimator.estimateBPM(from: beatTimestamps.suffix(20))
-                            bpmPublisher.send(bpm)
-                        }
+                    // Publish beat event
+                    beatEventPublisher.send(currentTime)
+                    
+                    // Update BPM estimate periodically
+                    if beatTimestamps.count >= 10 {
+                        let bpm = tempoEstimator.estimateBPM(from: beatTimestamps.suffix(20))
+                        bpmPublisher.send(bpm)
                     }
                 }
             }
@@ -207,6 +216,8 @@ final class MicrophoneAnalyzer {
     }
     
     /// Updates adaptive threshold based on recent spectral flux values
+    /// NOTE: Diese Methode wird nicht mehr verwendet, da wir jetzt Moving Average nutzen
+    /// Sie bleibt für Kompatibilität erhalten, falls sie später benötigt wird
     private func updateAdaptiveThreshold() {
         guard spectralFluxValues.count >= 20 else { return }
         
