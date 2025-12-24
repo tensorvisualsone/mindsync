@@ -186,7 +186,7 @@ struct MediaPickerView: UIViewControllerRepresentable {
         let picker = MPMediaPickerController(mediaTypes: .music)
         picker.delegate = context.coordinator
         picker.allowsPickingMultipleItems = false
-        picker.showsCloudItems = false  // Only local files
+        picker.showsCloudItems = false
         return picker
     }
     
@@ -214,17 +214,18 @@ struct MediaPickerView: UIViewControllerRepresentable {
             hasHandledSelection = true
             
             guard let item = mediaItemCollection.items.first else {
-                DispatchQueue.main.async {
-                    mediaPicker.dismiss(animated: true, completion: nil)
+                // No item selected - just cancel
+                DispatchQueue.main.async { [weak self] in
+                    self?.onCancel()
                 }
                 return
             }
             
             // Ensure UI updates happen on main thread
+            // Note: Don't call dismiss here - SwiftUI sheet will handle it
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 self.onItemSelected(item)
-                mediaPicker.dismiss(animated: true, completion: nil)
             }
         }
         
@@ -233,10 +234,11 @@ struct MediaPickerView: UIViewControllerRepresentable {
             guard !hasHandledSelection else { return }
             hasHandledSelection = true
             
+            // Ensure UI updates happen on main thread
+            // Note: Don't call dismiss here - SwiftUI sheet will handle it
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 self.onCancel()
-                mediaPicker.dismiss(animated: true, completion: nil)
             }
         }
     }
