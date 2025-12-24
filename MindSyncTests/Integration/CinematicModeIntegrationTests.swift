@@ -169,7 +169,7 @@ final class CinematicModeIntegrationTests: XCTestCase {
         // With max audio energy, we should find some high intensity values
         // This is a probabilistic test - it's possible but unlikely that all time points produce low values
         // In practice, with cosine wave oscillation, we should find high values
-        XCTAssertTrue(foundHighIntensity || true, // Relaxed assertion - wave oscillation should produce high values
+        XCTAssertTrue(foundHighIntensity,
                      "Should find high intensity values (>0.8) with maximum audio energy")
     }
     
