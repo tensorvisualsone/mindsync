@@ -2,36 +2,40 @@ import Foundation
 import Combine
 
 /// Zentraler Service-Container für MindSync
-@MainActor
 final class ServiceContainer: ObservableObject {
     nonisolated(unsafe) static var shared: ServiceContainer {
-        // Ensure initialization happens on Main Actor
-        if Thread.isMainThread {
-            return _sharedInstance
-        } else {
-            // Force initialization on main thread
-            // This prevents crashes when accessed from background threads
-            return DispatchQueue.main.sync {
-                _sharedInstance
-            }
-        }
-    }
-    
-    nonisolated(unsafe) private static var _sharedInstance: ServiceContainer = {
-        // Initialize on Main Actor
-        // This closure will be called once, and we ensure it's on the main thread
-        if Thread.isMainThread {
-            return MainActor.assumeIsolated {
-                ServiceContainer()
-            }
-        } else {
-            return DispatchQueue.main.sync {
-                MainActor.assumeIsolated {
+        // Thread-safe lazy initialization using a lock
+        _lock.lock()
+        defer { _lock.unlock() }
+        
+        if _sharedInstance == nil {
+            // Initialize on Main Actor
+            // This ensures all @MainActor services (like ScreenController) are initialized correctly
+            if Thread.isMainThread {
+                _sharedInstance = MainActor.assumeIsolated {
                     ServiceContainer()
                 }
+            } else {
+                // If called from background thread, we need to dispatch to main
+                // But we can't use sync here as it could cause deadlocks
+                // So we use async and wait with a semaphore
+                let semaphore = DispatchSemaphore(value: 0)
+                var instance: ServiceContainer?
+                DispatchQueue.main.async {
+                    instance = MainActor.assumeIsolated {
+                        ServiceContainer()
+                    }
+                    semaphore.signal()
+                }
+                semaphore.wait()
+                _sharedInstance = instance
             }
         }
-    }()
+        return _sharedInstance!
+    }
+    
+    nonisolated(unsafe) private static var _sharedInstance: ServiceContainer?
+    nonisolated(unsafe) private static let _lock = NSLock()
 
     // Core Services
     let audioAnalyzer: AudioAnalyzer
