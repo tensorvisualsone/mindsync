@@ -110,3 +110,30 @@
 "frequency.tooHigh" = "Frequenz zu hoch (Maximum: %d Hz)";
 "frequency.pseWarning" = "Frequenz liegt im PSE-Gefahrenbereich (%d-%d Hz). Personen mit photosensitiver Epilepsie sollten vorsichtig sein.";
 
+// MARK: - Common UI
+"common.ok" = "OK";
+"common.cancel" = "Abbrechen";
+"common.close" = "Schließen";
+"common.dismiss" = "Schließen";
+"common.back" = "Zurück";
+"common.home" = "Home";
+"common.error" = "Fehler";
+
+// MARK: - Light Source Picker
+"lightSource.title" = "Lichtquelle";
+"lightSource.flashlight" = "Taschenlampe";
+"lightSource.screen" = "Bildschirm";
+"lightSource.screenColor" = "Bildschirmfarbe";
+"lightSource.screenColorDescription" = "Wähle die Farbe für das Stroboskoplicht";
+"lightSource.customColor" = "Eigene Farbe wählen";
+"lightSource.selectFlashlight" = "Taschenlampe auswählen";
+"lightSource.selectScreen" = "Bildschirm auswählen";
+"lightSource.selectColor" = "Farbe auswählen: %@";
+"lightSource.selectCustomColor" = "Farbe auswählen: Eigene Farbe";
+
+// MARK: - Mode Selection
+"modeSelection.selectedMode" = "Ausgewählter Modus";
+"modeSelection.selectMode" = "Modus auswählen";
+"modeSelection.changeMode" = "Tippen, um Modus zu ändern";
+"modeSelection.currentMode" = "Aktueller Modus: %@";
+

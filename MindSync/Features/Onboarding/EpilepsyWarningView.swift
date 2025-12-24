@@ -6,46 +6,46 @@ struct EpilepsyWarningView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppConstants.Spacing.elementSpacing) {
-                Text("Epilepsie- und Sicherheitswarnung")
+                Text(NSLocalizedString("epilepsyWarning.title", comment: ""))
                     .font(AppConstants.Typography.title)
 
-                Text("Diese App verwendet intensives, stroboskopisches Licht, das bei Menschen mit photosensitiver Epilepsie (PSE) Anfälle auslösen kann.")
+                Text(NSLocalizedString("epilepsyWarning.description", comment: ""))
                     .font(AppConstants.Typography.body)
 
-                Text("Verwenden Sie MindSync nicht, wenn:")
+                Text(NSLocalizedString("epilepsyWarning.doNotUse", comment: ""))
                     .font(AppConstants.Typography.headline)
 
                 VStack(alignment: .leading, spacing: AppConstants.Spacing.sm) {
-                    Text("• bei Ihnen jemals ein epileptischer Anfall diagnostiziert wurde")
+                    Text("• \(NSLocalizedString("epilepsyWarning.condition1", comment: ""))")
                         .font(AppConstants.Typography.body)
-                    Text("• in Ihrer Familie eine Vorgeschichte mit Krampfanfällen besteht")
+                    Text("• \(NSLocalizedString("epilepsyWarning.condition2", comment: ""))")
                         .font(AppConstants.Typography.body)
-                    Text("• Ihnen von medizinischem Fachpersonal von stroboskopischem Licht abgeraten wurde")
+                    Text("• \(NSLocalizedString("epilepsyWarning.condition3", comment: ""))")
                         .font(AppConstants.Typography.body)
                 }
 
-                Text("Weitere Hinweise")
+                Text(NSLocalizedString("epilepsyWarning.additionalNotes", comment: ""))
                     .font(AppConstants.Typography.headline)
 
-                Text("• Verwenden Sie MindSync nur in einer sicheren, sitzenden oder liegenden Position in einem dunklen Raum.")
+                Text("• \(NSLocalizedString("epilepsyWarning.note1", comment: ""))")
                     .font(AppConstants.Typography.body)
-                Text("• Entfernen Sie sich von Gefahrenquellen (Treppen, Kanten, spitze Gegenstände).")
+                Text("• \(NSLocalizedString("epilepsyWarning.note2", comment: ""))")
                     .font(AppConstants.Typography.body)
-                Text("• Beenden Sie die Sitzung sofort, wenn Sie sich unwohl, schwindelig oder desorientiert fühlen.")
+                Text("• \(NSLocalizedString("epilepsyWarning.note3", comment: ""))")
                     .font(AppConstants.Typography.body)
 
-                Text("MindSync ist ein Wellness- und Unterhaltungs-Tool und ersetzt keine medizinische Behandlung oder Beratung.")
+                Text(NSLocalizedString("epilepsyWarning.disclaimer", comment: ""))
                     .font(AppConstants.Typography.caption)
                     .foregroundColor(.mindSyncSecondaryText)
             }
             .padding(AppConstants.Spacing.md)
         }
-        .navigationTitle("Sicherheit")
+        .navigationTitle(NSLocalizedString("epilepsyWarning.title", comment: ""))
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("epilepsyWarning.view")
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Close") {
+                Button(NSLocalizedString("epilepsyWarning.close", comment: "")) {
                     dismiss()
                 }
                 .accessibilityIdentifier("epilepsyWarning.closeButton")

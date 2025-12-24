@@ -110,3 +110,30 @@
 "frequency.tooHigh" = "Frequency too high (maximum: %d Hz)";
 "frequency.pseWarning" = "Frequency is in PSE danger zone (%d-%d Hz). People with photosensitive epilepsy should be cautious.";
 
+// MARK: - Common UI
+"common.ok" = "OK";
+"common.cancel" = "Cancel";
+"common.close" = "Close";
+"common.dismiss" = "Dismiss";
+"common.back" = "Back";
+"common.home" = "Home";
+"common.error" = "Error";
+
+// MARK: - Light Source Picker
+"lightSource.title" = "Light Source";
+"lightSource.flashlight" = "Flashlight";
+"lightSource.screen" = "Screen";
+"lightSource.screenColor" = "Screen Color";
+"lightSource.screenColorDescription" = "Choose the color for the strobe light";
+"lightSource.customColor" = "Choose Custom Color";
+"lightSource.selectFlashlight" = "Select Flashlight";
+"lightSource.selectScreen" = "Select Screen";
+"lightSource.selectColor" = "Select color: %@";
+"lightSource.selectCustomColor" = "Select color: Custom Color";
+
+// MARK: - Mode Selection
+"modeSelection.selectedMode" = "Selected Mode";
+"modeSelection.selectMode" = "Select Mode";
+"modeSelection.changeMode" = "Tap to change mode";
+"modeSelection.currentMode" = "Current Mode: %@";
+

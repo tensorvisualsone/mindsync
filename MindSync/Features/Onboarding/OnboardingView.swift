@@ -12,30 +12,30 @@ struct OnboardingView: View {
                     .font(.system(size: AppConstants.IconSize.extraLarge))
                     .foregroundColor(.mindSyncWarning)
 
-                Text("Wichtige Sicherheitshinweise")
+                Text(NSLocalizedString("onboarding.title", comment: ""))
                     .font(AppConstants.Typography.title)
                     .accessibilityIdentifier("onboarding.title")
 
-                Text("Diese App verwendet stroboskopisches Licht, das bei Menschen mit photosensitiver Epilepsie Anfälle auslösen kann.")
+                Text(NSLocalizedString("onboarding.description", comment: ""))
                     .font(AppConstants.Typography.body)
                     .multilineTextAlignment(.center)
                     .foregroundColor(.mindSyncPrimaryText)
 
-                Button("Mehr erfahren") {
+                Button(NSLocalizedString("onboarding.learnMore", comment: "")) {
                     viewModel.showDetails = true
                 }
                 .buttonStyle(.bordered)
                 .accessibilityIdentifier("onboarding.learnMoreButton")
-                .accessibilityHint("Zeigt weitere Informationen zur Sicherheit an")
+                .accessibilityHint(NSLocalizedString("onboarding.learnMore", comment: ""))
 
-                Button("Ich verstehe und akzeptiere") {
+                Button(NSLocalizedString("onboarding.accept", comment: "")) {
                     disclaimerAccepted = true
                     disclaimerAcceptedAt = Date().timeIntervalSince1970
                 }
                 .buttonStyle(.borderedProminent)
                 .padding(.top, AppConstants.Spacing.sm)
                 .accessibilityIdentifier("onboarding.acceptButton")
-                .accessibilityHint("Akzeptiert die Sicherheitshinweise und öffnet die App")
+                .accessibilityHint(NSLocalizedString("onboarding.accept", comment: "Accessibility hint for accept button"))
             }
             .padding(AppConstants.Spacing.md)
             // Force dark mode to ensure consistent, high-contrast rendering of safety-critical epilepsy warnings.

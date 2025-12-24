@@ -108,7 +108,7 @@ struct SessionView: View {
                     VStack(spacing: AppConstants.Spacing.sm) {
                         Image(systemName: viewModel.state == .running ? "pause.circle.fill" : "play.circle.fill")
                             .font(.system(size: AppConstants.IconSize.large))
-                        Text(viewModel.state == .running ? "Pausieren" : "Fortsetzen")
+                        Text(viewModel.state == .running ? NSLocalizedString("session.pause", comment: "") : NSLocalizedString("session.resume", comment: ""))
                             .font(AppConstants.Typography.headline)
                     }
                     .foregroundStyle(.white)
@@ -130,7 +130,7 @@ struct SessionView: View {
                 VStack(spacing: AppConstants.Spacing.sm) {
                     Image(systemName: "stop.circle.fill")
                         .font(.system(size: AppConstants.IconSize.extraLarge))
-                    Text("Stoppen")
+                    Text(NSLocalizedString("session.stop", comment: ""))
                         .font(AppConstants.Typography.headline)
                 }
                 .foregroundStyle(.white)
@@ -155,27 +155,27 @@ struct SessionView: View {
     
     private var pausedSessionView: some View {
         VStack(spacing: AppConstants.Spacing.sectionSpacing) {
-            Text("Pausiert")
+            Text(NSLocalizedString("session.paused", comment: ""))
                 .font(AppConstants.Typography.title)
                 .foregroundStyle(.white)
                 .accessibilityIdentifier("session.pausedLabel")
             
-            Button("Fortsetzen") {
+            Button(NSLocalizedString("session.resume", comment: "")) {
                 viewModel.resumeSession()
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .accessibilityIdentifier("session.resumeButton")
-            .accessibilityLabel("Sitzung fortsetzen")
+            .accessibilityLabel(NSLocalizedString("session.resume", comment: ""))
             
-            Button("Stoppen") {
+            Button(NSLocalizedString("session.stop", comment: "")) {
                 viewModel.stopSession()
                 dismiss()
             }
             .buttonStyle(.bordered)
             .controlSize(.large)
             .accessibilityIdentifier("session.stopButtonPaused")
-            .accessibilityLabel("Sitzung stoppen")
+            .accessibilityLabel(NSLocalizedString("session.stop", comment: ""))
         }
         .padding(AppConstants.Spacing.md)
     }
@@ -197,14 +197,14 @@ struct SessionView: View {
                     .accessibilityIdentifier("session.errorMessage")
             }
             
-            Button("Zurück") {
+            Button(NSLocalizedString("common.back", comment: "")) {
                 viewModel.reset()
                 dismiss()
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .accessibilityIdentifier("session.errorBackButton")
-            .accessibilityLabel("Zurück zur Startseite")
+            .accessibilityLabel(NSLocalizedString("common.back", comment: ""))
         }
         .padding(AppConstants.Spacing.md)
     }

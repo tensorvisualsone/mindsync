@@ -510,6 +510,55 @@ if output > 0.8:
 - **Integration Tests**: Vollständiger Flow mit echten Audio-Dateien
 - **UI Tests**: Session-Flow mit Cinematic Mode
 
+## Lokalisierung
+
+### Übersicht
+
+MindSync unterstützt vollständige Lokalisierung für Deutsch (Standard) und Englisch. Alle user-facing Strings werden über `NSLocalizedString` bereitgestellt.
+
+### Lokalisierungsdateien
+
+- **Base (Deutsch)**: `MindSync/Resources/Localizable.strings`
+- **Englisch**: `MindSync/Resources/en.lproj/Localizable.strings`
+
+### String-Kategorien
+
+1. **Onboarding**: Epilepsie-Warnung und Disclaimer
+2. **Home**: Titel, Untertitel, Buttons
+3. **Source Selection**: Audioquelle-Auswahl, Berechtigungen
+4. **Session**: Pause/Resume/Stop, Status-Meldungen
+5. **Settings**: Einstellungen, Lichtquelle, Modi
+6. **Mode Selection**: Modus-Beschreibungen und Auswahl
+7. **Light Source**: Taschenlampe/Bildschirm, Farben
+8. **Safety**: Thermal-Warnungen, Fall-Erkennung
+9. **Errors**: Fehlermeldungen für verschiedene Szenarien
+10. **Common UI**: Gemeinsame UI-Elemente (OK, Abbrechen, etc.)
+
+### Verwendung in Code
+
+```swift
+// ✅ Richtig: Lokalisierter String
+Text(NSLocalizedString("home.title", comment: ""))
+
+// ❌ Falsch: Hardcodierter String
+Text("Home")
+```
+
+### Format-Strings
+
+Für Strings mit Parametern wird `String(format:)` verwendet:
+
+```swift
+String(format: NSLocalizedString("modeSelection.currentMode", comment: ""), mode.displayName)
+```
+
+### Best Practices
+
+1. **Keine hardcodierten Strings**: Alle user-facing Texte müssen lokalisiert sein
+2. **Konsistente Keys**: Verwende kategorisierte Keys (z.B. `home.title`, `settings.mode`)
+3. **Comments**: Kommentare in `NSLocalizedString` helfen Übersetzern
+4. **Accessibility**: Auch Accessibility-Labels sollten lokalisiert werden
+
 ## Zukünftige Erweiterungen
 
 - **RGB-Zyklen**: Custom-Farben für Screen-Modus
@@ -517,4 +566,5 @@ if output > 0.8:
 - **Erweiterte Fall-Filterung**: Kontext-bewusste Erkennung
 - **Session-Analytics**: Detaillierte Statistiken
 - **CADisplayLink Background Issue**: Timing vom Audio-Thread ableiten (siehe BaseLightController Kommentar)
+- **Weitere Sprachen**: Französisch, Spanisch, etc.
 

@@ -40,7 +40,7 @@ struct ModeSelectionView: View {
                     .padding(AppConstants.Spacing.md)
                 }
             }
-            .navigationTitle(NSLocalizedString("settings.mode", comment: ""))
+            .navigationTitle(NSLocalizedString("modeSelection.title", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
         }
     }
@@ -114,7 +114,7 @@ private struct ModeCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(mode.displayName)
-        .accessibilityHint(isSelected ? "Ausgewählter Modus" : "Modus auswählen")
+        .accessibilityHint(isSelected ? NSLocalizedString("modeSelection.selectedMode", comment: "") : NSLocalizedString("modeSelection.selectMode", comment: ""))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
