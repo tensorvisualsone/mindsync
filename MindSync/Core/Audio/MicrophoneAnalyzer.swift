@@ -219,8 +219,11 @@ final class MicrophoneAnalyzer {
                     if currentTime - lastBeatTime > 0.1 {
                         beatTimestamps.append(currentTime)
                         
-                        // Limit beat history to prevent unbounded memory growth
-                        // Keep last 1000 beat timestamps
+                        // Limit beat history to prevent unbounded memory growth.
+                        // MicrophoneAnalyzer keeps 1000 timestamps for internal BPM estimation
+                        // (covers ≈8-16 minutes at typical BPM rates), while SessionViewModel
+                        // maintains a smaller rolling window (100 beats) optimized for
+                        // light script generation and display.
                         if beatTimestamps.count > 1000 {
                             beatTimestamps.removeFirst()
                         }

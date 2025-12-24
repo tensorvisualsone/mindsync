@@ -47,8 +47,8 @@ final class SessionViewModel: ObservableObject {
     
     // Maximum number of beat timestamps to keep in memory for BPM estimation.
     // This limit prevents unbounded memory growth during long microphone sessions
-    // while maintaining sufficient history (≈40-50 seconds at typical BPM rates)
-    // for accurate tempo estimation.
+    // while maintaining sufficient history for accurate tempo estimation.
+    // At typical BPM rates (60-150), 100 beats represent ≈40-100 seconds of audio.
     private let maxBeatHistoryCount = 100
     
     // Flag to prevent re-entrancy in fall detection handling
@@ -484,8 +484,8 @@ final class SessionViewModel: ObservableObject {
         let estimatedDuration: TimeInterval
         if let lastBeat = microphoneBeatTimestamps.last {
             let beatDuration = bpm > 0 ? 60.0 / bpm : 0
-            // Ensure the duration extends at least one beat beyond the last detected beat
-            estimatedDuration = max(lastBeat + beatDuration, lastBeat)
+            // Extend duration one beat beyond the last detected beat
+            estimatedDuration = lastBeat + beatDuration
         } else if bpm > 0 {
             // No beats yet: assume a short window of several beats
             let beatDuration = 60.0 / bpm
