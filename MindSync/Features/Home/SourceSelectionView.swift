@@ -201,6 +201,7 @@ struct MediaPickerView: UIViewControllerRepresentable {
     class Coordinator: NSObject, MPMediaPickerControllerDelegate {
         let onItemSelected: (MPMediaItem) -> Void
         let onCancel: () -> Void
+        private var hasHandledSelection = false
         
         init(onItemSelected: @escaping (MPMediaItem) -> Void, onCancel: @escaping () -> Void) {
             self.onItemSelected = onItemSelected
@@ -208,15 +209,35 @@ struct MediaPickerView: UIViewControllerRepresentable {
         }
         
         func mediaPicker(_ mediaPicker: MPMediaPickerController, didPickMediaItems mediaItemCollection: MPMediaItemCollection) {
-            if let item = mediaItemCollection.items.first {
-                onItemSelected(item)
+            // Prevent multiple calls
+            guard !hasHandledSelection else { return }
+            hasHandledSelection = true
+            
+            guard let item = mediaItemCollection.items.first else {
+                DispatchQueue.main.async {
+                    mediaPicker.dismiss(animated: true, completion: nil)
+                }
+                return
             }
-            mediaPicker.dismiss(animated: true)
+            
+            // Ensure UI updates happen on main thread
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.onItemSelected(item)
+                mediaPicker.dismiss(animated: true, completion: nil)
+            }
         }
         
         func mediaPickerDidCancel(_ mediaPicker: MPMediaPickerController) {
-            onCancel()
-            mediaPicker.dismiss(animated: true)
+            // Prevent multiple calls
+            guard !hasHandledSelection else { return }
+            hasHandledSelection = true
+            
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.onCancel()
+                mediaPicker.dismiss(animated: true, completion: nil)
+            }
         }
     }
 }
