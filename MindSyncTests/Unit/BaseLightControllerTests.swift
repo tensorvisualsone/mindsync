@@ -121,6 +121,153 @@ final class BaseLightControllerTests: XCTestCase {
         XCTAssertFalse(result.isComplete)
     }
     
+    // MARK: - Pause/Resume Tests
+    
+    func testPauseScriptExecution_SetsIsPausedFlag() {
+        // Given
+        let script = createTestScript()
+        baseLightController.initializeScriptExecution(script: script, startTime: Date())
+        
+        // When
+        baseLightController.pauseScriptExecution()
+        
+        // Then
+        XCTAssertTrue(baseLightController.isPaused)
+        XCTAssertNotNil(baseLightController.pauseStartTime)
+    }
+    
+    func testPauseScriptExecution_InvalidatesDisplayLink() {
+        // Given
+        let script = createTestScript()
+        baseLightController.initializeScriptExecution(script: script, startTime: Date())
+        let target = TestDisplayLinkTarget()
+        baseLightController.setupDisplayLink(target: target, selector: #selector(TestDisplayLinkTarget.update))
+        XCTAssertNotNil(baseLightController.displayLink)
+        
+        // When
+        baseLightController.pauseScriptExecution()
+        
+        // Then
+        XCTAssertNil(baseLightController.displayLink)
+    }
+    
+    func testPauseScriptExecution_WhenAlreadyPaused_DoesNothing() {
+        // Given
+        let script = createTestScript()
+        baseLightController.initializeScriptExecution(script: script, startTime: Date())
+        baseLightController.pauseScriptExecution()
+        let firstPauseStartTime = baseLightController.pauseStartTime
+        
+        // When
+        baseLightController.pauseScriptExecution()
+        
+        // Then: pauseStartTime should not change
+        XCTAssertEqual(baseLightController.pauseStartTime, firstPauseStartTime)
+    }
+    
+    func testResumeScriptExecution_ClearsIsPausedFlag() {
+        // Given
+        let script = createTestScript()
+        baseLightController.initializeScriptExecution(script: script, startTime: Date())
+        baseLightController.pauseScriptExecution()
+        
+        // When
+        baseLightController.resumeScriptExecution()
+        
+        // Then
+        XCTAssertFalse(baseLightController.isPaused)
+        XCTAssertNil(baseLightController.pauseStartTime)
+    }
+    
+    func testResumeScriptExecution_AccumulatesPauseDuration() {
+        // Given
+        let script = createTestScript()
+        baseLightController.initializeScriptExecution(script: script, startTime: Date())
+        baseLightController.pauseScriptExecution()
+        
+        // Wait a short time
+        Thread.sleep(forTimeInterval: 0.1)
+        
+        // When
+        baseLightController.resumeScriptExecution()
+        
+        // Then: totalPauseDuration should be accumulated
+        XCTAssertGreaterThan(baseLightController.totalPauseDuration, 0)
+        XCTAssertLessThan(baseLightController.totalPauseDuration, 0.2) // Should be around 0.1
+    }
+    
+    func testResumeScriptExecution_WhenNotPaused_DoesNothing() {
+        // Given
+        let script = createTestScript()
+        baseLightController.initializeScriptExecution(script: script, startTime: Date())
+        let initialPauseDuration = baseLightController.totalPauseDuration
+        
+        // When
+        baseLightController.resumeScriptExecution()
+        
+        // Then: totalPauseDuration should not change
+        XCTAssertEqual(baseLightController.totalPauseDuration, initialPauseDuration)
+    }
+    
+    func testMultiplePauseResumeCycles_AccumulatesDuration() {
+        // Given
+        let script = createTestScript()
+        baseLightController.initializeScriptExecution(script: script, startTime: Date())
+        
+        // First pause/resume cycle
+        baseLightController.pauseScriptExecution()
+        Thread.sleep(forTimeInterval: 0.05)
+        baseLightController.resumeScriptExecution()
+        let firstPauseDuration = baseLightController.totalPauseDuration
+        
+        // Second pause/resume cycle
+        baseLightController.pauseScriptExecution()
+        Thread.sleep(forTimeInterval: 0.05)
+        baseLightController.resumeScriptExecution()
+        let secondPauseDuration = baseLightController.totalPauseDuration
+        
+        // Then: second duration should be greater than first
+        XCTAssertGreaterThan(secondPauseDuration, firstPauseDuration)
+        XCTAssertGreaterThan(secondPauseDuration, 0.08) // Should be around 0.1 total
+    }
+    
+    func testFindCurrentEvent_WithPauseDuration_AdjustsElapsedTime() {
+        // Given: Script with event at timestamp 0
+        let script = createTestScript()
+        let startTime = Date(timeIntervalSinceNow: -1.0) // Started 1 second ago
+        baseLightController.initializeScriptExecution(script: script, startTime: startTime)
+        
+        // Simulate a pause by setting totalPauseDuration
+        baseLightController.pauseScriptExecution()
+        Thread.sleep(forTimeInterval: 0.1)
+        baseLightController.resumeScriptExecution()
+        
+        // When
+        let result = baseLightController.findCurrentEvent()
+        
+        // Then: Elapsed time should account for pause duration
+        // Real elapsed is ~1 second, but with ~0.1s pause, effective elapsed should be ~0.9s
+        XCTAssertLessThan(result.elapsed, 1.0)
+        XCTAssertGreaterThan(result.elapsed, 0.8)
+    }
+    
+    func testResetScriptExecution_ClearsPauseState() {
+        // Given
+        let script = createTestScript()
+        baseLightController.initializeScriptExecution(script: script, startTime: Date())
+        baseLightController.pauseScriptExecution()
+        Thread.sleep(forTimeInterval: 0.05)
+        baseLightController.resumeScriptExecution()
+        
+        // When
+        baseLightController.resetScriptExecution()
+        
+        // Then
+        XCTAssertEqual(baseLightController.totalPauseDuration, 0)
+        XCTAssertNil(baseLightController.pauseStartTime)
+        XCTAssertFalse(baseLightController.isPaused)
+    }
+    
     // MARK: - Display Link Management Tests
     
     func testInvalidateDisplayLink_ClearsDisplayLink() {
