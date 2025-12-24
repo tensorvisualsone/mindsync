@@ -155,7 +155,7 @@ Proprietary - Alle Rechte vorbehalten.
 
 ## 🙏 Danksagungen
 
-- Inspiriert von [Lumenate](https://www.lumenate.com/) und der Forschung zu Photic Driving
+- Inspiriert von der Forschung zu Photic Driving
 - Neurowissenschaftliche Grundlagen basierend auf Studien des Netherlands Institute for Neuroscience
 - Apple Developer Documentation für AVFoundation und Accelerate
 
