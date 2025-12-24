@@ -14,13 +14,13 @@ struct AnalysisProgressView: View {
             Text(progress.message)
                 .font(AppConstants.Typography.headline)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.mindSyncSecondaryText)
+                .foregroundColor(.mindSyncSecondaryText)
                 .accessibilityIdentifier("session.analysisMessage")
             
             // Percentage display
             Text("\(Int(progress.progress * 100))%")
                 .font(AppConstants.Typography.title2)
-                .foregroundStyle(.mindSyncPrimaryText)
+                .foregroundColor(.mindSyncPrimaryText)
                 .accessibilityIdentifier("session.analysisProgress")
         }
         .padding(AppConstants.Spacing.md)

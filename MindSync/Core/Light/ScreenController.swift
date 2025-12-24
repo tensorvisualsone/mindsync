@@ -31,6 +31,7 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
     
     private var displayLinkTarget: WeakDisplayLinkTarget?
     private var defaultColor: LightEvent.LightColor = .white
+    private var customColorRGB: CustomColorRGB?
     
     override init() {
         super.init()
@@ -58,6 +59,11 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
 
     func setColor(_ color: LightEvent.LightColor) {
         defaultColor = color
+    }
+    
+    /// Sets custom color RGB values for custom color mode
+    func setCustomColorRGB(_ rgb: CustomColorRGB?) {
+        customColorRGB = rgb
     }
 
     func execute(script: LightScript, syncedTo startTime: Date) {
@@ -109,7 +115,7 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
         if let event = result.event, let script = currentScript {
             // Get color from event or use default
             let lightColor = event.color ?? defaultColor
-            let baseColor = lightColor.swiftUIColor
+            let baseColor = lightColor.swiftUIColor(customRGB: customColorRGB?.tuple)
             
             // Check if cinematic mode - apply dynamic intensity modulation
             let baseIntensity: Float

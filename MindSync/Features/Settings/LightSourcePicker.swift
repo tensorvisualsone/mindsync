@@ -4,6 +4,7 @@ import SwiftUI
 struct LightSourcePicker: View {
     @Binding var selectedSource: LightSource
     @Binding var screenColor: LightEvent.LightColor
+    @Binding var customColorRGB: CustomColorRGB?
     
     var body: some View {
         VStack(spacing: AppConstants.Spacing.sectionSpacing) {
@@ -20,15 +21,15 @@ struct LightSourcePicker: View {
                     VStack(spacing: AppConstants.Spacing.md) {
                         Image(systemName: "flashlight.on.fill")
                             .font(.system(size: AppConstants.IconSize.large))
-                            .foregroundStyle(selectedSource == .flashlight ? .mindSyncFlashlight : .mindSyncSecondaryText)
+                            .foregroundColor(selectedSource == .flashlight ? .mindSyncFlashlight : .mindSyncSecondaryText)
                         
                         Text("Taschenlampe")
                             .font(AppConstants.Typography.subheadline.weight(.bold))
-                            .foregroundStyle(selectedSource == .flashlight ? .mindSyncPrimaryText : .mindSyncSecondaryText)
+                            .foregroundColor(selectedSource == .flashlight ? .mindSyncPrimaryText : .mindSyncSecondaryText)
                         
                         Text(LightSource.flashlight.description)
                             .font(AppConstants.Typography.caption)
-                            .foregroundStyle(.mindSyncSecondaryText)
+                            .foregroundColor(.mindSyncSecondaryText)
                             .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
@@ -59,15 +60,15 @@ struct LightSourcePicker: View {
                     VStack(spacing: AppConstants.Spacing.md) {
                         Image(systemName: "iphone")
                             .font(.system(size: AppConstants.IconSize.large))
-                            .foregroundStyle(selectedSource == .screen ? .mindSyncScreen : .mindSyncSecondaryText)
+                            .foregroundColor(selectedSource == .screen ? .mindSyncScreen : .mindSyncSecondaryText)
                         
                         Text("Bildschirm")
                             .font(AppConstants.Typography.subheadline.weight(.bold))
-                            .foregroundStyle(selectedSource == .screen ? .mindSyncPrimaryText : .mindSyncSecondaryText)
+                            .foregroundColor(selectedSource == .screen ? .mindSyncPrimaryText : .mindSyncSecondaryText)
                         
                         Text(LightSource.screen.description)
                             .font(AppConstants.Typography.caption)
-                            .foregroundStyle(.mindSyncSecondaryText)
+                            .foregroundColor(.mindSyncSecondaryText)
                             .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
@@ -131,11 +132,79 @@ struct LightSourcePicker: View {
                             .accessibilityLabel("Farbe auswählen: \(color.displayName)")
                             .accessibilityAddTraits(screenColor == color ? .isSelected : [])
                         }
+                        
+                        // Custom color option
+                        Button(action: {
+                            screenColor = .custom
+                        }) {
+                            ZStack {
+                                Circle()
+                                    .fill(customColorRGB.map { Color(red: $0.red, green: $0.green, blue: $0.blue) } ?? .white)
+                                    .frame(
+                                        width: AppConstants.TouchTarget.minimum,
+                                        height: AppConstants.TouchTarget.minimum
+                                    )
+                                
+                                // Gradient overlay for "custom" indicator
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [.red, .orange, .yellow, .green, .blue, .purple],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .opacity(0.3)
+                                
+                                Circle()
+                                    .stroke(
+                                        screenColor == .custom ? Color.mindSyncPrimaryText : Color.clear,
+                                        lineWidth: 3
+                                    )
+                                
+                                Image(systemName: "paintpalette.fill")
+                                    .font(.system(size: AppConstants.IconSize.small, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .opacity(screenColor == .custom ? 1 : 0.7)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Farbe auswählen: Eigene Farbe")
+                        .accessibilityAddTraits(screenColor == .custom ? .isSelected : [])
+                    }
+                    
+                    // Custom color picker (only visible when custom is selected)
+                    if screenColor == .custom {
+                        VStack(spacing: AppConstants.Spacing.sm) {
+                            ColorPicker(
+                                "Eigene Farbe wählen",
+                                selection: Binding(
+                                    get: {
+                                        if let rgb = customColorRGB {
+                                            return Color(red: rgb.red, green: rgb.green, blue: rgb.blue)
+                                        }
+                                        return .white
+                                    },
+                                    set: { newColor in
+                                        let components = UIColor(newColor).cgColor.components ?? [1.0, 1.0, 1.0, 1.0]
+                                        customColorRGB = CustomColorRGB(
+                                            red: Double(components[0]),
+                                            green: Double(components[1]),
+                                            blue: Double(components[2])
+                                        )
+                                    }
+                                ),
+                                supportsOpacity: false
+                            )
+                            .accessibilityIdentifier("settings.customColorPicker")
+                        }
+                        .padding(.top, AppConstants.Spacing.sm)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                     
                     Text("Wähle die Farbe für das Stroboskoplicht")
                         .font(AppConstants.Typography.caption)
-                        .foregroundStyle(.mindSyncSecondaryText)
+                        .foregroundColor(.mindSyncSecondaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .padding(.top, AppConstants.Spacing.sm)
@@ -149,7 +218,8 @@ struct LightSourcePicker: View {
 #Preview {
     LightSourcePicker(
         selectedSource: .constant(.screen),
-        screenColor: .constant(.white)
+        screenColor: .constant(.white),
+        customColorRGB: .constant(nil)
     )
     .padding()
 }

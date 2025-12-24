@@ -23,7 +23,7 @@ struct ModeSelectionView: View {
                     
                     Text(NSLocalizedString("modeSelection.description", comment: ""))
                         .font(AppConstants.Typography.subheadline)
-                        .foregroundStyle(.mindSyncSecondaryText)
+                        .foregroundColor(.mindSyncSecondaryText)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
                     
@@ -74,7 +74,7 @@ private struct ModeCard: View {
                 // Icon
                 Image(systemName: mode.iconName)
                     .font(.system(size: AppConstants.IconSize.large))
-                    .foregroundStyle(isSelected ? .white : mode.themeColor)
+                    .foregroundColor(isSelected ? .white : mode.themeColor)
                     .frame(width: AppConstants.TouchTarget.comfortable, height: AppConstants.TouchTarget.comfortable)
                     .background(
                         Circle()
@@ -85,16 +85,16 @@ private struct ModeCard: View {
                 VStack(alignment: .leading, spacing: AppConstants.Spacing.xs) {
                     Text(mode.displayName)
                         .font(AppConstants.Typography.headline)
-                        .foregroundStyle(isSelected ? .white : .mindSyncPrimaryText)
+                        .foregroundColor(isSelected ? .white : .mindSyncPrimaryText)
                     
                     Text(mode.description)
                         .font(AppConstants.Typography.caption)
-                        .foregroundStyle(isSelected ? .white.opacity(AppConstants.Opacity.secondary) : .mindSyncSecondaryText)
+                        .foregroundColor(isSelected ? .white.opacity(AppConstants.Opacity.secondary) : .mindSyncSecondaryText)
                         .multilineTextAlignment(.leading)
                     
                     Text("\(Int(mode.frequencyRange.lowerBound))-\(Int(mode.frequencyRange.upperBound)) Hz")
                         .font(AppConstants.Typography.caption2)
-                        .foregroundStyle(isSelected ? .white.opacity(AppConstants.Opacity.tertiary) : .mindSyncTertiaryText)
+                        .foregroundColor(isSelected ? .white.opacity(AppConstants.Opacity.tertiary) : .mindSyncTertiaryText)
                 }
                 
                 Spacer()
@@ -102,7 +102,7 @@ private struct ModeCard: View {
                 // Selection indicator
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.white)
+                        .foregroundColor(.white)
                         .font(.title3)
                 }
             }

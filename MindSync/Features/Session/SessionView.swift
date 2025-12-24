@@ -186,7 +186,7 @@ struct SessionView: View {
         VStack(spacing: AppConstants.Spacing.sectionSpacing) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: AppConstants.IconSize.extraLarge))
-                .foregroundStyle(.mindSyncWarning)
+                .foregroundColor(.mindSyncWarning)
             
             if let error = viewModel.errorMessage {
                 Text(error)
