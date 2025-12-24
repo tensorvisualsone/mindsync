@@ -24,6 +24,16 @@ class BaseLightController: NSObject {
     // MARK: - Display Link Management
     
     /// Sets up the display link with a weak target wrapper
+    /// 
+    /// WICHTIG: CADisplayLink wird pausiert, sobald die App in den Hintergrund geht oder der Screen ausgeht.
+    /// Das Audio läuft weiter, aber das Licht friert ein oder geht aus. Die Synchronisation bricht.
+    /// 
+    /// LÖSUNG: Für eine robuste Synchronisation sollte das Timing vom Audio-Thread abgeleitet werden,
+    /// nicht von der Video-Refresh-Rate (Display). Alternativ kann `UIApplication.shared.isIdleTimerDisabled = true`
+    /// gesetzt werden, damit der Screen an bleibt (User muss das wissen).
+    /// 
+    /// Pro-Solution: Nutze einen AVAudioSourceNode oder einen Timer auf einem Background-Thread,
+    /// der mit der Audio-Engine synchronisiert ist.
     @MainActor func setupDisplayLink(target: AnyObject, selector: Selector) {
         displayLink = CADisplayLink(target: target, selector: selector)
         displayLink?.preferredFrameRateRange = CAFrameRateRange(

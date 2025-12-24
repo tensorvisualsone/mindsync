@@ -1,0 +1,92 @@
+/* 
+  Localizable.strings (German)
+  MindSync
+  
+  German localization strings
+*/
+
+// MARK: - Onboarding
+"onboarding.title" = "Wichtige Sicherheitshinweise";
+"onboarding.learnMore" = "Mehr erfahren";
+"onboarding.accept" = "Ich verstehe und akzeptiere";
+"onboarding.description" = "Diese App verwendet stroboskopisches Licht, das bei Menschen mit photosensitiver Epilepsie Anfälle auslösen kann.";
+
+// MARK: - Epilepsy Warning
+"epilepsyWarning.title" = "Epilepsie- und Sicherheitswarnung";
+"epilepsyWarning.description" = "Diese App verwendet intensives, stroboskopisches Licht, das bei Menschen mit photosensitiver Epilepsie (PSE) Anfälle auslösen kann.";
+"epilepsyWarning.doNotUse" = "Verwenden Sie MindSync nicht, wenn:";
+"epilepsyWarning.condition1" = "bei Ihnen jemals ein epileptischer Anfall diagnostiziert wurde";
+"epilepsyWarning.condition2" = "in Ihrer Familie eine Vorgeschichte mit Krampfanfällen besteht";
+"epilepsyWarning.condition3" = "Ihnen von medizinischem Fachpersonal von stroboskopischem Licht abgeraten wurde";
+"epilepsyWarning.additionalNotes" = "Weitere Hinweise";
+"epilepsyWarning.note1" = "Verwenden Sie MindSync nur in einer sicheren, sitzenden oder liegenden Position in einem dunklen Raum.";
+"epilepsyWarning.note2" = "Entfernen Sie sich von Gefahrenquellen (Treppen, Kanten, spitze Gegenstände).";
+"epilepsyWarning.note3" = "Beenden Sie die Sitzung sofort, wenn Sie sich unwohl, schwindelig oder desorientiert fühlen.";
+"epilepsyWarning.disclaimer" = "MindSync ist ein Wellness- und Unterhaltungs-Tool und ersetzt keine medizinische Behandlung oder Beratung.";
+"epilepsyWarning.close" = "Schließen";
+
+// MARK: - Home
+"home.title" = "MindSync";
+"home.subtitle" = "Audio-synchronisiertes Stroboskop für veränderte Bewusstseinszustände.";
+"home.startSession" = "Start Session";
+"home.currentMode" = "Current Mode";
+
+// MARK: - Source Selection
+"sourceSelection.title" = "Audioquelle auswählen";
+"sourceSelection.musicLibrary" = "Musikbibliothek";
+"sourceSelection.musicLibraryDescription" = "Wähle einen Song aus deiner lokalen Musikbibliothek";
+"sourceSelection.microphone" = "Mikrofon";
+"sourceSelection.microphoneDescription" = "Musik aus externen Quellen analysieren";
+"sourceSelection.microphoneNote" = "Hinweis: Mikrofon-Modus ist weniger präzise als lokale Analyse (~100ms Latenz)";
+"sourceSelection.musicLibraryDenied" = "Zugriff auf Musikbibliothek verweigert. Bitte in den Einstellungen aktivieren.";
+"sourceSelection.microphoneDenied" = "Mikrofon-Zugriff verweigert. Bitte in den Einstellungen aktivieren.";
+
+// MARK: - Session
+"session.pause" = "Pausieren";
+"session.resume" = "Fortsetzen";
+"session.stop" = "Stoppen";
+"session.paused" = "Pausiert";
+"session.unableToStart" = "Unable to start session";
+"session.noMediaItem" = "No media item was selected. Please dismiss and try starting a new session.";
+"session.dismiss" = "Dismiss";
+"session.back" = "Zurück";
+"session.fallDetected" = "Sturz erkannt. Session wurde aus Sicherheitsgründen beendet.";
+
+// MARK: - Analysis Progress
+"analysis.loading" = "Loading audio...";
+"analysis.extracting" = "Extracting PCM data...";
+"analysis.analyzing" = "Analyzing frequencies...";
+"analysis.detecting" = "Detecting beats...";
+"analysis.mapping" = "Creating LightScript...";
+"analysis.complete" = "Complete!";
+
+// MARK: - Settings
+"settings.title" = "Einstellungen";
+"settings.done" = "Fertig";
+"settings.lightSource" = "Lichtquelle";
+"settings.lightSourceDescription" = "Wähle zwischen Taschenlampe (heller) oder Bildschirm (mit Farben).";
+"settings.entrainmentMode" = "Entrainment-Modus";
+"settings.entrainmentModeDescription" = "Alpha: Entspannung, Theta: Trip, Gamma: Fokus";
+"settings.mode" = "Modus";
+"settings.safetyAndFeedback" = "Sicherheit & Feedback";
+"settings.fallDetection" = "Sturzerkennung";
+"settings.thermalProtection" = "Thermischer Schutz";
+"settings.hapticFeedback" = "Haptisches Feedback";
+"settings.intensity" = "Intensität";
+"settings.defaultIntensity" = "Standard-Intensität";
+"settings.intensityDescription" = "Standard-Helligkeit für Stroboskoplicht (betrifft nur Taschenlampe).";
+
+// MARK: - Mode Selection
+"modeSelection.title" = "Entrainment-Modus wählen";
+"modeSelection.description" = "Wähle einen Modus basierend auf deinem gewünschten Bewusstseinszustand.";
+
+// MARK: - Safety Banner
+"safety.thermalReduced" = "Intensität reduziert wegen Gerätewärme";
+"safety.thermalCritical" = "Taschenlampe deaktiviert – zu heiß";
+
+// MARK: - Errors
+"error.drmProtected" = "Dieser Titel ist durch DRM geschützt und kann nicht analysiert werden. Bitte nutze den Mikrofonmodus oder wähle einen anderen Titel.";
+"error.microphoneUnavailable" = "Mikrofon-Analyse ist nicht verfügbar";
+"error.microphonePermissionDenied" = "Mikrofon-Zugriff wurde verweigert. Bitte in den Einstellungen aktivieren.";
+"error.musicLibraryDenied" = "Zugriff auf Musikbibliothek wurde verweigert. Bitte in den Einstellungen aktivieren.";
+

@@ -59,9 +59,14 @@ final class FlashlightController: BaseLightController, LightControlling {
     func setIntensity(_ intensity: Float) {
         guard let device = device, isLocked else { return }
         
+        // Gamma 2.2 Korrektur für natürliche Wahrnehmung
+        // Das menschliche Auge funktioniert logarithmisch, daher wirken 50% LED-Power
+        // wie 70-80% Helligkeit. Die Gamma-Korrektur macht Fades weicher und organischer.
+        let perceptionCorrected = pow(intensity, 2.2)
+        
         // Apply thermal limits
         let maxIntensity = thermalManager.maxFlashlightIntensity
-        let clampedIntensity = max(0.0, min(maxIntensity, intensity))
+        let clampedIntensity = max(0.0, min(maxIntensity, perceptionCorrected))
         
         try? device.setTorchModeOn(level: clampedIntensity)
     }
@@ -93,7 +98,7 @@ final class FlashlightController: BaseLightController, LightControlling {
     }
     
     func resumeExecution() {
-        guard let script = currentScript, let startTime = scriptStartTime else { return }
+        guard currentScript != nil, scriptStartTime != nil else { return }
         resumeScriptExecution()
         // Re-setup display link
         let target = WeakDisplayLinkTarget(target: self)
