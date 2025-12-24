@@ -8,11 +8,13 @@ final class EntrainmentEngine {
     ///   - track: The analyzed AudioTrack with beat timestamps
     ///   - mode: The selected EntrainmentMode (Alpha/Theta/Gamma)
     ///   - lightSource: The selected light source (for frequency limits)
+    ///   - screenColor: Color to use for screen mode (optional)
     /// - Returns: A LightScript with synchronized light events
     func generateLightScript(
         from track: AudioTrack,
         mode: EntrainmentMode,
-        lightSource: LightSource
+        lightSource: LightSource,
+        screenColor: LightEvent.LightColor? = nil
     ) -> LightScript {
         // Calculate multiplier N so that f_target is in target band
         let multiplier = calculateMultiplier(
@@ -29,7 +31,9 @@ final class EntrainmentEngine {
             beatTimestamps: track.beatTimestamps,
             targetFrequency: targetFrequency,
             mode: mode,
-            trackDuration: track.duration
+            trackDuration: track.duration,
+            lightSource: lightSource,
+            screenColor: screenColor
         )
         
         return LightScript(
@@ -92,16 +96,23 @@ final class EntrainmentEngine {
         beatTimestamps: [TimeInterval],
         targetFrequency: Double,
         mode: EntrainmentMode,
-        trackDuration: TimeInterval
+        trackDuration: TimeInterval,
+        lightSource: LightSource,
+        screenColor: LightEvent.LightColor?
     ) -> [LightEvent] {
         guard !beatTimestamps.isEmpty else {
             // Fallback: uniform pulsation if no beats detected
             return generateFallbackEvents(
                 frequency: targetFrequency,
                 duration: trackDuration,
-                mode: mode
+                mode: mode,
+                lightSource: lightSource,
+                screenColor: screenColor
             )
         }
+        
+        // Determine color: use provided screenColor for screen mode, nil for flashlight
+        let eventColor: LightEvent.LightColor? = (lightSource == .screen) ? (screenColor ?? .white) : nil
         
         var events: [LightEvent] = []
         let period = 1.0 / targetFrequency  // Duration of one cycle in seconds
@@ -140,7 +151,7 @@ final class EntrainmentEngine {
                 intensity: intensity,
                 duration: duration,
                 waveform: waveform,
-                color: nil  // Will be set later for screen mode
+                color: eventColor
             )
             
             events.append(event)
@@ -153,11 +164,15 @@ final class EntrainmentEngine {
     private func generateFallbackEvents(
         frequency: Double,
         duration: TimeInterval,
-        mode: EntrainmentMode
+        mode: EntrainmentMode,
+        lightSource: LightSource,
+        screenColor: LightEvent.LightColor?
     ) -> [LightEvent] {
         var events: [LightEvent] = []
         let period = 1.0 / frequency
         var currentTime: TimeInterval = 0
+        
+        let eventColor: LightEvent.LightColor? = (lightSource == .screen) ? (screenColor ?? .white) : nil
         
         while currentTime < duration {
             let event = LightEvent(
@@ -165,7 +180,7 @@ final class EntrainmentEngine {
                 intensity: 0.4,
                 duration: period / 2.0,
                 waveform: .sine,
-                color: nil
+                color: eventColor
             )
             events.append(event)
             currentTime += period

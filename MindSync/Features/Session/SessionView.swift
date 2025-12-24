@@ -13,8 +13,14 @@ struct SessionView: View {
     
     var body: some View {
         ZStack {
-            // Dark background for session
-            Color.black.ignoresSafeArea()
+            // Background: Use screen controller color if available, otherwise black
+            if let screenController = viewModel.screenController, screenController.isActive {
+                screenController.currentColor
+                    .ignoresSafeArea()
+                    .animation(.linear(duration: 0.08), value: screenController.currentColor)
+            } else {
+                Color.black.ignoresSafeArea()
+            }
             
             switch viewModel.state {
             case .idle:
