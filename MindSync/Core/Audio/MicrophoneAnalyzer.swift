@@ -26,6 +26,11 @@ final class MicrophoneAnalyzer {
     private var frameIndex: Int = 0
     private var startTime: Date?
     
+    // Moving Average für dynamischen Threshold (wie von Gemini empfohlen)
+    private var averageEnergy: Float = 0.0
+    private let smoothingFactor: Float = 0.95 // 95% alt, 5% neu
+    private let thresholdMultiplier: Float = 1.4 // Dynamischer Threshold = averageEnergy * 1.4
+    
     // Publishers
     let beatEventPublisher = PassthroughSubject<TimeInterval, Never>()
     let bpmPublisher = PassthroughSubject<Double, Never>()
@@ -61,11 +66,7 @@ final class MicrophoneAnalyzer {
         
         // Check permission
         let audioSession = AVAudioSession.sharedInstance()
-        let permissionStatus = await withCheckedContinuation { continuation in
-            audioSession.requestRecordPermission { granted in
-                continuation.resume(returning: granted)
-            }
-        }
+        let permissionStatus = await AVAudioApplication.requestRecordPermission()
         guard permissionStatus else {
             logger.error("Microphone permission denied")
             throw MicrophoneError.permissionDenied
@@ -122,6 +123,7 @@ final class MicrophoneAnalyzer {
         beatTimestamps.removeAll()
         spectralFluxValues.removeAll()
         lastBeatTime = 0
+        averageEnergy = 0.0 // Reset Moving Average
         
         logger.info("Microphone analysis started")
     }
@@ -207,37 +209,40 @@ final class MicrophoneAnalyzer {
             
             previousMagnitude = magnitude
             
-            // Calculate adaptive threshold after collecting some data
-            if spectralFluxValues.count >= 50 {
-                updateAdaptiveThreshold()
+            // Moving Average für dynamischen Threshold (wie von Gemini empfohlen)
+            // Der Threshold passt sich kontinuierlich an die aktuelle Lautstärke an
+            averageEnergy = (averageEnergy * smoothingFactor) + (spectralFlux * (1.0 - smoothingFactor))
+            
+            // Dynamischer Threshold basierend auf Moving Average
+            // Funktioniert besser bei Songs, die leise anfangen und laut enden
+            let dynamicThreshold = averageEnergy * thresholdMultiplier
+            
+            // Detect beats mit dynamischem Threshold
+            if spectralFlux > dynamicThreshold {
+                let currentTime = Date().timeIntervalSince(startTime ?? Date())
                 
-                // Detect beats
-                if spectralFlux > adaptiveThreshold {
-                    let currentTime = Date().timeIntervalSince(startTime ?? Date())
+                // Prevent duplicate beats (minimum interval: ~100ms)
+                if currentTime - lastBeatTime > 0.1 {
+                    beatTimestamps.append(currentTime)
                     
-                    // Prevent duplicate beats (minimum interval: ~100ms)
-                    if currentTime - lastBeatTime > 0.1 {
-                        beatTimestamps.append(currentTime)
-                        
-                        // Limit beat history to prevent unbounded memory growth.
-                        // MicrophoneAnalyzer keeps 1000 timestamps for internal BPM estimation
-                        // (covers ≈8-16 minutes at typical BPM rates), while SessionViewModel
-                        // maintains a smaller rolling window (100 beats) optimized for
-                        // light script generation and display.
-                        if beatTimestamps.count > 1000 {
-                            beatTimestamps.removeFirst()
-                        }
-                        
-                        lastBeatTime = currentTime
-                        
-                        // Publish beat event
-                        beatEventPublisher.send(currentTime)
-                        
-                        // Update BPM estimate periodically
-                        if beatTimestamps.count >= 10 {
-                            let bpm = tempoEstimator.estimateBPM(from: beatTimestamps.suffix(20))
-                            bpmPublisher.send(bpm)
-                        }
+                    // Limit beat history to prevent unbounded memory growth.
+                    // MicrophoneAnalyzer keeps 1000 timestamps for internal BPM estimation
+                    // (covers ≈8-16 minutes at typical BPM rates), while SessionViewModel
+                    // maintains a smaller rolling window (100 beats) optimized for
+                    // light script generation and display.
+                    if beatTimestamps.count > 1000 {
+                        beatTimestamps.removeFirst()
+                    }
+                    
+                    lastBeatTime = currentTime
+                    
+                    // Publish beat event
+                    beatEventPublisher.send(currentTime)
+                    
+                    // Update BPM estimate periodically
+                    if beatTimestamps.count >= 10 {
+                        let bpm = tempoEstimator.estimateBPM(from: beatTimestamps.suffix(20))
+                        bpmPublisher.send(bpm)
                     }
                 }
             }
@@ -245,28 +250,6 @@ final class MicrophoneAnalyzer {
             bufferIndex += hopSize
             frameIndex += hopSize
         }
-    }
-    
-    /// Updates adaptive threshold based on recent spectral flux values
-    private func updateAdaptiveThreshold() {
-        guard spectralFluxValues.count >= 20 else { return }
-        
-        // Use last 50 values for threshold calculation
-        let recentValues = Array(spectralFluxValues.suffix(50))
-        
-        var sum: Float = 0
-        var sumOfSquares: Float = 0
-        for flux in recentValues {
-            sum += flux
-            sumOfSquares += flux * flux
-        }
-        
-        let count = Float(recentValues.count)
-        let mean = sum / count
-        let variance = (sumOfSquares / count) - (mean * mean)
-        let stdDev = sqrt(max(0, variance))
-        
-        adaptiveThreshold = mean + 0.5 * stdDev
     }
     
     /// Performs FFT on a frame

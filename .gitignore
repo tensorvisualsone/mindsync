@@ -196,3 +196,6 @@ LightScriptCache/
 # User session history (privacy)
 SessionHistory/
 
+# Research files
+research/gemini:plan.md
+

@@ -3,7 +3,7 @@ import AVFoundation
 
 /// Service for audio playback
 final class AudioPlaybackService: NSObject {
-    private var audioPlayer: AVAudioPlayer?
+    private(set) var audioPlayer: AVAudioPlayer?
     
     /// Callback when playback completes
     var onPlaybackComplete: (() -> Void)?

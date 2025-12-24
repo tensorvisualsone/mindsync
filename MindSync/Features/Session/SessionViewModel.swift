@@ -13,6 +13,12 @@ final class SessionViewModel: ObservableObject {
     private let entrainmentEngine: EntrainmentEngine
     private let microphoneAnalyzer: MicrophoneAnalyzer?
     private let fallDetector: FallDetector
+    private let affirmationService: AffirmationOverlayService
+    
+    // Affirmation state
+    private var affirmationPlayed = false
+    private var sessionStartTime: Date?
+    private var affirmationTimer: Timer?
     
     // Cached preferences to avoid repeated UserDefaults access
     // Updated when starting a session to ensure current values are used
@@ -65,6 +71,9 @@ final class SessionViewModel: ObservableObject {
         // MicrophoneAnalyzer and FallDetector
         self.microphoneAnalyzer = services.microphoneAnalyzer
         self.fallDetector = services.fallDetector
+        
+        // Affirmation Service
+        self.affirmationService = services.affirmationService
         
         // Setup playback completion callback
         audioPlayback.onPlaybackComplete = { [weak self] in
@@ -218,6 +227,11 @@ final class SessionViewModel: ObservableObject {
             try startPlaybackAndLight(url: assetURL, script: script)
             
             state = .running
+            sessionStartTime = Date()
+            affirmationPlayed = false
+            
+            // Start observing for affirmation trigger
+            startAffirmationObserver()
             
             // Haptic feedback for session start (if enabled)
             if cachedPreferences.hapticFeedbackEnabled {
@@ -278,6 +292,10 @@ final class SessionViewModel: ObservableObject {
         microphoneAnalyzer?.stop()
         fallDetector.stopMonitoring()
         
+        // Invalidate affirmation timer
+        affirmationTimer?.invalidate()
+        affirmationTimer = nil
+        
         // End session and save to history only if it was running or paused
         let shouldSaveSession = state == .running || state == .paused
         if var session = currentSession, shouldSaveSession {
@@ -295,6 +313,11 @@ final class SessionViewModel: ObservableObject {
         lightController = nil
         microphoneBeatTimestamps.removeAll()
         microphoneStartTime = nil
+        sessionStartTime = nil
+        affirmationPlayed = false
+        
+        // Stop affirmation if playing
+        affirmationService.stop()
         
         // Haptic feedback for session stop (if enabled)
         if cachedPreferences.hapticFeedbackEnabled {
@@ -396,6 +419,11 @@ final class SessionViewModel: ObservableObject {
             lightController?.execute(script: initialScript, syncedTo: startTime)
             
             state = .running
+            sessionStartTime = Date()
+            affirmationPlayed = false
+            
+            // Start observing for affirmation trigger
+            startAffirmationObserver()
             
             // Haptic feedback for session start (if enabled)
             if cachedPreferences.hapticFeedbackEnabled {
@@ -551,6 +579,10 @@ final class SessionViewModel: ObservableObject {
         fallDetector.stopMonitoring()
         microphoneBeatTimestamps.removeAll()
         microphoneStartTime = nil
+        
+        // Invalidate affirmation timer
+        affirmationTimer?.invalidate()
+        affirmationTimer = nil
     }
     
     /// Starts audio playback and light synchronization
@@ -568,6 +600,53 @@ final class SessionViewModel: ObservableObject {
         // Start LightScript execution synchronized with audio
         let startTime = Date()
         lightController.execute(script: script, syncedTo: startTime)
+    }
+    
+    /// Startet den Observer für Affirmationen während Theta-Phase
+    private func startAffirmationObserver() {
+        // Invalidate existing timer if any
+        affirmationTimer?.invalidate()
+        
+        // Timer, der alle 10 Sekunden prüft, ob Affirmation abgespielt werden soll
+        affirmationTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] timer in
+            guard let self = self else {
+                timer.invalidate()
+                return
+            }
+            
+            // Stoppe Timer wenn Session beendet
+            guard self.state == .running else {
+                timer.invalidate()
+                return
+            }
+            
+            // Prüfe ob Affirmation abgespielt werden soll
+            self.checkAndPlayAffirmation()
+        }
+    }
+    
+    /// Prüft ob Affirmation abgespielt werden soll und spielt sie ab
+    private func checkAndPlayAffirmation() {
+        // Nur einmal pro Session
+        guard !affirmationPlayed else { return }
+        
+        // Nur im Theta-Modus
+        guard cachedPreferences.preferredMode == .theta else { return }
+        
+        // Nur wenn Session mindestens 5 Minuten läuft (Stabilität)
+        guard let startTime = sessionStartTime else { return }
+        let sessionDuration = Date().timeIntervalSince(startTime)
+        guard sessionDuration >= 300 else { return } // 5 Minuten
+        
+        // Nur wenn Affirmation-URL vorhanden
+        guard let affirmationURL = cachedPreferences.selectedAffirmationURL,
+              let audioPlayer = audioPlayback.audioPlayer else { return }
+        
+        // Affirmation abspielen
+        affirmationService.playAffirmation(url: affirmationURL, musicPlayer: audioPlayer)
+        affirmationPlayed = true
+        
+        print("--- MindSync: Theta-Infiltration gestartet ---")
     }
 }
 
