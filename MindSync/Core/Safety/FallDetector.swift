@@ -7,7 +7,6 @@ import os.log
 final class FallDetector {
     private let motionManager = CMMotionManager()
     private let fallAccelerationThreshold: Double = SafetyLimits.fallAccelerationThreshold // 2.0g
-    private let freefallThreshold: Double = SafetyLimits.freefallThreshold // 0.3g
     private let processingQueue = OperationQueue()
     
     // Publisher for fall events
@@ -53,13 +52,15 @@ final class FallDetector {
             guard let acceleration = data?.acceleration else { return }
             
             // Calculate magnitude of acceleration vector
+            // Note: CMAccelerometerData provides acceleration in g-forces (1g = 9.81 m/s²)
+            // where 1g is Earth's gravitational acceleration
             let magnitude = sqrt(
                 acceleration.x * acceleration.x +
                 acceleration.y * acceleration.y +
                 acceleration.z * acceleration.z
             )
             
-            // Convert to g-force (1g = 9.81 m/s², but iOS already provides in g)
+            // The magnitude is already in g-forces as provided by iOS
             let gForce = magnitude
             
             // Add to filter window
@@ -80,13 +81,6 @@ final class FallDetector {
                 }
                 // Stop monitoring after fall detection to prevent multiple events
                 self.stopMonitoring()
-            }
-            
-            // Optional: Detect freefall (very low acceleration)
-            // This can indicate device is falling before impact
-            if filteredAcceleration < self.freefallThreshold && self.recentAccelerations.count >= self.filterWindowSize {
-                // Freefall detected - could be used for early warning
-                // For now, we only detect impact (fallAccelerationThreshold)
             }
         }
         

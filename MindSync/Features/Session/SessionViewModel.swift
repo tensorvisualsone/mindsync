@@ -45,6 +45,15 @@ final class SessionViewModel: ObservableObject {
     private var microphoneStartTime: Date?
     private var lastScriptBPM: Double?
     
+    // Maximum number of beat timestamps to keep in memory for BPM estimation.
+    // This limit prevents unbounded memory growth during long microphone sessions
+    // while maintaining sufficient history (≈40-50 seconds at typical BPM rates)
+    // for accurate tempo estimation.
+    private let maxBeatHistoryCount = 100
+    
+    // Flag to prevent re-entrancy in fall detection handling
+    private var isHandlingFall = false
+    
     init() {
         self.audioAnalyzer = services.audioAnalyzer
         self.audioPlayback = services.audioPlayback
@@ -411,7 +420,6 @@ final class SessionViewModel: ObservableObject {
         microphoneBeatTimestamps = microphoneBeatTimestamps.filter { $0 >= cutoffTime }
         
         // Additionally, cap the history size to prevent unbounded growth
-        let maxBeatHistoryCount = 100
         if microphoneBeatTimestamps.count > maxBeatHistoryCount {
             microphoneBeatTimestamps = Array(microphoneBeatTimestamps.suffix(maxBeatHistoryCount))
         }
@@ -464,11 +472,26 @@ final class SessionViewModel: ObservableObject {
         screenColor: LightEvent.LightColor?,
         bpm: Double
     ) -> LightScript {
+        // Estimate a non-zero duration for the dummy track based on live analysis
+        let estimatedDuration: TimeInterval
+        if let lastBeat = microphoneBeatTimestamps.last {
+            let beatDuration = bpm > 0 ? 60.0 / bpm : 0
+            // Ensure the duration extends at least one beat beyond the last detected beat
+            estimatedDuration = max(lastBeat + beatDuration, lastBeat)
+        } else if bpm > 0 {
+            // No beats yet: assume a short window of several beats
+            let beatDuration = 60.0 / bpm
+            estimatedDuration = beatDuration * 8.0
+        } else {
+            // Fallback duration when no timing information is available
+            estimatedDuration = 60.0
+        }
+        
         // Create a dummy track with current BPM and beat timestamps
         let dummyTrack = AudioTrack(
             title: "Live Audio",
             artist: "Mikrofon",
-            duration: 0,
+            duration: estimatedDuration,
             bpm: bpm,
             beatTimestamps: microphoneBeatTimestamps
         )
@@ -483,7 +506,11 @@ final class SessionViewModel: ObservableObject {
     
     /// Handles fall detection event
     private func handleFallDetected() {
+        // Prevent re-entrancy if we're already handling a fall
+        guard !isHandlingFall else { return }
         guard state == .running || state == .paused else { return }
+        
+        isHandlingFall = true
         
         // Stop the session
         if var session = currentSession {
@@ -502,6 +529,8 @@ final class SessionViewModel: ObservableObject {
         if cachedPreferences.hapticFeedbackEnabled {
             HapticFeedback.error()
         }
+        
+        isHandlingFall = false
     }
     
     /// Resets the session state (called when view is dismissed)
