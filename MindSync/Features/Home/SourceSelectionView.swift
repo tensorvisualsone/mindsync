@@ -20,6 +20,7 @@ struct SourceSelectionView: View {
             VStack(spacing: AppConstants.Spacing.sectionSpacing) {
                 Text(NSLocalizedString("sourceSelection.title", comment: ""))
                     .font(AppConstants.Typography.title)
+                    .accessibilityIdentifier("sourceSelection.title")
                 
                 // Local music library
                 Button(action: {
@@ -43,8 +44,9 @@ struct SourceSelectionView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(authorizationStatus == .denied)
-                .accessibilityLabel("Musikbibliothek auswählen")
-                .accessibilityHint("Öffnet die Musikbibliothek zum Auswählen eines Songs")
+                .accessibilityIdentifier("sourceSelection.musicLibraryButton")
+                .accessibilityLabel(NSLocalizedString("sourceSelection.musicLibraryButton", comment: ""))
+                .accessibilityHint(NSLocalizedString("sourceSelection.musicLibraryHint", comment: ""))
                 
                 // Microphone mode
                 Button(action: {
@@ -75,8 +77,9 @@ struct SourceSelectionView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(microphoneStatus == .denied || onMicrophoneSelected == nil)
-                .accessibilityLabel("Mikrofon-Modus auswählen")
-                .accessibilityHint("Analysiert Musik aus externen Quellen über das Mikrofon")
+                .accessibilityIdentifier("sourceSelection.microphoneButton")
+                .accessibilityLabel(NSLocalizedString("sourceSelection.microphoneButton", comment: ""))
+                .accessibilityHint(NSLocalizedString("sourceSelection.microphoneHint", comment: ""))
                 
                 if authorizationStatus == .denied {
                     Text(NSLocalizedString("sourceSelection.musicLibraryDenied", comment: "Message shown when music library access is denied"))

@@ -26,7 +26,7 @@ struct OnboardingView: View {
                 }
                 .buttonStyle(.bordered)
                 .accessibilityIdentifier("onboarding.learnMoreButton")
-                .accessibilityHint(NSLocalizedString("onboarding.learnMore", comment: ""))
+                .accessibilityHint(NSLocalizedString("onboarding.learnMoreHint", comment: "Accessibility hint: Opens detailed safety information"))
 
                 Button(NSLocalizedString("onboarding.accept", comment: "")) {
                     disclaimerAccepted = true
@@ -35,7 +35,7 @@ struct OnboardingView: View {
                 .buttonStyle(.borderedProminent)
                 .padding(.top, AppConstants.Spacing.sm)
                 .accessibilityIdentifier("onboarding.acceptButton")
-                .accessibilityHint(NSLocalizedString("onboarding.accept", comment: "Accessibility hint for accept button"))
+                .accessibilityHint(NSLocalizedString("onboarding.acceptHint", comment: "Accessibility hint: Confirms understanding and starts the app"))
             }
             .padding(AppConstants.Spacing.md)
             // Force dark mode to ensure consistent, high-contrast rendering of safety-critical epilepsy warnings.
