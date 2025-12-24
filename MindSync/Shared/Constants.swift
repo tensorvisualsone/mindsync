@@ -134,3 +134,33 @@ enum AppConstants {
         static let large: CGFloat = 56
     }
 }
+
+// MARK: - Haptic Feedback
+
+/// Provides haptic feedback for user interactions
+enum HapticFeedback {
+    
+    /// Light haptic feedback for subtle interactions (e.g., selection changes)
+    static func light() {
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
+    }
+    
+    /// Medium haptic feedback for standard interactions (e.g., button taps, mode changes)
+    static func medium() {
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+    }
+    
+    /// Heavy haptic feedback for significant actions (e.g., session stop, important events)
+    static func heavy() {
+        let generator = UIImpactFeedbackGenerator(style: .heavy)
+        generator.impactOccurred()
+    }
+    
+    /// Error haptic feedback for error states
+    static func error() {
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.error)
+    }
+}

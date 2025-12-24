@@ -31,7 +31,7 @@ struct HomeView: View {
                 
                 // Show current mode
                 VStack(spacing: AppConstants.Spacing.sm) {
-                    Text("Current Mode")
+                    Text(NSLocalizedString("home.currentMode", comment: "Label for displaying the currently selected mode on the home screen"))
                         .font(AppConstants.Typography.caption)
                         .foregroundStyle(.mindSyncSecondaryText)
                     HStack(spacing: AppConstants.Spacing.sm) {
