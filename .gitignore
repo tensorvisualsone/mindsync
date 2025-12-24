@@ -198,4 +198,5 @@ SessionHistory/
 
 # Research files
 research/gemini:plan.md
+.cursor/
 
