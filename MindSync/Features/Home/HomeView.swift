@@ -29,7 +29,8 @@ struct HomeView: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .accessibilityLabel(NSLocalizedString("home.startSession", comment: ""))
-                .accessibilityHint("Öffnet die Auswahl der Audioquelle")
+                .accessibilityHint(NSLocalizedString("home.startSessionHint", comment: "Accessibility hint: Opens the audio source selection"))
+                .accessibilityIdentifier("home.startSessionButton")
                 
                 // Show current mode (tappable)
                 Button(action: {

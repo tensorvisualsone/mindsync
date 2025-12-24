@@ -25,7 +25,7 @@ final class HomeViewUITests: XCTestCase {
     }
     
     func testHomeView_ShowsStartSessionButton() throws {
-        let startButton = app.buttons["Session starten"]
+        let startButton = app.buttons["home.startSessionButton"]
         XCTAssertTrue(startButton.waitForExistence(timeout: 5))
         XCTAssertTrue(startButton.isEnabled)
     }
@@ -50,8 +50,8 @@ final class HomeViewUITests: XCTestCase {
             let modeSelectionTitle = app.staticTexts.matching(identifier: "modeSelection.title").firstMatch
             XCTAssertTrue(modeSelectionTitle.waitForExistence(timeout: 5), "ModeSelectionView should appear after tapping mode card")
             
-            // Dismiss the sheet
-            app.buttons.matching(identifier: "Cancel").firstMatch.tap()
+            // Dismiss the sheet by swiping down
+            app.swipeDown(velocity: .fast)
         } else {
             XCTFail("Mode card button not found")
         }
@@ -116,9 +116,9 @@ final class HomeViewUITests: XCTestCase {
     
     func testHomeView_ShowsSettingsButton() throws {
         // Look for the settings gear icon button in the toolbar
-        let settingsButton = app.buttons.matching(identifier: "Einstellungen").firstMatch
+        let settingsButton = app.buttons.matching(identifier: "settings.title").firstMatch
         
-        // If not found by accessibility label, try by icon
+        // If not found by accessibility label, try by navigation bar
         if !settingsButton.exists {
             // Settings button should be in the navigation bar
             let navBar = app.navigationBars.firstMatch
@@ -131,7 +131,7 @@ final class HomeViewUITests: XCTestCase {
     
     func testSettingsNavigation_OpensSettingsView() throws {
         // Try to find and tap settings button
-        let settingsButton = app.buttons.matching(identifier: "Einstellungen").firstMatch
+        let settingsButton = app.buttons.matching(identifier: "settings.title").firstMatch
         
         if !settingsButton.exists {
             // Try tapping the rightmost button in navigation bar (usually settings)
@@ -147,7 +147,7 @@ final class HomeViewUITests: XCTestCase {
         }
         
         // Verify SettingsView appears
-        let settingsTitle = app.staticTexts["Einstellungen"]
+        let settingsTitle = app.staticTexts["settings.title"]
         if settingsTitle.waitForExistence(timeout: 5) {
             XCTAssertTrue(settingsTitle.exists, "SettingsView should appear")
             
@@ -156,7 +156,7 @@ final class HomeViewUITests: XCTestCase {
             XCTAssertTrue(modePicker.waitForExistence(timeout: 2), "Mode picker should be visible in settings")
             
             // Dismiss settings
-            app.buttons["Fertig"].tap()
+            app.buttons["settings.doneButton"].tap()
         }
     }
     
@@ -171,7 +171,7 @@ final class HomeViewUITests: XCTestCase {
         }
         
         // Wait for SettingsView
-        let settingsTitle = app.staticTexts["Einstellungen"]
+        let settingsTitle = app.staticTexts["settings.title"]
         if settingsTitle.waitForExistence(timeout: 5) {
             // Open mode picker
             let modePicker = app.pickers.matching(identifier: "settings.modePicker").firstMatch
@@ -185,14 +185,14 @@ final class HomeViewUITests: XCTestCase {
             }
             
             // Dismiss
-            app.buttons["Fertig"].tap()
+            app.buttons["settings.doneButton"].tap()
         }
     }
     
     // MARK: - Source Selection Tests
     
     func testSourceSelection_OpensOnButtonTap() throws {
-        let startButton = app.buttons["Session starten"]
+        let startButton = app.buttons["home.startSessionButton"]
         XCTAssertTrue(startButton.waitForExistence(timeout: 5))
         
         startButton.tap()
@@ -204,26 +204,26 @@ final class HomeViewUITests: XCTestCase {
     
     func testSourceSelection_ShowsMusicLibraryOption() throws {
         // Open source selection
-        app.buttons["Session starten"].tap()
+        app.buttons["home.startSessionButton"].tap()
         
         // Wait for SourceSelectionView
         let sourceSelectionTitle = app.staticTexts.matching(identifier: "sourceSelection.title").firstMatch
         if sourceSelectionTitle.waitForExistence(timeout: 5) {
             // Verify music library button exists
-            let musicButton = app.buttons["Musikbibliothek auswählen"]
+            let musicButton = app.buttons["sourceSelection.musicLibraryButton"]
             XCTAssertTrue(musicButton.waitForExistence(timeout: 2), "Music library button should be visible")
         }
     }
     
     func testSourceSelection_ShowsMicrophoneOption() throws {
         // Open source selection
-        app.buttons["Session starten"].tap()
+        app.buttons["home.startSessionButton"].tap()
         
         // Wait for SourceSelectionView
         let sourceSelectionTitle = app.staticTexts.matching(identifier: "sourceSelection.title").firstMatch
         if sourceSelectionTitle.waitForExistence(timeout: 5) {
             // Verify microphone button exists
-            let micButton = app.buttons["Mikrofon-Modus auswählen"]
+            let micButton = app.buttons["sourceSelection.microphoneButton"]
             XCTAssertTrue(micButton.waitForExistence(timeout: 2), "Microphone button should be visible")
         }
     }
