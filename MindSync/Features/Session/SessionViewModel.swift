@@ -18,6 +18,7 @@ final class SessionViewModel: ObservableObject {
     // Affirmation state
     private var affirmationPlayed = false
     private var sessionStartTime: Date?
+    private var affirmationTimer: Timer?
     
     // Cached preferences to avoid repeated UserDefaults access
     // Updated when starting a session to ensure current values are used
@@ -281,6 +282,10 @@ final class SessionViewModel: ObservableObject {
         microphoneAnalyzer?.stop()
         fallDetector.stopMonitoring()
         
+        // Invalidate affirmation timer
+        affirmationTimer?.invalidate()
+        affirmationTimer = nil
+        
         // End session and save to history only if it was running or paused
         let shouldSaveSession = state == .running || state == .paused
         if var session = currentSession, shouldSaveSession {
@@ -538,6 +543,10 @@ final class SessionViewModel: ObservableObject {
         fallDetector.stopMonitoring()
         microphoneBeatTimestamps.removeAll()
         microphoneStartTime = nil
+        
+        // Invalidate affirmation timer
+        affirmationTimer?.invalidate()
+        affirmationTimer = nil
     }
     
     /// Starts audio playback and light synchronization
@@ -559,8 +568,11 @@ final class SessionViewModel: ObservableObject {
     
     /// Startet den Observer für Affirmationen während Theta-Phase
     private func startAffirmationObserver() {
+        // Invalidate existing timer if any
+        affirmationTimer?.invalidate()
+        
         // Timer, der alle 10 Sekunden prüft, ob Affirmation abgespielt werden soll
-        Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] timer in
+        affirmationTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] timer in
             guard let self = self else {
                 timer.invalidate()
                 return
