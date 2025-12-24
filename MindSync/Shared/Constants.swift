@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UIKit
 
 /// App-wide design constants for consistent styling
 enum AppConstants {
