@@ -78,6 +78,7 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
     
     func pauseExecution() {
         pauseScriptExecution()
+        displayLinkTarget = nil
         currentColor = .black
     }
     

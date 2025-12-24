@@ -88,6 +88,7 @@ final class FlashlightController: BaseLightController, LightControlling {
     
     func pauseExecution() {
         pauseScriptExecution()
+        displayLinkTarget = nil
         setIntensity(0.0)
     }
     

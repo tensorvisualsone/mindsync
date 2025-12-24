@@ -108,5 +108,106 @@ final class SessionViewModelTests: XCTestCase {
         let states: [SessionState] = [.idle, .analyzing, .running, .paused, .error]
         XCTAssertEqual(states.count, 5)
     }
+    
+    // MARK: - Pause/Resume Tests
+    
+    func testPauseSession_FromRunningState_ChangeStateToRunning() {
+        let viewModel = SessionViewModel()
+        viewModel.state = .running // Simulate running state
+        
+        viewModel.pauseSession()
+        
+        XCTAssertEqual(viewModel.state, .paused)
+    }
+    
+    func testPauseSession_FromIdleState_DoesNothing() {
+        let viewModel = SessionViewModel()
+        XCTAssertEqual(viewModel.state, .idle)
+        
+        viewModel.pauseSession()
+        
+        XCTAssertEqual(viewModel.state, .idle)
+    }
+    
+    func testPauseSession_FromAnalyzingState_DoesNothing() {
+        let viewModel = SessionViewModel()
+        viewModel.state = .analyzing
+        
+        viewModel.pauseSession()
+        
+        XCTAssertEqual(viewModel.state, .analyzing)
+    }
+    
+    func testResumeSession_FromPausedState_ChangesStateToRunning() {
+        let viewModel = SessionViewModel()
+        viewModel.state = .paused // Simulate paused state
+        
+        viewModel.resumeSession()
+        
+        XCTAssertEqual(viewModel.state, .running)
+    }
+    
+    func testResumeSession_FromIdleState_DoesNothing() {
+        let viewModel = SessionViewModel()
+        XCTAssertEqual(viewModel.state, .idle)
+        
+        viewModel.resumeSession()
+        
+        XCTAssertEqual(viewModel.state, .idle)
+    }
+    
+    func testResumeSession_FromRunningState_DoesNothing() {
+        let viewModel = SessionViewModel()
+        viewModel.state = .running
+        
+        viewModel.resumeSession()
+        
+        XCTAssertEqual(viewModel.state, .running)
+    }
+    
+    func testStopSession_FromPausedState_ChangesToIdle() {
+        let viewModel = SessionViewModel()
+        viewModel.state = .paused
+        
+        viewModel.stopSession()
+        
+        XCTAssertEqual(viewModel.state, .idle)
+    }
+    
+    func testStopSession_FromRunningState_ChangesToIdle() {
+        let viewModel = SessionViewModel()
+        viewModel.state = .running
+        
+        viewModel.stopSession()
+        
+        XCTAssertEqual(viewModel.state, .idle)
+    }
+    
+    func testPauseResumeTransitions_MaintainCorrectStateFlow() {
+        let viewModel = SessionViewModel()
+        
+        // Start in idle
+        XCTAssertEqual(viewModel.state, .idle)
+        
+        // Simulate running state
+        viewModel.state = .running
+        XCTAssertEqual(viewModel.state, .running)
+        
+        // Pause
+        viewModel.pauseSession()
+        XCTAssertEqual(viewModel.state, .paused)
+        
+        // Resume
+        viewModel.resumeSession()
+        XCTAssertEqual(viewModel.state, .running)
+        
+        // Pause again
+        viewModel.pauseSession()
+        XCTAssertEqual(viewModel.state, .paused)
+        
+        // Stop from paused
+        viewModel.stopSession()
+        XCTAssertEqual(viewModel.state, .idle)
+    }
 }
 

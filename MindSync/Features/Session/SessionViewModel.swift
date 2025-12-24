@@ -246,7 +246,8 @@ final class SessionViewModel: ObservableObject {
         lightController?.stop()
         
         // End session and save to history only if it was running or paused
-        if var session = currentSession, state == .running || state == .paused {
+        let shouldSaveSession = state == .running || state == .paused
+        if var session = currentSession, shouldSaveSession {
             session.endedAt = Date()
             session.endReason = .userStopped
             services.sessionHistoryService.save(session: session)

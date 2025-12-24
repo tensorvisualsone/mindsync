@@ -60,6 +60,8 @@ class BaseLightController: NSObject {
     }
     
     /// Pauses script execution by stopping the display link
+    /// - Note: Calls `invalidateDisplayLink()` which is `nonisolated` for safe cross-actor access.
+    ///   This is safe because CADisplayLink's invalidate() can be called from any thread.
     @MainActor func pauseScriptExecution() {
         guard !isPaused else { return }
         isPaused = true

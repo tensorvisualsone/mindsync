@@ -112,6 +112,7 @@ struct SessionView: View {
                     .cornerRadius(16)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(viewModel.state == .running ? "Sitzung pausieren" : "Sitzung fortsetzen")
                 
                 // Stop button (large, for easy operation)
                 Button(action: {
