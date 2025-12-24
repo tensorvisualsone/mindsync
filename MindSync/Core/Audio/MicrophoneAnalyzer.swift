@@ -4,16 +4,7 @@ import Combine
 import Accelerate
 import os.log
 
-@available(iOS 17.0, *)
-extension AVAudioApplication {
-    static func requestRecordPermission() async -> Bool {
-        await withCheckedContinuation { continuation in
-            requestRecordPermission { granted in
-                continuation.resume(returning: granted)
-            }
-        }
-    }
-}
+
 
 /// Service for real-time microphone audio analysis and beat detection
 final class MicrophoneAnalyzer {
@@ -70,14 +61,9 @@ final class MicrophoneAnalyzer {
         
         // Check permission
         let audioSession = AVAudioSession.sharedInstance()
-        let permissionStatus: Bool
-        if #available(iOS 17.0, *) {
-            permissionStatus = await AVAudioApplication.requestRecordPermission()
-        } else {
-            permissionStatus = await withCheckedContinuation { continuation in
-                audioSession.requestRecordPermission { granted in
-                    continuation.resume(returning: granted)
-                }
+        let permissionStatus = await withCheckedContinuation { continuation in
+            audioSession.requestRecordPermission { granted in
+                continuation.resume(returning: granted)
             }
         }
         guard permissionStatus else {
@@ -174,6 +160,13 @@ final class MicrophoneAnalyzer {
             }
             
             spectralFluxValues.append(spectralFlux)
+            
+            // Limit spectral flux history to prevent unbounded memory growth
+            // Keep last 1000 values (approximately 23 seconds at 512 hop size @ 44.1kHz)
+            if spectralFluxValues.count > 1000 {
+                spectralFluxValues.removeFirst()
+            }
+            
             previousMagnitude = magnitude
             
             // Calculate adaptive threshold after collecting some data

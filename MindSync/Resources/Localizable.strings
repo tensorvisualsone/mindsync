@@ -28,8 +28,8 @@
 // MARK: - Home
 "home.title" = "MindSync";
 "home.subtitle" = "Audio-synchronisiertes Stroboskop für veränderte Bewusstseinszustände.";
-"home.startSession" = "Start Session";
-"home.currentMode" = "Current Mode";
+"home.startSession" = "Session starten";
+"home.currentMode" = "Aktueller Modus";
 
 // MARK: - Source Selection
 "sourceSelection.title" = "Audioquelle auswählen";
@@ -46,19 +46,19 @@
 "session.resume" = "Fortsetzen";
 "session.stop" = "Stoppen";
 "session.paused" = "Pausiert";
-"session.unableToStart" = "Unable to start session";
-"session.noMediaItem" = "No media item was selected. Please dismiss and try starting a new session.";
-"session.dismiss" = "Dismiss";
+"session.unableToStart" = "Sitzung konnte nicht gestartet werden";
+"session.noMediaItem" = "Es wurde kein Medium ausgewählt. Bitte schließen und eine neue Sitzung starten.";
+"session.dismiss" = "Schließen";
 "session.back" = "Zurück";
 "session.fallDetected" = "Sturz erkannt. Session wurde aus Sicherheitsgründen beendet.";
 
 // MARK: - Analysis Progress
-"analysis.loading" = "Loading audio...";
-"analysis.extracting" = "Extracting PCM data...";
-"analysis.analyzing" = "Analyzing frequencies...";
-"analysis.detecting" = "Detecting beats...";
-"analysis.mapping" = "Creating LightScript...";
-"analysis.complete" = "Complete!";
+"analysis.loading" = "Audio wird geladen...";
+"analysis.extracting" = "PCM-Daten werden extrahiert...";
+"analysis.analyzing" = "Frequenzen werden analysiert...";
+"analysis.detecting" = "Beats werden erkannt...";
+"analysis.mapping" = "LightScript wird erstellt...";
+"analysis.complete" = "Analyse abgeschlossen!";
 
 // MARK: - Settings
 "settings.title" = "Einstellungen";

@@ -18,11 +18,11 @@ struct ModeSelectionView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    Text("Entrainment-Modus wählen")
+                    Text(NSLocalizedString("modeSelection.title", comment: ""))
                         .font(.title2.bold())
                         .padding(.top)
                     
-                    Text("Wähle einen Modus basierend auf deinem gewünschten Bewusstseinszustand.")
+                    Text(NSLocalizedString("modeSelection.description", comment: ""))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -41,7 +41,7 @@ struct ModeSelectionView: View {
                     .padding()
                 }
             }
-            .navigationTitle("Modus")
+            .navigationTitle(NSLocalizedString("settings.mode", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
         }
     }
