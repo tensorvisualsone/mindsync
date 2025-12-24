@@ -75,16 +75,7 @@ final class MicrophoneAnalyzer {
         
         // Check permission
         let audioSession = AVAudioSession.sharedInstance()
-        let permissionStatus: Bool
-        if #available(iOS 17.0, *) {
-            permissionStatus = await AVAudioApplication.requestRecordPermission()
-        } else {
-            permissionStatus = await withCheckedContinuation { continuation in
-                audioSession.requestRecordPermission { granted in
-                    continuation.resume(returning: granted)
-                }
-            }
-        }
+        let permissionStatus = await AVAudioApplication.requestRecordPermission()
         guard permissionStatus else {
             logger.error("Microphone permission denied")
             throw MicrophoneError.permissionDenied
@@ -213,30 +204,6 @@ final class MicrophoneAnalyzer {
             bufferIndex += hopSize
             frameIndex += hopSize
         }
-    }
-    
-    /// Updates adaptive threshold based on recent spectral flux values
-    /// NOTE: Diese Methode wird nicht mehr verwendet, da wir jetzt Moving Average nutzen
-    /// Sie bleibt für Kompatibilität erhalten, falls sie später benötigt wird
-    private func updateAdaptiveThreshold() {
-        guard spectralFluxValues.count >= 20 else { return }
-        
-        // Use last 50 values for threshold calculation
-        let recentValues = Array(spectralFluxValues.suffix(50))
-        
-        var sum: Float = 0
-        var sumOfSquares: Float = 0
-        for flux in recentValues {
-            sum += flux
-            sumOfSquares += flux * flux
-        }
-        
-        let count = Float(recentValues.count)
-        let mean = sum / count
-        let variance = (sumOfSquares / count) - (mean * mean)
-        let stdDev = sqrt(max(0, variance))
-        
-        adaptiveThreshold = mean + 0.5 * stdDev
     }
     
     /// Performs FFT on a frame
