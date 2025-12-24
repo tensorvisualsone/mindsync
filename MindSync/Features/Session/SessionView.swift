@@ -67,25 +67,27 @@ struct SessionView: View {
     // MARK: - Running Session View
     
     private var runningSessionView: some View {
-        VStack(spacing: 32) {
+        VStack(spacing: AppConstants.Spacing.sectionSpacing) {
             // Track info
             if let track = viewModel.currentTrack {
-                VStack(spacing: 8) {
+                VStack(spacing: AppConstants.Spacing.sm) {
                     Text(track.title)
-                        .font(.title2.bold())
+                        .font(AppConstants.Typography.title2)
                         .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
                     
                     if let artist = track.artist {
                         Text(artist)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .font(AppConstants.Typography.subheadline)
+                            .foregroundStyle(.white.opacity(AppConstants.Opacity.secondary))
+                            .multilineTextAlignment(.center)
                     }
                     
                     if let script = viewModel.currentScript {
                         Text("\(Int(script.targetFrequency)) Hz • \(Int(track.bpm)) BPM")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(.top, 4)
+                            .font(AppConstants.Typography.caption)
+                            .foregroundStyle(.white.opacity(AppConstants.Opacity.tertiary))
+                            .padding(.top, AppConstants.Spacing.xs)
                     }
                 }
                 .multilineTextAlignment(.center)
@@ -94,7 +96,7 @@ struct SessionView: View {
             Spacer()
             
             // Pause/Resume and Stop buttons
-            HStack(spacing: 16) {
+            HStack(spacing: AppConstants.Spacing.elementSpacing) {
                 // Pause/Resume button
                 Button(action: {
                     if viewModel.state == .running {
@@ -103,82 +105,96 @@ struct SessionView: View {
                         viewModel.resumeSession()
                     }
                 }) {
-                    VStack(spacing: 8) {
+                    VStack(spacing: AppConstants.Spacing.sm) {
                         Image(systemName: viewModel.state == .running ? "pause.circle.fill" : "play.circle.fill")
-                            .font(.system(size: 50))
+                            .font(.system(size: AppConstants.IconSize.large))
                         Text(viewModel.state == .running ? "Pausieren" : "Fortsetzen")
-                            .font(.headline)
+                            .font(AppConstants.Typography.headline)
                     }
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
-                    .background(Color.blue.opacity(0.3))
-                    .cornerRadius(16)
+                    .padding(.vertical, AppConstants.Spacing.lg)
+                    .frame(minHeight: AppConstants.TouchTarget.large)
+                    .background(Color.mindSyncButtonBackground(color: .blue))
+                    .cornerRadius(AppConstants.CornerRadius.button)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(viewModel.state == .running ? "Sitzung pausieren" : "Sitzung fortsetzen")
+                .accessibilityIdentifier("session.pauseResumeButton")
                 
                 // Stop button (large, for easy operation)
                 Button(action: {
                     viewModel.stopSession()
                     dismiss()
                 }) {
-                VStack(spacing: 8) {
+                VStack(spacing: AppConstants.Spacing.sm) {
                     Image(systemName: "stop.circle.fill")
-                        .font(.system(size: 60))
+                        .font(.system(size: AppConstants.IconSize.extraLarge))
                     Text("Stoppen")
-                        .font(.headline)
+                        .font(AppConstants.Typography.headline)
                 }
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
-                .background(Color.red.opacity(0.3))
-                .cornerRadius(16)
+                .padding(.vertical, AppConstants.Spacing.lg)
+                .frame(minHeight: AppConstants.TouchTarget.large)
+                .background(Color.mindSyncButtonBackground(color: .red))
+                .cornerRadius(AppConstants.CornerRadius.button)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("session.stopButton")
+                .accessibilityLabel("Sitzung stoppen")
             }
-            .padding(.horizontal)
+            .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
             
             Spacer()
         }
-        .padding()
+        .padding(AppConstants.Spacing.md)
     }
     
     // MARK: - Paused Session View
     
     private var pausedSessionView: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: AppConstants.Spacing.sectionSpacing) {
             Text("Pausiert")
-                .font(.title.bold())
+                .font(AppConstants.Typography.title)
                 .foregroundStyle(.white)
+                .accessibilityIdentifier("session.pausedLabel")
             
             Button("Fortsetzen") {
                 viewModel.resumeSession()
             }
             .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .accessibilityIdentifier("session.resumeButton")
+            .accessibilityLabel("Sitzung fortsetzen")
             
             Button("Stoppen") {
                 viewModel.stopSession()
                 dismiss()
             }
             .buttonStyle(.bordered)
+            .controlSize(.large)
+            .accessibilityIdentifier("session.stopButtonPaused")
+            .accessibilityLabel("Sitzung stoppen")
         }
+        .padding(AppConstants.Spacing.md)
     }
     
     // MARK: - Error View
     
     private var errorView: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: AppConstants.Spacing.sectionSpacing) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 60))
-                .foregroundStyle(.orange)
+                .font(.system(size: AppConstants.IconSize.extraLarge))
+                .foregroundStyle(.mindSyncWarning)
             
             if let error = viewModel.errorMessage {
                 Text(error)
-                    .font(.headline)
+                    .font(AppConstants.Typography.headline)
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+                    .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
+                    .accessibilityIdentifier("session.errorMessage")
             }
             
             Button("Zurück") {
@@ -186,8 +202,11 @@ struct SessionView: View {
                 dismiss()
             }
             .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .accessibilityIdentifier("session.errorBackButton")
+            .accessibilityLabel("Zurück zur Startseite")
         }
-        .padding()
+        .padding(AppConstants.Spacing.md)
     }
 }
 

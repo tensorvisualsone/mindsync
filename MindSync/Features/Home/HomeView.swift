@@ -10,38 +10,46 @@ struct HomeView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
+            VStack(spacing: AppConstants.Spacing.sectionSpacing) {
                 Text("MindSync")
-                    .font(.largeTitle.bold())
+                    .font(AppConstants.Typography.largeTitle)
                     .accessibilityIdentifier("home.title")
 
                 Text("Audio-synchronisiertes Stroboskop für veränderte Bewusstseinszustände.")
+                    .font(AppConstants.Typography.body)
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal)
+                    .foregroundStyle(.mindSyncSecondaryText)
+                    .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
 
                 Button("Start Session") {
                     showingSourceSelection = true
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+                .accessibilityLabel("Session starten")
+                .accessibilityHint("Öffnet die Auswahl der Audioquelle")
                 
                 // Show current mode
-                VStack(spacing: 8) {
-                    Text("Current Mode")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    HStack(spacing: 8) {
+                VStack(spacing: AppConstants.Spacing.sm) {
+                    Text(NSLocalizedString("home.currentMode", comment: "Label for displaying the currently selected mode on the home screen"))
+                        .font(AppConstants.Typography.caption)
+                        .foregroundStyle(.mindSyncSecondaryText)
+                    HStack(spacing: AppConstants.Spacing.sm) {
                         Image(systemName: preferences.preferredMode.iconName)
+                            .font(.system(size: AppConstants.IconSize.medium))
+                            .foregroundStyle(preferences.preferredMode.themeColor)
                         Text(preferences.preferredMode.displayName)
-                            .font(.headline)
+                            .font(AppConstants.Typography.headline)
                     }
                 }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(12)
+                .padding(AppConstants.Spacing.md)
+                .frame(maxWidth: .infinity)
+                .background(Color.mindSyncCardBackground())
+                .cornerRadius(AppConstants.CornerRadius.card)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Aktueller Modus: \(preferences.preferredMode.displayName)")
             }
-            .padding()
+            .padding(AppConstants.Spacing.md)
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {

@@ -6,112 +6,121 @@ struct LightSourcePicker: View {
     @Binding var screenColor: LightEvent.LightColor
     
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: AppConstants.Spacing.sectionSpacing) {
             Text("Lichtquelle")
-                .font(.headline)
+                .font(AppConstants.Typography.headline)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
             // Light source options
-            HStack(spacing: 16) {
+            HStack(spacing: AppConstants.Spacing.elementSpacing) {
                 // Flashlight option
                 Button(action: {
                     selectedSource = .flashlight
                 }) {
-                    VStack(spacing: 12) {
+                    VStack(spacing: AppConstants.Spacing.md) {
                         Image(systemName: "flashlight.on.fill")
-                            .font(.system(size: 40))
-                            .foregroundStyle(selectedSource == .flashlight ? .yellow : .secondary)
+                            .font(.system(size: AppConstants.IconSize.large))
+                            .foregroundStyle(selectedSource == .flashlight ? .mindSyncFlashlight : .mindSyncSecondaryText)
                         
                         Text("Taschenlampe")
-                            .font(.subheadline.bold())
-                            .foregroundStyle(selectedSource == .flashlight ? .primary : .secondary)
+                            .font(AppConstants.Typography.subheadline.weight(.bold))
+                            .foregroundStyle(selectedSource == .flashlight ? .mindSyncPrimaryText : .mindSyncSecondaryText)
                         
                         Text(LightSource.flashlight.description)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(AppConstants.Typography.caption)
+                            .foregroundStyle(.mindSyncSecondaryText)
                             .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding()
+                    .padding(AppConstants.Spacing.md)
                     .background(
                         selectedSource == .flashlight
-                            ? Color.yellow.opacity(0.2)
-                            : Color(.systemGray6)
+                            ? Color.mindSyncFlashlight.opacity(AppConstants.Opacity.cardBackground)
+                            : Color.mindSyncCardBackground()
                     )
-                    .cornerRadius(12)
+                    .cornerRadius(AppConstants.CornerRadius.card)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12)
+                        RoundedRectangle(cornerRadius: AppConstants.CornerRadius.card)
                             .stroke(
-                                selectedSource == .flashlight ? Color.yellow : Color.clear,
+                                selectedSource == .flashlight ? Color.mindSyncFlashlight : Color.clear,
                                 lineWidth: 2
                             )
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("settings.lightSource.flashlight")
+                .accessibilityLabel("Taschenlampe auswählen")
+                .accessibilityAddTraits(selectedSource == .flashlight ? .isSelected : [])
                 
                 // Screen option
                 Button(action: {
                     selectedSource = .screen
                 }) {
-                    VStack(spacing: 12) {
+                    VStack(spacing: AppConstants.Spacing.md) {
                         Image(systemName: "iphone")
-                            .font(.system(size: 40))
-                            .foregroundStyle(selectedSource == .screen ? .blue : .secondary)
+                            .font(.system(size: AppConstants.IconSize.large))
+                            .foregroundStyle(selectedSource == .screen ? .mindSyncScreen : .mindSyncSecondaryText)
                         
                         Text("Bildschirm")
-                            .font(.subheadline.bold())
-                            .foregroundStyle(selectedSource == .screen ? .primary : .secondary)
+                            .font(AppConstants.Typography.subheadline.weight(.bold))
+                            .foregroundStyle(selectedSource == .screen ? .mindSyncPrimaryText : .mindSyncSecondaryText)
                         
                         Text(LightSource.screen.description)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(AppConstants.Typography.caption)
+                            .foregroundStyle(.mindSyncSecondaryText)
                             .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding()
+                    .padding(AppConstants.Spacing.md)
                     .background(
                         selectedSource == .screen
-                            ? Color.blue.opacity(0.2)
-                            : Color(.systemGray6)
+                            ? Color.mindSyncScreen.opacity(AppConstants.Opacity.cardBackground)
+                            : Color.mindSyncCardBackground()
                     )
-                    .cornerRadius(12)
+                    .cornerRadius(AppConstants.CornerRadius.card)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12)
+                        RoundedRectangle(cornerRadius: AppConstants.CornerRadius.card)
                             .stroke(
-                                selectedSource == .screen ? Color.blue : Color.clear,
+                                selectedSource == .screen ? Color.mindSyncScreen : Color.clear,
                                 lineWidth: 2
                             )
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("settings.lightSource.screen")
+                .accessibilityLabel("Bildschirm auswählen")
+                .accessibilityAddTraits(selectedSource == .screen ? .isSelected : [])
             }
             
             // Screen color picker (only visible when screen mode is selected)
             if selectedSource == .screen {
-                VStack(spacing: 16) {
+                VStack(spacing: AppConstants.Spacing.elementSpacing) {
                     Text("Bildschirmfarbe")
-                        .font(.subheadline)
+                        .font(AppConstants.Typography.subheadline)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
                     // Color options
-                    HStack(spacing: 12) {
+                    HStack(spacing: AppConstants.Spacing.md) {
                         ForEach(LightEvent.LightColor.allCases.filter { $0 != .custom }) { color in
                             Button(action: {
                                 screenColor = color
                             }) {
                                 Circle()
                                     .fill(color.swiftUIColor)
-                                    .frame(width: 44, height: 44)
+                                    .frame(
+                                        width: AppConstants.TouchTarget.minimum,
+                                        height: AppConstants.TouchTarget.minimum
+                                    )
                                     .overlay(
                                         Circle()
                                             .stroke(
-                                                screenColor == color ? Color.primary : Color.clear,
+                                                screenColor == color ? Color.mindSyncPrimaryText : Color.clear,
                                                 lineWidth: 3
                                             )
                                     )
                                     .overlay(
                                         Image(systemName: "checkmark")
-                                            .font(.system(size: 16, weight: .bold))
+                                            .font(.system(size: AppConstants.IconSize.small, weight: .bold))
                                             .foregroundStyle(
                                                 color == .white ? .black : .white
                                             )
@@ -119,19 +128,21 @@ struct LightSourcePicker: View {
                                     )
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel("Farbe auswählen: \(color.displayName)")
+                            .accessibilityAddTraits(screenColor == color ? .isSelected : [])
                         }
                     }
                     
                     Text("Wähle die Farbe für das Stroboskoplicht")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(AppConstants.Typography.caption)
+                        .foregroundStyle(.mindSyncSecondaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.top, 8)
+                .padding(.top, AppConstants.Spacing.sm)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectedSource)
+        .animation(AppConstants.Animation.spring, value: selectedSource)
     }
 }
 

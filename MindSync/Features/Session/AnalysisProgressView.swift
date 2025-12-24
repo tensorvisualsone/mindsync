@@ -5,23 +5,25 @@ struct AnalysisProgressView: View {
     let progress: AnalysisProgress
     
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: AppConstants.Spacing.sectionSpacing) {
             // Progress ring
             ProgressRing(progress: progress.progress)
                 .frame(width: 120, height: 120)
             
             // Message
             Text(progress.message)
-                .font(.headline)
+                .font(AppConstants.Typography.headline)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.mindSyncSecondaryText)
+                .accessibilityIdentifier("session.analysisMessage")
             
             // Percentage display
             Text("\(Int(progress.progress * 100))%")
-                .font(.title2.bold())
-                .foregroundStyle(.primary)
+                .font(AppConstants.Typography.title2)
+                .foregroundStyle(.mindSyncPrimaryText)
+                .accessibilityIdentifier("session.analysisProgress")
         }
-        .padding()
+        .padding(AppConstants.Spacing.md)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
     }
