@@ -18,7 +18,7 @@ struct HomeView: View {
                 Text("Audio-synchronisiertes Stroboskop für veränderte Bewusstseinszustände.")
                     .font(AppConstants.Typography.body)
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(.mindSyncSecondaryText)
+                    .foregroundColor(.mindSyncSecondaryText)
                     .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
 
                 Button("Start Session") {
@@ -33,11 +33,11 @@ struct HomeView: View {
                 VStack(spacing: AppConstants.Spacing.sm) {
                     Text(NSLocalizedString("home.currentMode", comment: "Label for displaying the currently selected mode on the home screen"))
                         .font(AppConstants.Typography.caption)
-                        .foregroundStyle(.mindSyncSecondaryText)
+                        .foregroundColor(.mindSyncSecondaryText)
                     HStack(spacing: AppConstants.Spacing.sm) {
                         Image(systemName: preferences.preferredMode.iconName)
                             .font(.system(size: AppConstants.IconSize.medium))
-                            .foregroundStyle(preferences.preferredMode.themeColor)
+                            .foregroundColor(preferences.preferredMode.themeColor)
                         Text(preferences.preferredMode.displayName)
                             .font(AppConstants.Typography.headline)
                     }

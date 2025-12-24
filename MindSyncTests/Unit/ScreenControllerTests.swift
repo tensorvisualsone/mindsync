@@ -367,6 +367,168 @@ final class ScreenControllerTests: XCTestCase {
         screenController.cancelExecution()
     }
     
+    // MARK: - Custom Color RGB Tests
+    
+    func testSetCustomColorRGB_UpdatesCustomColorProperty() {
+        // Given
+        let customRGB = CustomColorRGB(red: 0.5, green: 0.3, blue: 0.8)
+        
+        // When
+        screenController.setCustomColorRGB(customRGB)
+        
+        // Then: Execute script with custom color to verify it's applied
+        let event = LightEvent(
+            timestamp: 0,
+            intensity: 1.0,
+            duration: 1.0,
+            waveform: .square,
+            color: .custom
+        )
+        let script = LightScript(
+            trackId: UUID(),
+            mode: .alpha,
+            targetFrequency: 10.0,
+            multiplier: 1,
+            events: [event]
+        )
+        
+        screenController.execute(script: script, syncedTo: Date())
+        
+        // Give the display link time to update
+        let expectation = expectation(description: "Custom color applied")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Then: Color should not be black (custom color applied)
+            XCTAssertNotEqual(self.screenController.currentColor, .black)
+            expectation.fulfill()
+        }
+        
+        wait(for: [expectation], timeout: 0.5)
+        
+        screenController.cancelExecution()
+    }
+    
+    func testSetCustomColorRGB_NilValue_DoesNotCrash() {
+        // When: Setting nil custom color should not crash
+        screenController.setCustomColorRGB(nil)
+        
+        // Then: Execute script with custom color - should fallback to default
+        let event = LightEvent(
+            timestamp: 0,
+            intensity: 1.0,
+            duration: 1.0,
+            waveform: .square,
+            color: .custom
+        )
+        let script = LightScript(
+            trackId: UUID(),
+            mode: .alpha,
+            targetFrequency: 10.0,
+            multiplier: 1,
+            events: [event]
+        )
+        
+        screenController.execute(script: script, syncedTo: Date())
+        
+        // Give the display link time to update
+        let expectation = expectation(description: "Script executes without crash")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Then: Should execute without crashing
+            expectation.fulfill()
+        }
+        
+        wait(for: [expectation], timeout: 0.5)
+        
+        screenController.cancelExecution()
+    }
+    
+    func testCustomColorRGB_PersistsDuringScriptExecution() {
+        // Given
+        let customRGB = CustomColorRGB(red: 0.9, green: 0.2, blue: 0.4)
+        screenController.setCustomColorRGB(customRGB)
+        
+        // When: Execute script with custom color event
+        let event = LightEvent(
+            timestamp: 0,
+            intensity: 1.0,
+            duration: 0.5,
+            waveform: .square,
+            color: .custom
+        )
+        let script = LightScript(
+            trackId: UUID(),
+            mode: .alpha,
+            targetFrequency: 10.0,
+            multiplier: 1,
+            events: [event]
+        )
+        
+        screenController.execute(script: script, syncedTo: Date())
+        
+        // Then: Custom color should be applied throughout script execution
+        let expectation1 = expectation(description: "Custom color at start")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            XCTAssertNotEqual(self.screenController.currentColor, .black)
+            expectation1.fulfill()
+        }
+        
+        wait(for: [expectation1], timeout: 0.3)
+        
+        let expectation2 = expectation(description: "Custom color midway")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            XCTAssertNotEqual(self.screenController.currentColor, .black)
+            expectation2.fulfill()
+        }
+        
+        wait(for: [expectation2], timeout: 0.5)
+        
+        screenController.cancelExecution()
+    }
+    
+    func testCustomColorRGB_DifferentValues_AppliedCorrectly() {
+        // Test that different RGB values are accepted and applied
+        let testCases: [(CustomColorRGB, String)] = [
+            (CustomColorRGB(red: 1.0, green: 0.0, blue: 0.0), "Pure red"),
+            (CustomColorRGB(red: 0.0, green: 1.0, blue: 0.0), "Pure green"),
+            (CustomColorRGB(red: 0.0, green: 0.0, blue: 1.0), "Pure blue"),
+            (CustomColorRGB(red: 0.5, green: 0.5, blue: 0.5), "Gray"),
+            (CustomColorRGB(red: 1.0, green: 1.0, blue: 0.0), "Yellow")
+        ]
+        
+        for (customRGB, description) in testCases {
+            // Given
+            screenController.setCustomColorRGB(customRGB)
+            
+            // When
+            let event = LightEvent(
+                timestamp: 0,
+                intensity: 1.0,
+                duration: 0.2,
+                waveform: .square,
+                color: .custom
+            )
+            let script = LightScript(
+                trackId: UUID(),
+                mode: .alpha,
+                targetFrequency: 10.0,
+                multiplier: 1,
+                events: [event]
+            )
+            
+            screenController.execute(script: script, syncedTo: Date())
+            
+            // Then
+            let expectation = self.expectation(description: "Custom color applied: \(description)")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                XCTAssertNotEqual(self.screenController.currentColor, .black, "Failed for \(description)")
+                expectation.fulfill()
+            }
+            
+            wait(for: [expectation], timeout: 0.3)
+            
+            screenController.cancelExecution()
+        }
+    }
+    
     // MARK: - Multiple Events Tests
     
     func testMultipleEvents_TransitionCorrectly() {

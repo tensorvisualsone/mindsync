@@ -227,6 +227,12 @@ final class SessionViewModel: ObservableObject {
             )
             currentSession = session
             
+            // Set custom color RGB if screen mode and custom color is selected
+            if lightSource == .screen, screenColor == .custom,
+               let screenController = lightController as? ScreenController {
+                screenController.setCustomColorRGB(cachedPreferences.customColorRGB)
+            }
+            
             // Start playback and light
             try startPlaybackAndLight(url: assetURL, script: script)
             
@@ -430,6 +436,12 @@ final class SessionViewModel: ObservableObject {
             )
             currentSession = session
             microphoneStartTime = Date()
+            
+            // Set custom color RGB if screen mode and custom color is selected
+            if lightSource == .screen, mode != .cinematic, screenColor == .custom,
+               let screenController = lightController as? ScreenController {
+                screenController.setCustomColorRGB(cachedPreferences.customColorRGB)
+            }
             
             // Start light controller
             try lightController?.start()

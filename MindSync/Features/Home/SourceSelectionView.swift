@@ -28,12 +28,12 @@ struct SourceSelectionView: View {
                     VStack(spacing: AppConstants.Spacing.md) {
                         Image(systemName: "music.note.list")
                             .font(.system(size: AppConstants.IconSize.extraLarge))
-                            .foregroundStyle(.mindSyncInfo)
+                            .foregroundColor(.mindSyncInfo)
                         Text("Musikbibliothek")
                             .font(AppConstants.Typography.headline)
                         Text("Wähle einen Song aus deiner lokalen Musikbibliothek")
                             .font(AppConstants.Typography.caption)
-                            .foregroundStyle(.mindSyncSecondaryText)
+                            .foregroundColor(.mindSyncSecondaryText)
                             .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
@@ -53,18 +53,18 @@ struct SourceSelectionView: View {
                     VStack(spacing: AppConstants.Spacing.md) {
                         Image(systemName: "mic.fill")
                             .font(.system(size: AppConstants.IconSize.extraLarge))
-                            .foregroundStyle(.mindSyncInfo)
+                            .foregroundColor(.mindSyncInfo)
                         Text("Mikrofon")
                             .font(AppConstants.Typography.headline)
                         Text("Musik aus externen Quellen analysieren")
                             .font(AppConstants.Typography.caption)
-                            .foregroundStyle(.mindSyncSecondaryText)
+                            .foregroundColor(.mindSyncSecondaryText)
                             .multilineTextAlignment(.center)
                         
                         // Info about latency
                         Text(NSLocalizedString("sourceSelection.microphoneNote", comment: ""))
                             .font(AppConstants.Typography.caption2)
-                            .foregroundStyle(.mindSyncWarning)
+                            .foregroundColor(.mindSyncWarning)
                             .multilineTextAlignment(.center)
                             .padding(.top, AppConstants.Spacing.xs)
                     }
@@ -81,7 +81,7 @@ struct SourceSelectionView: View {
                 if authorizationStatus == .denied {
                     Text(NSLocalizedString("sourceSelection.musicLibraryDenied", comment: "Message shown when music library access is denied"))
                         .font(AppConstants.Typography.caption)
-                        .foregroundStyle(.mindSyncError)
+                        .foregroundColor(.mindSyncError)
                         .multilineTextAlignment(.center)
                         .padding(AppConstants.Spacing.md)
                 }
@@ -89,7 +89,7 @@ struct SourceSelectionView: View {
                 if microphoneStatus == .denied {
                     Text(NSLocalizedString("sourceSelection.microphoneDenied", comment: "Message shown when microphone access is denied"))
                         .font(AppConstants.Typography.caption)
-                        .foregroundStyle(.mindSyncError)
+                        .foregroundColor(.mindSyncError)
                         .multilineTextAlignment(.center)
                         .padding(AppConstants.Spacing.md)
                 }

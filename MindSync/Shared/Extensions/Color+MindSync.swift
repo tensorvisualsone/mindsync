@@ -3,7 +3,8 @@ import Foundation
 
 extension LightEvent.LightColor {
     /// Converts LightColor to SwiftUI Color
-    var swiftUIColor: Color {
+    /// - Parameter customRGB: Optional RGB values for custom color (0.0 - 1.0)
+    func swiftUIColor(customRGB: (red: Double, green: Double, blue: Double)? = nil) -> Color {
         switch self {
         case .white:
             return .white
@@ -14,10 +15,17 @@ extension LightEvent.LightColor {
         case .green:
             return .green
         case .custom:
-            // TODO: Custom color functionality not yet implemented
-            // For now, use white as fallback until RGB cycle feature is added
+            // Use custom RGB if provided, otherwise fallback to white
+            if let rgb = customRGB {
+                return Color(red: rgb.red, green: rgb.green, blue: rgb.blue)
+            }
             return .white
         }
+    }
+    
+    /// Legacy method for backward compatibility (uses white for custom)
+    var swiftUIColor: Color {
+        swiftUIColor(customRGB: nil)
     }
 }
 

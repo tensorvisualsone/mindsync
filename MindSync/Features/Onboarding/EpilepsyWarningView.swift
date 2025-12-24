@@ -36,7 +36,7 @@ struct EpilepsyWarningView: View {
 
                 Text("MindSync ist ein Wellness- und Unterhaltungs-Tool und ersetzt keine medizinische Behandlung oder Beratung.")
                     .font(AppConstants.Typography.caption)
-                    .foregroundStyle(.mindSyncSecondaryText)
+                    .foregroundColor(.mindSyncSecondaryText)
             }
             .padding(AppConstants.Spacing.md)
         }

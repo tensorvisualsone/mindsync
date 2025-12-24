@@ -27,6 +27,13 @@ struct SettingsView: View {
                                 preferences.screenColor = newValue
                                 preferences.save()
                             }
+                        ),
+                        customColorRGB: Binding(
+                            get: { preferences.customColorRGB },
+                            set: { newValue in
+                                preferences.customColorRGB = newValue
+                                preferences.save()
+                            }
                         )
                     )
                     .listRowInsets(EdgeInsets())
@@ -102,7 +109,7 @@ struct SettingsView: View {
                         Spacer()
                         Text("\(Int(preferences.defaultIntensity * 100))%")
                             .font(AppConstants.Typography.body)
-                            .foregroundStyle(.mindSyncSecondaryText)
+                            .foregroundColor(.mindSyncSecondaryText)
                     }
                     
                     Slider(

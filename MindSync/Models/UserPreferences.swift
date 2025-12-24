@@ -1,5 +1,23 @@
 import Foundation
 
+/// RGB color values for custom color (0.0 - 1.0)
+struct CustomColorRGB: Codable {
+    let red: Double
+    let green: Double
+    let blue: Double
+    
+    init(red: Double, green: Double, blue: Double) {
+        self.red = max(0.0, min(1.0, red))
+        self.green = max(0.0, min(1.0, green))
+        self.blue = max(0.0, min(1.0, blue))
+    }
+    
+    /// Converts to tuple for easier use
+    var tuple: (red: Double, green: Double, blue: Double) {
+        (red: red, green: green, blue: blue)
+    }
+}
+
 /// Persistierte Nutzereinstellungen
 struct UserPreferences: Codable {
     // Onboarding
@@ -11,6 +29,7 @@ struct UserPreferences: Codable {
     var preferredLightSource: LightSource
     var defaultIntensity: Float  // 0.0 - 1.0
     var screenColor: LightEvent.LightColor
+    var customColorRGB: CustomColorRGB?  // RGB-Werte für Custom Color (0.0 - 1.0)
 
     // Sicherheit
     var fallDetectionEnabled: Bool
@@ -31,6 +50,7 @@ struct UserPreferences: Codable {
             preferredLightSource: .screen,
             defaultIntensity: 0.5,
             screenColor: .white,
+            customColorRGB: nil,
             fallDetectionEnabled: true,
             thermalProtectionEnabled: true,
             maxSessionDuration: nil,

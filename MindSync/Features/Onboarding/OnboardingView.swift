@@ -10,7 +10,7 @@ struct OnboardingView: View {
             VStack(spacing: AppConstants.Spacing.sectionSpacing) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: AppConstants.IconSize.extraLarge))
-                    .foregroundStyle(.mindSyncWarning)
+                    .foregroundColor(.mindSyncWarning)
 
                 Text("Wichtige Sicherheitshinweise")
                     .font(AppConstants.Typography.title)
@@ -19,7 +19,7 @@ struct OnboardingView: View {
                 Text("Diese App verwendet stroboskopisches Licht, das bei Menschen mit photosensitiver Epilepsie Anfälle auslösen kann.")
                     .font(AppConstants.Typography.body)
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(.mindSyncPrimaryText)
+                    .foregroundColor(.mindSyncPrimaryText)
 
                 Button("Mehr erfahren") {
                     viewModel.showDetails = true
