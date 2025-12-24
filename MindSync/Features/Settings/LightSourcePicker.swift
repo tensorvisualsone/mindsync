@@ -136,6 +136,10 @@ struct LightSourcePicker: View {
                         // Custom color option
                         Button(action: {
                             screenColor = .custom
+                            // Initialize with white if customColorRGB is nil
+                            if customColorRGB == nil {
+                                customColorRGB = CustomColorRGB(red: 1.0, green: 1.0, blue: 1.0)
+                            }
                         }) {
                             ZStack {
                                 Circle()
@@ -164,7 +168,7 @@ struct LightSourcePicker: View {
                                 
                                 Image(systemName: "paintpalette.fill")
                                     .font(.system(size: AppConstants.IconSize.small, weight: .bold))
-                                    .foregroundStyle(.white)
+                                    .foregroundColor(.white)
                                     .opacity(screenColor == .custom ? 1 : 0.7)
                             }
                         }
@@ -212,6 +216,7 @@ struct LightSourcePicker: View {
             }
         }
         .animation(AppConstants.Animation.spring, value: selectedSource)
+        .animation(AppConstants.Animation.spring, value: screenColor)
     }
 }
 
