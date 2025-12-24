@@ -116,24 +116,25 @@ final class FlashlightController: BaseLightController, LightControlling {
         
         if let event = result.event {
             // Check if cinematic mode - apply dynamic intensity modulation
-            var intensity = event.intensity
-            // TODO: Uncomment when Cinematic Mode is implemented in Phase 2
-            // if let script = currentScript, script.mode == .cinematic {
-            //     // Get audio energy and calculate dynamic intensity
-            //     let audioEnergy = audioEnergyTracker?.currentEnergy ?? 0.0
-            //     let baseFreq = script.targetFrequency
-            //     let elapsed = result.elapsed
-            //     
-            //     // Calculate cinematic intensity
-            //     let cinematicIntensity = EntrainmentEngine.calculateCinematicIntensity(
-            //         baseFrequency: baseFreq,
-            //         currentTime: elapsed,
-            //         audioEnergy: audioEnergy
-            //     )
-            //     
-            //     // Multiply base event intensity with cinematic modulation
-            //     intensity = event.intensity * cinematicIntensity
-            // }
+            let intensity: Float
+            if let script = currentScript, script.mode == .cinematic {
+                // Get audio energy and calculate dynamic intensity
+                let audioEnergy = audioEnergyTracker?.currentEnergy ?? 0.0
+                let baseFreq = script.targetFrequency
+                let elapsed = result.elapsed
+                
+                // Calculate cinematic intensity
+                let cinematicIntensity = EntrainmentEngine.calculateCinematicIntensity(
+                    baseFrequency: baseFreq,
+                    currentTime: elapsed,
+                    audioEnergy: audioEnergy
+                )
+                
+                // Multiply base event intensity with cinematic modulation
+                intensity = event.intensity * cinematicIntensity
+            } else {
+                intensity = event.intensity
+            }
             
             // Current event is active
             setIntensity(intensity)

@@ -14,8 +14,7 @@ final class SessionViewModel: ObservableObject {
     private let microphoneAnalyzer: MicrophoneAnalyzer?
     private let fallDetector: FallDetector
     private let affirmationService: AffirmationOverlayService
-    // TODO: Uncomment when AudioEnergyTracker is implemented in Phase 2
-    // private let audioEnergyTracker: AudioEnergyTracker
+    private let audioEnergyTracker: AudioEnergyTracker
     
     // Affirmation state
     private var affirmationPlayed = false
@@ -78,8 +77,7 @@ final class SessionViewModel: ObservableObject {
         self.affirmationService = services.affirmationService
         
         // Audio Energy Tracker (for Cinematic Mode)
-        // TODO: Uncomment when AudioEnergyTracker is implemented in Phase 2
-        // self.audioEnergyTracker = services.audioEnergyTracker
+        self.audioEnergyTracker = services.audioEnergyTracker
         
         // Setup playback completion callback
         audioPlayback.onPlaybackComplete = { [weak self] in
@@ -233,14 +231,13 @@ final class SessionViewModel: ObservableObject {
             try startPlaybackAndLight(url: assetURL, script: script)
             
             // If cinematic mode, start audio energy tracking and attach to light controller
-            // TODO: Uncomment when Cinematic Mode is implemented in Phase 2
-            // if mode == .cinematic {
-            //     if let mixerNode = audioPlayback.getMainMixerNode() {
-            //         audioEnergyTracker.startTracking(mixerNode: mixerNode)
-            //     }
-            //     // Attach audio energy tracker to light controller for dynamic intensity modulation
-            //     lightController?.audioEnergyTracker = audioEnergyTracker
-            // }
+            if mode == .cinematic {
+                if let mixerNode = audioPlayback.getMainMixerNode() {
+                    audioEnergyTracker.startTracking(mixerNode: mixerNode)
+                }
+                // Attach audio energy tracker to light controller for dynamic intensity modulation
+                lightController?.audioEnergyTracker = audioEnergyTracker
+            }
             
             state = .running
             sessionStartTime = Date()
@@ -308,9 +305,8 @@ final class SessionViewModel: ObservableObject {
         lightController?.stop()
         
         // Stop audio energy tracking if active (cinematic mode)
-        // TODO: Uncomment when Cinematic Mode is implemented in Phase 2
-        // audioEnergyTracker.stopTracking()
-        // lightController?.audioEnergyTracker = nil
+        audioEnergyTracker.stopTracking()
+        lightController?.audioEnergyTracker = nil
         
         // Stop microphone and fall detection
         microphoneAnalyzer?.stop()

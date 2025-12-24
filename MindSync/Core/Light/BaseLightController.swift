@@ -22,8 +22,7 @@ class BaseLightController: NSObject {
     @MainActor private(set) var currentEventIndex: Int = 0
     
     /// AudioEnergyTracker for cinematic mode dynamic intensity modulation (optional)
-    /// TODO: Uncomment when AudioEnergyTracker is implemented in Phase 2
-    // weak var audioEnergyTracker: AudioEnergyTracker?
+    weak var audioEnergyTracker: AudioEnergyTracker?
     
     // MARK: - Display Link Management
     

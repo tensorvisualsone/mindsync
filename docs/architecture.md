@@ -436,10 +436,85 @@ final class ServiceContainer: ObservableObject {
 3. **Flashlight-Frequenz**: Max. 30-40 Hz zuverlässig (Hardware-Limit)
 4. **Fall-Erkennung**: False Positives möglich bei normaler Bewegung
 
+## Cinematic Mode Architektur
+
+### Übersicht
+
+Der Cinematic Mode ist ein spezieller Entrainment-Modus, der dynamische, audio-reaktive Lichtsynchronisation bietet. Er erzeugt einen "Flow State" ähnlich hochwertiger Video-Produktionen durch:
+
+1. **Frequency Drift**: Langsame Oszillation der Frequenz (5.5-7.5 Hz) verhindert Habituation
+2. **Audio Reactivity**: Intensität reagiert auf Audio-Energie (Beats/Drops)
+3. **Lens Flare**: Gamma-Korrektur für helle Bereiche erzeugt "Blitz"-Effekte
+
+### Technische Implementierung
+
+#### Audio-Energie-Tracking
+
+```
+AudioPlaybackService (AVAudioEngine)
+    └── mainMixerNode
+        └── AudioEnergyTracker (Tap installiert)
+            ├── RMS-Berechnung pro Buffer
+            ├── Moving Average (95% smoothing)
+            └── Publisher → Main Thread
+```
+
+#### Dynamische Intensitäts-Modulation
+
+```
+SessionViewModel.startSession()
+    ├── Mode == .cinematic?
+    │   ├── AudioEnergyTracker.startTracking(mixerNode)
+    │   └── LightController.audioEnergyTracker = tracker
+    └── LightController.execute(script)
+        └── CADisplayLink.updateLight()
+            ├── currentScript.mode == .cinematic?
+            │   ├── audioEnergy = audioEnergyTracker.currentEnergy
+            │   ├── cinematicIntensity = EntrainmentEngine.calculateCinematicIntensity(...)
+            │   └── intensity = event.intensity * cinematicIntensity
+            └── setIntensity(intensity)
+```
+
+### Formeln
+
+**Frequency Drift**:
+```
+drift = sin(currentTime * 0.2) * 1.0  // Langsame Oszillation (5-10 Sek)
+currentFreq = 6.5 + drift              // 5.5 - 7.5 Hz
+```
+
+**Audio Reactivity**:
+```
+baseIntensity = 0.3 + (audioEnergy * 0.7)  // 30%-100%
+cosineWave = cos(time * currentFreq * 2π + π/2)
+normalizedWave = (cosineWave + 1.0) / 2.0
+output = normalizedWave * baseIntensity
+```
+
+**Lens Flare**:
+```
+if output > 0.8:
+    output = pow(output, 0.5)  // Hellt Spitzen auf
+```
+
+### Abhängigkeiten
+
+- **AudioPlaybackService**: Muss `AVAudioEngine` verwenden (nicht `AVAudioPlayer`)
+- **AudioEnergyTracker**: Benötigt MixerNode-Zugriff
+- **BaseLightController**: Speichert optionale AudioEnergyTracker-Referenz
+- **SessionViewModel**: Orchestriert Start/Stop des Trackings
+
+### Testing-Strategie
+
+- **Unit Tests**: `EntrainmentEngine.calculateCinematicIntensity()` mit verschiedenen Parametern
+- **Integration Tests**: Vollständiger Flow mit echten Audio-Dateien
+- **UI Tests**: Session-Flow mit Cinematic Mode
+
 ## Zukünftige Erweiterungen
 
 - **RGB-Zyklen**: Custom-Farben für Screen-Modus
 - **Predictive Beat-Extrapolation**: Reduziert Mikrofon-Latenz
 - **Erweiterte Fall-Filterung**: Kontext-bewusste Erkennung
 - **Session-Analytics**: Detaillierte Statistiken
+- **CADisplayLink Background Issue**: Timing vom Audio-Thread ableiten (siehe BaseLightController Kommentar)
 
