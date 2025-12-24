@@ -437,6 +437,14 @@ final class SessionViewModel: ObservableObject {
         // Debounce script updates: only regenerate when BPM changes significantly
         // to avoid frequent cancel/restart cycles and visible flicker.
         // Threshold: 5 BPM difference from the last script BPM.
+        // Check if BPM change is significant enough to warrant regeneration
+        // A 5 BPM threshold prevents excessive restarts from minor tempo variations.
+        // Note: While this approach uses cancelExecution/restart which could cause
+        // brief flickering, it ensures the light frequency remains synchronized with
+        // the detected tempo. More sophisticated smoothing (e.g., gradual frequency
+        // interpolation) would add complexity and may compromise the entrainment
+        // effect by temporarily using off-target frequencies. The 5 BPM threshold
+        // strikes a balance between responsiveness and stability.
         if let previousBPM = lastScriptBPM, abs(bpm - previousBPM) < 5.0 {
             return
         }

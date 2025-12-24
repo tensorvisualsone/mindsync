@@ -176,6 +176,11 @@ final class MicrophoneAnalyzer {
         }
         
         // Process frames in chunks of fftSize
+        // Note: Partial frames at the end are intentionally skipped because FFT
+        // requires complete frames of size fftSize for accurate frequency analysis.
+        // Incomplete frames would produce invalid spectral data. The next buffer
+        // will contain new audio data including samples that would have been in
+        // the incomplete frame.
         var bufferIndex = 0
         while bufferIndex + fftSize <= monoBuffer.count {
             let frame = Array(monoBuffer[bufferIndex..<bufferIndex + fftSize])
