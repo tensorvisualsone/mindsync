@@ -20,6 +20,7 @@ struct ModeSelectionView: View {
                     Text(NSLocalizedString("modeSelection.title", comment: ""))
                         .font(AppConstants.Typography.title2)
                         .padding(.top, AppConstants.Spacing.md)
+                        .accessibilityIdentifier("modeSelection.title")
                     
                     Text(NSLocalizedString("modeSelection.description", comment: ""))
                         .font(AppConstants.Typography.subheadline)
@@ -40,7 +41,7 @@ struct ModeSelectionView: View {
                     .padding(AppConstants.Spacing.md)
                 }
             }
-            .navigationTitle(NSLocalizedString("settings.mode", comment: ""))
+            .navigationTitle(NSLocalizedString("modeSelection.title", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
         }
     }
@@ -86,6 +87,7 @@ private struct ModeCard: View {
                     Text(mode.displayName)
                         .font(AppConstants.Typography.headline)
                         .foregroundColor(isSelected ? .white : .mindSyncPrimaryText)
+                        .accessibilityIdentifier("mode.\(mode.rawValue).displayName")
                     
                     Text(mode.description)
                         .font(AppConstants.Typography.caption)
@@ -113,8 +115,9 @@ private struct ModeCard: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("modeCard.\(mode.rawValue)")
         .accessibilityLabel(mode.displayName)
-        .accessibilityHint(isSelected ? "Ausgewählter Modus" : "Modus auswählen")
+        .accessibilityHint(isSelected ? NSLocalizedString("modeSelection.selectedMode", comment: "") : NSLocalizedString("modeSelection.selectMode", comment: ""))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

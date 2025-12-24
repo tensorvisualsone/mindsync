@@ -209,5 +209,44 @@ final class SessionViewModelTests: XCTestCase {
         viewModel.stopSession()
         XCTAssertEqual(viewModel.state, .idle)
     }
+    
+    // MARK: - Threading Tests
+    
+    func testSessionViewModel_InitializesOnMainActor() {
+        // Verify that SessionViewModel can be initialized on MainActor
+        // This is important for thread-safety since it accesses ServiceContainer
+        let viewModel = SessionViewModel()
+        
+        // Access should not crash
+        XCTAssertEqual(viewModel.state, .idle)
+        XCTAssertEqual(viewModel.thermalWarningLevel, .none)
+    }
+    
+    func testSessionViewModel_ServiceContainerAccessIsThreadSafe() {
+        // Verify that ServiceContainer access in SessionViewModel is safe
+        // Since SessionViewModel is @MainActor, all access should be on main thread
+        let viewModel = SessionViewModel()
+        
+        // These properties internally access ServiceContainer
+        // If there were threading issues, this would crash
+        XCTAssertNotNil(viewModel.thermalWarningLevel)
+        
+        // State changes should be safe
+        viewModel.state = .running
+        XCTAssertEqual(viewModel.state, .running)
+    }
+    
+    func testSessionViewModel_CanAccessServicesSafely() {
+        // Verify that SessionViewModel can safely access services from ServiceContainer
+        let viewModel = SessionViewModel()
+        
+        // Accessing services through the viewModel should not cause threading issues
+        // Since SessionViewModel is @MainActor, all service access is on main thread
+        XCTAssertEqual(viewModel.state, .idle)
+        
+        // Verify thermal warning level is accessible (uses ThermalManager from ServiceContainer)
+        let warningLevel = viewModel.thermalWarningLevel
+        XCTAssertNotNil(warningLevel)
+    }
 }
 

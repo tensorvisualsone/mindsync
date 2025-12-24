@@ -8,7 +8,9 @@
 // MARK: - Onboarding
 "onboarding.title" = "Important Safety Information";
 "onboarding.learnMore" = "Learn More";
+"onboarding.learnMoreHint" = "Opens detailed safety information";
 "onboarding.accept" = "I understand and accept";
+"onboarding.acceptHint" = "Confirms understanding of safety information and starts the app";
 "onboarding.description" = "This app uses stroboscopic light that can trigger seizures in people with photosensitive epilepsy.";
 
 // MARK: - Epilepsy Warning
@@ -29,14 +31,19 @@
 "home.title" = "MindSync";
 "home.subtitle" = "Audio-synchronized strobe for altered states of consciousness.";
 "home.startSession" = "Start Session";
+"home.startSessionHint" = "Opens the audio source selection";
 "home.currentMode" = "Current Mode";
 
 // MARK: - Source Selection
 "sourceSelection.title" = "Select Audio Source";
 "sourceSelection.musicLibrary" = "Music Library";
 "sourceSelection.musicLibraryDescription" = "Choose a song from your local music library";
+"sourceSelection.musicLibraryButton" = "Select Music Library";
+"sourceSelection.musicLibraryHint" = "Opens the music library to select a song";
 "sourceSelection.microphone" = "Microphone";
 "sourceSelection.microphoneDescription" = "Analyze music from external sources";
+"sourceSelection.microphoneButton" = "Select Microphone Mode";
+"sourceSelection.microphoneHint" = "Analyzes music from external sources via microphone";
 "sourceSelection.microphoneNote" = "Note: Microphone mode is less precise than local analysis (~100ms latency)";
 "sourceSelection.musicLibraryDenied" = "Music library access denied. Please enable in settings.";
 "sourceSelection.microphoneDenied" = "Microphone access denied. Please enable in settings.";
@@ -109,4 +116,31 @@
 "frequency.tooLow" = "Frequency too low (minimum: %d Hz)";
 "frequency.tooHigh" = "Frequency too high (maximum: %d Hz)";
 "frequency.pseWarning" = "Frequency is in PSE danger zone (%d-%d Hz). People with photosensitive epilepsy should be cautious.";
+
+// MARK: - Common UI
+"common.ok" = "OK";
+"common.cancel" = "Cancel";
+"common.close" = "Close";
+"common.dismiss" = "Dismiss";
+"common.back" = "Back";
+"common.home" = "Home";
+"common.error" = "Error";
+
+// MARK: - Light Source Picker
+"lightSource.title" = "Light Source";
+"lightSource.flashlight" = "Flashlight";
+"lightSource.screen" = "Screen";
+"lightSource.screenColor" = "Screen Color";
+"lightSource.screenColorDescription" = "Choose the color for the strobe light";
+"lightSource.customColor" = "Choose Custom Color";
+"lightSource.selectFlashlight" = "Select Flashlight";
+"lightSource.selectScreen" = "Select Screen";
+"lightSource.selectColor" = "Select color: %@";
+"lightSource.selectCustomColor" = "Select color: Custom Color";
+
+// MARK: - Mode Selection
+"modeSelection.selectedMode" = "Selected Mode";
+"modeSelection.selectMode" = "Select Mode";
+"modeSelection.changeMode" = "Tap to change mode";
+"modeSelection.currentMode" = "Current Mode: %@";
 

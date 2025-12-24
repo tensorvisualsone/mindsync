@@ -235,5 +235,3 @@ averageEnergy = (averageEnergy * smoothingFactor) + (currentEnergy * (1.0 - smoo
 2. **Threading**: AudioEnergyTracker Callbacks laufen auf Audio-Thread, müssen auf Main-Thread für UI-Updates
 3. **Performance**: Echtzeit-Energie-Berechnung sollte nicht blockieren
 4. **Battery**: Zusätzliche Audio-Processing könnte Batterie mehr belasten
-
-## Offene Fragen / Entscheidungen

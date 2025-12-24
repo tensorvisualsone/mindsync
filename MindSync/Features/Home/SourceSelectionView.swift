@@ -3,8 +3,8 @@ import MediaPlayer
 
 /// View for audio source selection
 struct SourceSelectionView: View {
-    private let mediaLibraryService = ServiceContainer.shared.mediaLibraryService
-    private let permissionsService = ServiceContainer.shared.permissionsService
+    @State private var mediaLibraryService: MediaLibraryService?
+    @State private var permissionsService: PermissionsService?
     @State private var authorizationStatus: MPMediaLibraryAuthorizationStatus = .notDetermined
     @State private var microphoneStatus: MicrophonePermissionStatus = .undetermined
     @State private var showingMediaPicker = false
@@ -18,8 +18,9 @@ struct SourceSelectionView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: AppConstants.Spacing.sectionSpacing) {
-                Text("Audioquelle auswählen")
+                Text(NSLocalizedString("sourceSelection.title", comment: ""))
                     .font(AppConstants.Typography.title)
+                    .accessibilityIdentifier("sourceSelection.title")
                 
                 // Local music library
                 Button(action: {
@@ -29,9 +30,9 @@ struct SourceSelectionView: View {
                         Image(systemName: "music.note.list")
                             .font(.system(size: AppConstants.IconSize.extraLarge))
                             .foregroundColor(.mindSyncInfo)
-                        Text("Musikbibliothek")
+                        Text(NSLocalizedString("sourceSelection.musicLibrary", comment: ""))
                             .font(AppConstants.Typography.headline)
-                        Text("Wähle einen Song aus deiner lokalen Musikbibliothek")
+                        Text(NSLocalizedString("sourceSelection.musicLibraryDescription", comment: ""))
                             .font(AppConstants.Typography.caption)
                             .foregroundColor(.mindSyncSecondaryText)
                             .multilineTextAlignment(.center)
@@ -43,8 +44,9 @@ struct SourceSelectionView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(authorizationStatus == .denied)
-                .accessibilityLabel("Musikbibliothek auswählen")
-                .accessibilityHint("Öffnet die Musikbibliothek zum Auswählen eines Songs")
+                .accessibilityIdentifier("sourceSelection.musicLibraryButton")
+                .accessibilityLabel(NSLocalizedString("sourceSelection.musicLibraryButton", comment: ""))
+                .accessibilityHint(NSLocalizedString("sourceSelection.musicLibraryHint", comment: ""))
                 
                 // Microphone mode
                 Button(action: {
@@ -54,9 +56,9 @@ struct SourceSelectionView: View {
                         Image(systemName: "mic.fill")
                             .font(.system(size: AppConstants.IconSize.extraLarge))
                             .foregroundColor(.mindSyncInfo)
-                        Text("Mikrofon")
+                        Text(NSLocalizedString("sourceSelection.microphone", comment: ""))
                             .font(AppConstants.Typography.headline)
-                        Text("Musik aus externen Quellen analysieren")
+                        Text(NSLocalizedString("sourceSelection.microphoneDescription", comment: ""))
                             .font(AppConstants.Typography.caption)
                             .foregroundColor(.mindSyncSecondaryText)
                             .multilineTextAlignment(.center)
@@ -75,8 +77,9 @@ struct SourceSelectionView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(microphoneStatus == .denied || onMicrophoneSelected == nil)
-                .accessibilityLabel("Mikrofon-Modus auswählen")
-                .accessibilityHint("Analysiert Musik aus externen Quellen über das Mikrofon")
+                .accessibilityIdentifier("sourceSelection.microphoneButton")
+                .accessibilityLabel(NSLocalizedString("sourceSelection.microphoneButton", comment: ""))
+                .accessibilityHint(NSLocalizedString("sourceSelection.microphoneHint", comment: ""))
                 
                 if authorizationStatus == .denied {
                     Text(NSLocalizedString("sourceSelection.musicLibraryDenied", comment: "Message shown when music library access is denied"))
@@ -107,19 +110,24 @@ struct SourceSelectionView: View {
                     }
                 )
             }
-            .alert("Fehler", isPresented: $showingError) {
-                Button("OK", role: .cancel) { }
+            .alert(NSLocalizedString("common.error", comment: ""), isPresented: $showingError) {
+                Button(NSLocalizedString("common.ok", comment: ""), role: .cancel) { }
             } message: {
                 Text(errorMessage)
             }
             .onAppear {
-                authorizationStatus = mediaLibraryService.authorizationStatus
-                microphoneStatus = permissionsService.microphoneStatus
+                Task { @MainActor in
+                    mediaLibraryService = ServiceContainer.shared.mediaLibraryService
+                    permissionsService = ServiceContainer.shared.permissionsService
+                    authorizationStatus = mediaLibraryService?.authorizationStatus ?? .notDetermined
+                    microphoneStatus = permissionsService?.microphoneStatus ?? .undetermined
+                }
             }
         }
     }
     
     private func requestMediaLibraryAccess() {
+        guard let mediaLibraryService = mediaLibraryService else { return }
         Task {
             let status = await mediaLibraryService.requestAuthorization()
             await MainActor.run {
@@ -135,6 +143,7 @@ struct SourceSelectionView: View {
     }
     
     private func requestMicrophoneAccess() {
+        guard let permissionsService = permissionsService else { return }
         Task {
             let granted = await permissionsService.requestMicrophoneAccess()
             await MainActor.run {
@@ -151,6 +160,7 @@ struct SourceSelectionView: View {
     
     private func handleItemSelection(_ item: MPMediaItem) {
         // Check if song can be analyzed
+        guard let mediaLibraryService = mediaLibraryService else { return }
         if mediaLibraryService.canAnalyze(item: item) {
             selectedItem = item
             onSongSelected(item)

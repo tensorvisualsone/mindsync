@@ -39,13 +39,13 @@ struct SettingsView: View {
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
                 } header: {
-                    Text("Lichtquelle")
+                    Text(NSLocalizedString("settings.lightSource", comment: ""))
                 } footer: {
-                    Text("Wähle zwischen Taschenlampe (heller) oder Bildschirm (mit Farben).")
+                    Text(NSLocalizedString("settings.lightSourceDescription", comment: ""))
                 }
                 
                 Section {
-                    Picker("Modus", selection: Binding(
+                    Picker(NSLocalizedString("settings.mode", comment: ""), selection: Binding(
                         get: { preferences.preferredMode },
                         set: { newValue in
                             preferences.preferredMode = newValue
@@ -66,13 +66,13 @@ struct SettingsView: View {
                     }
                     .accessibilityIdentifier("settings.modePicker")
                 } header: {
-                    Text("Entrainment-Modus")
+                    Text(NSLocalizedString("settings.entrainmentMode", comment: ""))
                 } footer: {
-                    Text("Alpha: Entspannung, Theta: Trip, Gamma: Fokus")
+                    Text(NSLocalizedString("settings.entrainmentModeDescription", comment: ""))
                 }
                 
                 Section {
-                    Toggle("Sturzerkennung", isOn: Binding(
+                    Toggle(NSLocalizedString("settings.fallDetection", comment: ""), isOn: Binding(
                         get: { preferences.fallDetectionEnabled },
                         set: { newValue in
                             preferences.fallDetectionEnabled = newValue
@@ -81,7 +81,7 @@ struct SettingsView: View {
                     ))
                     .accessibilityIdentifier("settings.fallDetectionToggle")
                     
-                    Toggle("Thermischer Schutz", isOn: Binding(
+                    Toggle(NSLocalizedString("settings.thermalProtection", comment: ""), isOn: Binding(
                         get: { preferences.thermalProtectionEnabled },
                         set: { newValue in
                             preferences.thermalProtectionEnabled = newValue
@@ -90,7 +90,7 @@ struct SettingsView: View {
                     ))
                     .accessibilityIdentifier("settings.thermalProtectionToggle")
                     
-                    Toggle("Haptisches Feedback", isOn: Binding(
+                    Toggle(NSLocalizedString("settings.hapticFeedback", comment: ""), isOn: Binding(
                         get: { preferences.hapticFeedbackEnabled },
                         set: { newValue in
                             preferences.hapticFeedbackEnabled = newValue
@@ -99,12 +99,12 @@ struct SettingsView: View {
                     ))
                     .accessibilityIdentifier("settings.hapticFeedbackToggle")
                 } header: {
-                    Text("Sicherheit & Feedback")
+                    Text(NSLocalizedString("settings.safetyAndFeedback", comment: ""))
                 }
                 
                 Section {
                     HStack {
-                        Text("Standard-Intensität")
+                        Text(NSLocalizedString("settings.defaultIntensity", comment: ""))
                             .font(AppConstants.Typography.body)
                         Spacer()
                         Text("\(Int(preferences.defaultIntensity * 100))%")
@@ -125,16 +125,16 @@ struct SettingsView: View {
                     )
                     .accessibilityIdentifier("settings.intensitySlider")
                 } header: {
-                    Text("Intensität")
+                    Text(NSLocalizedString("settings.intensity", comment: ""))
                 } footer: {
-                    Text("Standard-Helligkeit für Stroboskoplicht (betrifft nur Taschenlampe).")
+                    Text(NSLocalizedString("settings.intensityDescription", comment: ""))
                 }
             }
-            .navigationTitle("Einstellungen")
+            .navigationTitle(NSLocalizedString("settings.title", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fertig") {
+                    Button(NSLocalizedString("settings.done", comment: "")) {
                         dismiss()
                     }
                     .accessibilityIdentifier("settings.doneButton")

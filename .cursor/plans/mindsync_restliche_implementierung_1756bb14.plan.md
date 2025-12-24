@@ -279,4 +279,3 @@ Dieser Plan deckt alle verbleibenden Aufgaben ab, die noch nicht implementiert s
 3. **Phase 3**: SessionViewModel Integration
 4. **Phase 4**: Tests (parallel möglich)
 5. **Phase 5**: Lokalisierung
-6. **Phase 6**: Polish & Dokumentation

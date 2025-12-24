@@ -8,7 +8,7 @@ struct LightSourcePicker: View {
     
     var body: some View {
         VStack(spacing: AppConstants.Spacing.sectionSpacing) {
-            Text("Lichtquelle")
+            Text(NSLocalizedString("lightSource.title", comment: ""))
                 .font(AppConstants.Typography.headline)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
@@ -23,7 +23,7 @@ struct LightSourcePicker: View {
                             .font(.system(size: AppConstants.IconSize.large))
                             .foregroundColor(selectedSource == .flashlight ? .mindSyncFlashlight : .mindSyncSecondaryText)
                         
-                        Text("Taschenlampe")
+                        Text(NSLocalizedString("lightSource.flashlight", comment: ""))
                             .font(AppConstants.Typography.subheadline.weight(.bold))
                             .foregroundColor(selectedSource == .flashlight ? .mindSyncPrimaryText : .mindSyncSecondaryText)
                         
@@ -50,7 +50,7 @@ struct LightSourcePicker: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("settings.lightSource.flashlight")
-                .accessibilityLabel("Taschenlampe auswählen")
+                .accessibilityLabel(NSLocalizedString("lightSource.selectFlashlight", comment: ""))
                 .accessibilityAddTraits(selectedSource == .flashlight ? .isSelected : [])
                 
                 // Screen option
@@ -62,7 +62,7 @@ struct LightSourcePicker: View {
                             .font(.system(size: AppConstants.IconSize.large))
                             .foregroundColor(selectedSource == .screen ? .mindSyncScreen : .mindSyncSecondaryText)
                         
-                        Text("Bildschirm")
+                        Text(NSLocalizedString("lightSource.screen", comment: ""))
                             .font(AppConstants.Typography.subheadline.weight(.bold))
                             .foregroundColor(selectedSource == .screen ? .mindSyncPrimaryText : .mindSyncSecondaryText)
                         
@@ -89,14 +89,14 @@ struct LightSourcePicker: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("settings.lightSource.screen")
-                .accessibilityLabel("Bildschirm auswählen")
+                .accessibilityLabel(NSLocalizedString("lightSource.selectScreen", comment: ""))
                 .accessibilityAddTraits(selectedSource == .screen ? .isSelected : [])
             }
             
             // Screen color picker (only visible when screen mode is selected)
             if selectedSource == .screen {
                 VStack(spacing: AppConstants.Spacing.elementSpacing) {
-                    Text("Bildschirmfarbe")
+                    Text(NSLocalizedString("lightSource.screenColor", comment: ""))
                         .font(AppConstants.Typography.subheadline)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
@@ -129,7 +129,7 @@ struct LightSourcePicker: View {
                                     )
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel("Farbe auswählen: \(color.displayName)")
+                            .accessibilityLabel(String(format: NSLocalizedString("lightSource.selectColor", comment: ""), color.displayName))
                             .accessibilityAddTraits(screenColor == color ? .isSelected : [])
                         }
                         
@@ -173,7 +173,7 @@ struct LightSourcePicker: View {
                             }
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Farbe auswählen: Eigene Farbe")
+                        .accessibilityLabel(NSLocalizedString("lightSource.selectCustomColor", comment: ""))
                         .accessibilityAddTraits(screenColor == .custom ? .isSelected : [])
                     }
                     
@@ -181,7 +181,7 @@ struct LightSourcePicker: View {
                     if screenColor == .custom {
                         VStack(spacing: AppConstants.Spacing.sm) {
                             ColorPicker(
-                                "Eigene Farbe wählen",
+                                NSLocalizedString("lightSource.customColor", comment: ""),
                                 selection: Binding(
                                     get: {
                                         if let rgb = customColorRGB {
@@ -206,7 +206,7 @@ struct LightSourcePicker: View {
                         .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                     
-                    Text("Wähle die Farbe für das Stroboskoplicht")
+                    Text(NSLocalizedString("lightSource.screenColorDescription", comment: ""))
                         .font(AppConstants.Typography.caption)
                         .foregroundColor(.mindSyncSecondaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
