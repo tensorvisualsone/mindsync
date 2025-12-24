@@ -93,3 +93,8 @@
 "error.microphone.unsupportedFormat" = "Audio format is not supported";
 "error.microphone.engineStartFailed" = "Audio engine could not be started";
 
+// MARK: - Frequency Validation
+"frequency.tooLow" = "Frequency too low (minimum: %d Hz)";
+"frequency.tooHigh" = "Frequency too high (maximum: %d Hz)";
+"frequency.pseWarning" = "Frequency is in PSE danger zone (%d-%d Hz). People with photosensitive epilepsy should be cautious.";
+

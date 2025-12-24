@@ -298,7 +298,10 @@ final class SessionViewModel: ObservableObject {
         guard state == .idle else { return }
         
         guard let microphoneAnalyzer = microphoneAnalyzer else {
-            errorMessage = "Mikrofon-Analyse ist nicht verfügbar"
+            errorMessage = NSLocalizedString(
+                "error.microphoneUnavailable",
+                comment: "Shown when microphone analysis is not available for starting a microphone-based session"
+            )
             state = .error
             return
         }
