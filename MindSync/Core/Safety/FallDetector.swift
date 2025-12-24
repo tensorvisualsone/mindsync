@@ -8,6 +8,7 @@ final class FallDetector {
     private let motionManager = CMMotionManager()
     private let fallAccelerationThreshold: Double = SafetyLimits.fallAccelerationThreshold // 2.0g
     private let freefallThreshold: Double = SafetyLimits.freefallThreshold // 0.3g
+    private let processingQueue = OperationQueue()
     
     // Publisher for fall events
     let fallEventPublisher = PassthroughSubject<Void, Never>()
@@ -22,6 +23,10 @@ final class FallDetector {
     init() {
         // Configure motion manager
         motionManager.accelerometerUpdateInterval = 1.0 / 20.0 // 20 Hz
+        
+        // Configure processing queue for background accelerometer processing
+        processingQueue.maxConcurrentOperationCount = 1
+        processingQueue.qualityOfService = .userInitiated
     }
     
     /// Starts fall detection monitoring
@@ -37,7 +42,7 @@ final class FallDetector {
         isMonitoring = true
         recentAccelerations.removeAll()
         
-        motionManager.startAccelerometerUpdates(to: .main) { [weak self] data, error in
+        motionManager.startAccelerometerUpdates(to: processingQueue) { [weak self] data, error in
             guard let self = self, self.isMonitoring else { return }
             
             if let error = error {
@@ -69,7 +74,10 @@ final class FallDetector {
             // Detect fall: sudden high acceleration (impact)
             if filteredAcceleration >= self.fallAccelerationThreshold {
                 self.logger.warning("Fall detected: \(filteredAcceleration, privacy: .public) g")
-                self.fallEventPublisher.send()
+                // Dispatch fall event to main queue since it will trigger UI updates
+                DispatchQueue.main.async {
+                    self.fallEventPublisher.send()
+                }
                 // Stop monitoring after fall detection to prevent multiple events
                 self.stopMonitoring()
             }

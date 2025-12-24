@@ -58,7 +58,7 @@ struct SourceSelectionView: View {
                             .multilineTextAlignment(.center)
                         
                         // Info about latency
-                        Text("Hinweis: Mikrofon-Modus ist weniger präzise als lokale Analyse (~100ms Latenz)")
+                        Text(NSLocalizedString("sourceSelection.microphoneNote", comment: ""))
                             .font(.caption2)
                             .foregroundStyle(.orange)
                             .multilineTextAlignment(.center)
@@ -89,7 +89,7 @@ struct SourceSelectionView: View {
                 }
             }
             .padding()
-            .navigationTitle("Audioquelle")
+            .navigationTitle(NSLocalizedString("sourceSelection.title", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingMediaPicker) {
                 MediaPickerView(
@@ -136,7 +136,7 @@ struct SourceSelectionView: View {
                 if granted {
                     onMicrophoneSelected?()
                 } else {
-                    errorMessage = "Mikrofon-Zugriff wurde verweigert. Bitte in den Einstellungen aktivieren."
+                    errorMessage = NSLocalizedString("error.microphonePermissionDenied", comment: "")
                     showingError = true
                 }
             }

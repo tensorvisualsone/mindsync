@@ -43,6 +43,7 @@ final class SessionViewModel: ObservableObject {
     private var microphoneBeatTimestamps: [TimeInterval] = []
     private var microphoneBPM: Double = 120.0
     private var microphoneStartTime: Date?
+    private var lastScriptBPM: Double?
     
     init() {
         self.audioAnalyzer = services.audioAnalyzer
@@ -392,8 +393,8 @@ final class SessionViewModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
             state = .error
-            microphoneAnalyzer.stop()
             fallDetector.stopMonitoring()
+            microphoneAnalyzer.stop()
             lightController?.stop()
         }
     }
@@ -406,34 +407,29 @@ final class SessionViewModel: ObservableObject {
         let cutoffTime = timestamp - 20.0
         microphoneBeatTimestamps = microphoneBeatTimestamps.filter { $0 >= cutoffTime }
         
-        // Generate new light event for this beat
-        guard currentScript != nil,
-              let startTime = microphoneStartTime else {
-            return
+        // Additionally, cap the history size to prevent unbounded growth
+        let maxBeatHistoryCount = 100
+        if microphoneBeatTimestamps.count > maxBeatHistoryCount {
+            microphoneBeatTimestamps = Array(microphoneBeatTimestamps.suffix(maxBeatHistoryCount))
         }
         
-        // Create a new light event for this beat
-        let mode = cachedPreferences.preferredMode
-        let lightSource = cachedPreferences.preferredLightSource
-        let screenColor = cachedPreferences.screenColor
-        
-        // Generate updated script with new beat
-        let updatedScript = generateMicrophoneLightScript(
-            mode: mode,
-            lightSource: lightSource,
-            screenColor: screenColor,
-            bpm: microphoneBPM
-        )
-        currentScript = updatedScript
-        
-        // Update light controller with new script
-        lightController?.cancelExecution()
-        lightController?.execute(script: updatedScript, syncedTo: startTime)
+        // Beats are used for BPM estimation; avoid regenerating the light script
+        // and restarting the light controller on every single beat to prevent
+        // visual flicker and unnecessary work. Script updates are handled in
+        // handleMicrophoneBPM(bpm:) when there is a significant BPM change.
     }
     
     /// Handles BPM updates from microphone analyzer
     private func handleMicrophoneBPM(bpm: Double) {
         microphoneBPM = bpm
+        
+        // Debounce script updates: only regenerate when BPM changes significantly
+        // to avoid frequent cancel/restart cycles and visible flicker.
+        // Threshold: 5 BPM difference from the last script BPM.
+        if let previousBPM = lastScriptBPM, abs(bpm - previousBPM) < 5.0 {
+            return
+        }
+        lastScriptBPM = bpm
         
         // Regenerate LightScript with new BPM
         guard currentScript != nil,
@@ -496,7 +492,7 @@ final class SessionViewModel: ObservableObject {
         stopSession()
         
         // Show error message
-        errorMessage = "Sturz erkannt. Session wurde aus Sicherheitsgründen beendet."
+        errorMessage = NSLocalizedString("session.fallDetected", comment: "")
         state = .error
         
         // Haptic feedback

@@ -108,11 +108,6 @@ final class AudioAnalyzer {
         isCancelled = true
         logger.info("Analysis cancellation requested")
     }
-    
-    /// Handles errors during analysis
-    private func handleAnalysisError(_ error: Error, trackTitle: String) {
-        logger.error("Analysis failed for track: \(trackTitle, privacy: .public), error: \(error.localizedDescription, privacy: .public)")
-    }
 }
 
 /// Audio analysis progress
