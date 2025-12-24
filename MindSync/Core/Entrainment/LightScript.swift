@@ -33,6 +33,7 @@ struct LightEvent: Codable {
         
         var id: String { rawValue }
         
+        /// German display name for the UI (project uses German for user-facing strings)
         var displayName: String {
             switch self {
             case .white: return "Weiß"

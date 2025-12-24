@@ -2,7 +2,12 @@ import Foundation
 import SwiftUI
 import Combine
 
-/// Weak reference wrapper for CADisplayLink target to avoid retain cycles
+/// Weak reference wrapper for CADisplayLink target to avoid retain cycles.
+///
+/// CADisplayLink retains its target strongly, which would create a retain cycle if we passed
+/// ScreenController directly (ScreenController -> displayLink -> ScreenController).
+/// This wrapper breaks the cycle by holding only a weak reference to ScreenController,
+/// allowing proper deallocation when the controller is no longer needed.
 private final class WeakDisplayLinkTarget {
     weak var target: ScreenController?
     
@@ -48,9 +53,11 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
     }
 
     func setIntensity(_ intensity: Float) {
-        // For screen mode, intensity affects opacity
-        // The color opacity will be adjusted during event execution
-        // This is handled in updateScreen() based on event.intensity
+        // Note: Intensity control is not supported for screen mode as an independent operation.
+        // For screen strobe, intensity is embedded in each LightEvent and applied during
+        // script execution in updateScreen() via opacity calculations.
+        // If real-time intensity adjustment is needed, this would require modifying
+        // the active script's event intensities or applying a global intensity multiplier.
     }
 
     func setColor(_ color: LightEvent.LightColor) {
@@ -73,6 +80,13 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
         currentColor = .black
     }
 
+    /// Updates the screen color based on the current event in the script.
+    /// `fileprivate` allows `WeakDisplayLinkTarget` in this file to call via selector without widening access.
+    ///
+    /// Thread Safety: This method is called from the CADisplayLink callback on the main thread
+    /// (displayLink is added to .main run loop). All property accesses are safe because:
+    /// - @Published properties are accessed from main thread
+    /// - BaseLightController properties are only modified from main thread via UI interactions
     fileprivate func updateScreen() {
         let result = findCurrentEvent()
         
