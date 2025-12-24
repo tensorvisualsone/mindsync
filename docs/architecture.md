@@ -81,8 +81,15 @@ Echtzeit-Mikrofon-Analyse:
 Generiert `LightScript` aus `AudioTrack` und `EntrainmentMode`:
 - Nutzt `FrequencyMapper` für BPM → Hz Mapping
 - Erstellt `LightEvent` für jeden Beat
-- Wählt Waveform basierend auf Modus (Alpha/Theta: Sine, Gamma: Square)
-- Passt Intensität an Modus an
+- Wählt Waveform basierend auf Modus (Alpha/Theta/Cinematic: Sine, Gamma: Square)
+- Passt Intensität an Modus an (Alpha: 0.4, Theta: 0.3, Gamma: 0.7, Cinematic: 0.5 Basis)
+
+**Cinematic Mode**:
+- `calculateCinematicIntensity()`: Statische Methode für dynamische Intensitäts-Berechnung
+- **Frequency Drift**: Langsame Oszillation zwischen 5.5-7.5 Hz (sinusoidal, 0.2 Hz Rate)
+- **Audio Reactivity**: Base-Intensität 0.3-1.0 basierend auf Audio-Energie
+- **Lens Flare**: Gamma-Korrektur für helle Bereiche (>0.8 → pow(0.5))
+- Runtime-Modulation: Intensität wird zur Laufzeit dynamisch angepasst (nicht in LightScript gespeichert)
 
 #### FrequencyMapper
 **Datei**: `MindSync/Core/Entrainment/FrequencyMapper.swift`
@@ -119,6 +126,7 @@ Basisklasse für Light-Controller:
 - Script-Execution-State (start, pause, resume)
 - Event-Finding-Logik basierend auf elapsed time
 - Pause-Duration-Tracking
+- **AudioEnergyTracker-Referenz**: Optionale weak-Referenz für Cinematic Mode (gesetzt via `SessionViewModel`)
 
 #### FlashlightController
 **Datei**: `MindSync/Core/Light/FlashlightController.swift`
@@ -128,6 +136,8 @@ Taschenlampen-Steuerung:
 - Lock-For-Configuration für Session-Dauer
 - Thermisches Management via `ThermalManager`
 - Max. ~30-40 Hz zuverlässig
+- **Gamma-Korrektur**: `pow(intensity, 2.2)` für natürliche Wahrnehmung (logarithmisches Auge)
+- **Cinematic Mode**: Dynamische Intensitäts-Modulation in `updateLight()` via `EntrainmentEngine.calculateCinematicIntensity()`
 
 #### ScreenController
 **Datei**: `MindSync/Core/Light/ScreenController.swift`
@@ -137,6 +147,7 @@ Bildschirm-Stroboskop:
 - `CADisplayLink` für 60/120 Hz Timing
 - Waveform-Rendering via `WaveformGenerator`
 - Unterstützt Farben (White, Red, Blue, Green)
+- **Cinematic Mode**: Dynamische Opacity-Modulation in `updateScreen()` via `EntrainmentEngine.calculateCinematicIntensity()`
 
 #### LightController (Protocol)
 **Datei**: `MindSync/Core/Light/LightController.swift`
@@ -189,9 +200,20 @@ Zentraler Service-Container (Singleton):
 **Datei**: `MindSync/Services/AudioPlaybackService.swift`
 
 Audio-Wiedergabe:
-- `AVAudioPlayer` für lokale Dateien
+- `AVAudioEngine` + `AVAudioPlayerNode` für lokale Dateien (migriert von AVAudioPlayer)
 - Callback für Playback-Completion
 - Pause/Resume/Stop-Funktionalität
+- `getMainMixerNode()` für Audio-Taps (z.B. AudioEnergyTracker)
+
+#### AudioEnergyTracker
+**Datei**: `MindSync/Services/AudioEnergyTracker.swift`
+
+Echtzeit-Audio-Energie-Tracking (für Cinematic Mode):
+- Installiert Tap auf `mainMixerNode` der AVAudioEngine
+- RMS-Berechnung (Root Mean Square) pro Buffer
+- Moving Average für Smoothing (95% old, 5% new)
+- Publisher für Echtzeit-Energie-Werte (0.0 - 1.0)
+- Thread-Safe: Audio-Callbacks → Main-Thread-Publikation
 
 #### MediaLibraryService
 **Datei**: `MindSync/Services/MediaLibraryService.swift`
@@ -227,6 +249,10 @@ Session-Orchestrierung:
 - Steuert LightController
 - Beobachtet ThermalManager und FallDetector
 - Unterstützt lokale Dateien und Mikrofon-Modus
+- **Cinematic Mode Integration**:
+  - Startet `AudioEnergyTracker` auf MixerNode bei `.cinematic` Mode
+  - Setzt `audioEnergyTracker` auf `LightController` für dynamische Modulation
+  - Stoppt Tracking bei Session-Ende
 
 #### SessionView
 **Datei**: `MindSync/Features/Session/SessionView.swift`
@@ -248,6 +274,7 @@ Wobei N (Multiplikator) so gewählt wird, dass f_target im Zielband liegt:
 - Alpha (Entspannung): 8-12 Hz
 - Theta (Trip):        4-8 Hz
 - Gamma (Fokus):       30-40 Hz
+- Cinematic (Flow State): 5.5-7.5 Hz (Theta/Low Alpha)
 ```
 
 **Beispiel**: Song mit 120 BPM
@@ -255,16 +282,27 @@ Wobei N (Multiplikator) so gewählt wird, dass f_target im Zielband liegt:
 - Alpha-Modus: N=5 → 10 Hz ✓
 - Theta-Modus: N=3 → 6 Hz ✓
 - Gamma-Modus: N=18 → 36 Hz ✓
+- Cinematic-Modus: N=3 → 6 Hz (dynamisch moduliert 5.5-7.5 Hz) ✓
 
 ### LightScript-Generierung
 
 1. **Beat-Timestamps** aus Audio-Analyse
 2. **Target-Frequenz** via FrequencyMapper
 3. **LightEvent** für jeden Beat:
-   - **Waveform**: Modus-abhängig (Alpha/Theta: Sine, Gamma: Square)
-   - **Intensity**: Modus-abhängig (Alpha: 0.4, Theta: 0.3, Gamma: 0.7)
+   - **Waveform**: Modus-abhängig (Alpha/Theta/Cinematic: Sine, Gamma: Square)
+   - **Intensity**: Modus-abhängig (Alpha: 0.4, Theta: 0.3, Gamma: 0.7, Cinematic: 0.5 Basis)
    - **Duration**: Period / 2 (Square) oder Period (Sine)
    - **Color**: Nur für Screen-Modus
+
+**Cinematic Mode (Runtime-Modulation)**:
+- Basis-Intensität im LightScript: 0.5 (wird zur Laufzeit moduliert)
+- Dynamische Intensität in `LightController.updateLight()`:
+  - Audio-Energie vom `AudioEnergyTracker` (0.0-1.0)
+  - `EntrainmentEngine.calculateCinematicIntensity()` berechnet:
+    - Frequency Drift: `6.5 + sin(time * 0.2) * 1.0` Hz
+    - Audio Reactivity: `0.3 + (energy * 0.7)` Basis-Intensität
+    - Lens Flare: Gamma-Korrektur für >0.8
+  - Finale Intensität = Event-Intensität × Cinematic-Intensität
 
 ## Audio-Analyse Pipeline
 
@@ -290,6 +328,8 @@ Wobei N (Multiplikator) so gewählt wird, dass f_target im Zielband liegt:
 - **Timing**: `CADisplayLink` (60/120 Hz)
 - **Limits**: Max 30-40 Hz zuverlässig
 - **Thermal**: Automatische Intensitäts-Reduktion
+- **Gamma-Korrektur**: `pow(intensity, 2.2)` für natürliche Wahrnehmung
+- **Cinematic Mode**: Dynamische Intensitäts-Modulation zur Laufzeit via `AudioEnergyTracker`
 
 ### Screen (Bildschirm)
 
@@ -297,6 +337,7 @@ Wobei N (Multiplikator) so gewählt wird, dass f_target im Zielband liegt:
 - **Timing**: 60/120 Hz (ProMotion)
 - **Limits**: Bis 60 Hz (theoretisch 120 Hz)
 - **Features**: Farben, Waveform-Rendering
+- **Cinematic Mode**: Dynamische Opacity-Modulation zur Laufzeit via `AudioEnergyTracker`
 
 ## Sicherheits-Features
 
