@@ -3,10 +3,10 @@ import MediaPlayer
 
 /// View for audio source selection
 struct SourceSelectionView: View {
-    @State private var mediaLibraryService: MediaLibraryService
-    @State private var permissionsService: PermissionsService
-    @State private var authorizationStatus: MPMediaLibraryAuthorizationStatus
-    @State private var microphoneStatus: MicrophonePermissionStatus
+    @State private var mediaLibraryService: MediaLibraryService?
+    @State private var permissionsService: PermissionsService?
+    @State private var authorizationStatus: MPMediaLibraryAuthorizationStatus = .notDetermined
+    @State private var microphoneStatus: MicrophonePermissionStatus = .undetermined
     @State private var showingMediaPicker = false
     @State private var selectedItem: MPMediaItem?
     @State private var showingError = false
@@ -14,19 +14,6 @@ struct SourceSelectionView: View {
     
     let onSongSelected: (MPMediaItem) -> Void
     let onMicrophoneSelected: (() -> Void)?
-    
-    init(
-        onSongSelected: @escaping (MPMediaItem) -> Void,
-        onMicrophoneSelected: (() -> Void)? = nil
-    ) {
-        let services = ServiceContainer.shared
-        self._mediaLibraryService = State(initialValue: services.mediaLibraryService)
-        self._permissionsService = State(initialValue: services.permissionsService)
-        self._authorizationStatus = State(initialValue: services.mediaLibraryService.authorizationStatus)
-        self._microphoneStatus = State(initialValue: services.permissionsService.microphoneStatus)
-        self.onSongSelected = onSongSelected
-        self.onMicrophoneSelected = onMicrophoneSelected
-    }
     
     var body: some View {
         NavigationStack {
@@ -128,10 +115,19 @@ struct SourceSelectionView: View {
             } message: {
                 Text(errorMessage)
             }
+            .task {
+                // Initialize services on Main Actor to avoid crashes
+                let services = ServiceContainer.shared
+                mediaLibraryService = services.mediaLibraryService
+                permissionsService = services.permissionsService
+                authorizationStatus = services.mediaLibraryService.authorizationStatus
+                microphoneStatus = services.permissionsService.microphoneStatus
+            }
         }
     }
     
     private func requestMediaLibraryAccess() {
+        guard let mediaLibraryService = mediaLibraryService else { return }
         Task {
             let status = await mediaLibraryService.requestAuthorization()
             await MainActor.run {
@@ -147,6 +143,7 @@ struct SourceSelectionView: View {
     }
     
     private func requestMicrophoneAccess() {
+        guard let permissionsService = permissionsService else { return }
         Task {
             let granted = await permissionsService.requestMicrophoneAccess()
             await MainActor.run {
@@ -163,6 +160,7 @@ struct SourceSelectionView: View {
     
     private func handleItemSelection(_ item: MPMediaItem) {
         // Check if song can be analyzed
+        guard let mediaLibraryService = mediaLibraryService else { return }
         Task {
             let canAnalyze = await mediaLibraryService.canAnalyze(item: item)
             await MainActor.run {
