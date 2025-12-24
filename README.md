@@ -41,6 +41,7 @@ MindSync ist ein **Wellness-Produkt**, kein medizinisches Gerät. Es macht keine
 | Sprache | Swift 5.9+ (async/await, @Observable) |
 | UI | SwiftUI |
 | Audio-Analyse | AVFoundation + Accelerate (vDSP/FFT) |
+| Audio-Playback | AVAudioEngine + AVAudioPlayerNode |
 | Licht-Steuerung | AVCaptureDevice (Torch) + CADisplayLink |
 | Minimum iOS | 17.0 |
 | Architektur | Feature-based, Protocol-oriented |
@@ -117,21 +118,44 @@ Detaillierte Setup-Anweisungen findest du in [`specs/001-audio-strobe-sync/quick
 
 ## 🎯 Roadmap
 
-### Phase 1: MVP (aktuell)
-- [ ] Lokale Musik + Taschenlampen-Stroboskop
-- [ ] Beat-Detection (FFT-basiert)
-- [ ] Epilepsie-Onboarding
-- [ ] Thermisches Management
+### Phase 1: MVP ✅ (abgeschlossen)
+- [x] Lokale Musik + Taschenlampen-Stroboskop
+- [x] Beat-Detection (FFT-basiert)
+- [x] Epilepsie-Onboarding
+- [x] Thermisches Management
+- [x] **AudioPlaybackService Migration**: AVAudioPlayer → AVAudioEngine (für zukünftige Audio-Analyse)
 
-### Phase 2: Neural Update
-- [ ] Entrainment-Modi (Alpha/Theta/Gamma)
-- [ ] Bildschirm-Modus mit Farben
-- [ ] Mikrofon-Modus für Streaming
+### Phase 2: Neural Update ✅ (abgeschlossen)
+- [x] Entrainment-Modi (Alpha/Theta/Gamma)
+- [x] Bildschirm-Modus mit Farben
+- [x] Mikrofon-Modus für Streaming
+- [x] **Cinematic Mode**: Dynamische Intensitäts-Modulation basierend auf Audio-Energie
 
-### Phase 3: Generative Zukunft
+### Phase 3: Generative Zukunft (geplant)
 - [ ] Timbre-zu-Luminanz Mapping
 - [ ] HomeKit Integration (Philips Hue, Nanoleaf)
 - [ ] Community LightScript Sharing
+
+---
+
+## 🏗️ Architektur-Highlights
+
+### Audio-Playback (Phase 1 Migration)
+
+MindSync nutzt **AVAudioEngine** für Audio-Playback, was folgende Vorteile bietet:
+
+- **Audio-Analyse in Echtzeit**: Zugriff auf den Main Mixer Node für Audio-Energie-Tracking
+- **Erweiterbarkeit**: Einfache Integration von Audio-Effekten (Reverb, EQ, etc.)
+- **Präzise Synchronisation**: Frame-genaue Timing-Kontrolle für Licht-Synchronisation
+- **Multi-Streaming**: Unterstützung für gleichzeitiges Abspielen mehrerer Audio-Quellen (z.B. Affirmationen)
+
+Die Migration von `AVAudioPlayer` zu `AVAudioEngine` wurde in Phase 1 abgeschlossen und stellt die Basis für erweiterte Features wie den Cinematic Mode dar.
+
+### Service-Architektur
+
+- **ServiceContainer**: Zentrale Dependency Injection für alle Services
+- **Protocol-oriented**: Alle Services implementieren klare Protokolle für Testbarkeit
+- **Thread-Safety**: Audio-Services nutzen Background-Queues, UI-Services sind `@MainActor`
 
 ---
 
@@ -161,5 +185,5 @@ Proprietary - Alle Rechte vorbehalten.
 
 ---
 
-**Version**: 0.1.0-dev | **Status**: In Entwicklung
+**Version**: 0.2.0-dev | **Status**: Phase 1 & 2 abgeschlossen, Phase 3 in Planung
 

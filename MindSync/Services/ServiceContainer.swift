@@ -21,6 +21,10 @@ final class ServiceContainer: ObservableObject {
     let thermalManager: ThermalManager
     let fallDetector: FallDetector
     
+    // Audio Energy Tracking (for Cinematic Mode)
+    // TODO: Uncomment when AudioEnergyTracker is implemented in Phase 2
+    // let audioEnergyTracker: AudioEnergyTracker
+    
     // Affirmationen
     let affirmationService: AffirmationOverlayService
 
@@ -44,6 +48,10 @@ final class ServiceContainer: ObservableObject {
         self.screenController = ScreenController()
         self.entrainmentEngine = EntrainmentEngine()
         self.fallDetector = FallDetector()
+        
+        // Audio Energy Tracking (for Cinematic Mode)
+        // TODO: Uncomment when AudioEnergyTracker is implemented in Phase 2
+        // self.audioEnergyTracker = AudioEnergyTracker()
         
         // Affirmationen
         self.affirmationService = AffirmationOverlayService()

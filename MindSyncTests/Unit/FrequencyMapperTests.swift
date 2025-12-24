@@ -156,5 +156,44 @@ final class FrequencyMapperTests: XCTestCase {
         XCTAssertEqual(range.lowerBound, 30.0)
         XCTAssertLessThanOrEqual(range.upperBound, 30.0)
     }
+    
+    func testCalculateMultiplier_CinematicMode() {
+        let bpm = 120.0
+        let targetRange = EntrainmentMode.cinematic.frequencyRange // 5.5-7.5 Hz
+        let maxFrequency = LightSource.screen.maxFrequency
+        
+        let multiplier = FrequencyMapper.calculateMultiplier(
+            bpm: bpm,
+            targetRange: targetRange,
+            maxFrequency: maxFrequency
+        )
+        
+        // Base frequency: 120/60 = 2 Hz
+        // Multiplier 3: 2 * 3 = 6 Hz (in range 5.5-7.5)
+        XCTAssertEqual(multiplier, 3)
+    }
+    
+    func testMapBPMToFrequency_CinematicMode() {
+        let bpm = 120.0
+        let frequency = FrequencyMapper.mapBPMToFrequency(
+            bpm: bpm,
+            mode: .cinematic,
+            lightSource: .screen
+        )
+        
+        // Should be in cinematic range (5.5-7.5 Hz)
+        XCTAssertGreaterThanOrEqual(frequency, 5.5)
+        XCTAssertLessThanOrEqual(frequency, 7.5)
+    }
+    
+    func testRecommendedFrequencyRange_CinematicMode() {
+        let range = FrequencyMapper.recommendedFrequencyRange(
+            mode: .cinematic,
+            lightSource: .screen
+        )
+        
+        XCTAssertEqual(range.lowerBound, 5.5)
+        XCTAssertEqual(range.upperBound, 7.5)
+    }
 }
 

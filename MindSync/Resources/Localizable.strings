@@ -68,7 +68,7 @@
 "settings.lightSource" = "Lichtquelle";
 "settings.lightSourceDescription" = "Wähle zwischen Taschenlampe (heller) oder Bildschirm (mit Farben).";
 "settings.entrainmentMode" = "Entrainment-Modus";
-"settings.entrainmentModeDescription" = "Alpha: Entspannung, Theta: Trip, Gamma: Fokus";
+"settings.entrainmentModeDescription" = "Alpha: Entspannung, Theta: Trip, Gamma: Fokus, Cinematic: Flow State";
 "settings.mode" = "Modus";
 "settings.safetyAndFeedback" = "Sicherheit & Feedback";
 "settings.fallDetection" = "Sturzerkennung";
@@ -81,6 +81,16 @@
 // MARK: - Mode Selection
 "modeSelection.title" = "Entrainment-Modus wählen";
 "modeSelection.description" = "Wähle einen Modus basierend auf deinem gewünschten Bewusstseinszustand.";
+
+// MARK: - Entrainment Modes
+"mode.alpha.displayName" = "Entspannung";
+"mode.alpha.description" = "Entspannte Wachheit, leichte Meditation, Stressabbau";
+"mode.theta.displayName" = "Trip";
+"mode.theta.description" = "Tiefe Meditation, Kreativität, traumähnliche Zustände";
+"mode.gamma.displayName" = "Fokus";
+"mode.gamma.description" = "Hohe Konzentration, kognitive Klarheit, Einsicht";
+"mode.cinematic.displayName" = "Cinematic";
+"mode.cinematic.description" = "Flow State Sync - Dynamisch & Reaktiv";
 
 // MARK: - Safety Banner
 "safety.thermalReduced" = "Intensität reduziert wegen Gerätewärme";
