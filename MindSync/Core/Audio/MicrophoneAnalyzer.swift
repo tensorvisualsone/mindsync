@@ -4,16 +4,7 @@ import Combine
 import Accelerate
 import os.log
 
-@available(iOS 17.0, *)
-extension AVAudioApplication {
-    static func requestRecordPermission() async -> Bool {
-        await withCheckedContinuation { continuation in
-            requestRecordPermission { granted in
-                continuation.resume(returning: granted)
-            }
-        }
-    }
-}
+
 
 /// Service for real-time microphone audio analysis and beat detection
 final class MicrophoneAnalyzer {
@@ -83,28 +74,48 @@ final class MicrophoneAnalyzer {
         
         hasPermission = true
         
-        // Configure audio session
-        try audioSession.setCategory(.record, mode: .measurement, options: [])
-        try audioSession.setActive(true)
-        
-        // Get input node
+        // Configure audio session and start engine with proper error cleanup
+        var tapInstalled = false
         let inputNode = audioEngine.inputNode
-        let inputFormat = inputNode.inputFormat(forBus: 0)
         
-        // Validate sample rate (should be 44.1kHz or 48kHz)
-        guard inputFormat.sampleRate >= 44100.0 else {
-            logger.error("Unsupported sample rate: \(inputFormat.sampleRate)")
-            throw MicrophoneError.unsupportedFormat
+        do {
+            // Configure audio session
+            try audioSession.setCategory(.record, mode: .measurement, options: [])
+            try audioSession.setActive(true)
+            
+            let inputFormat = inputNode.inputFormat(forBus: 0)
+            
+            // Validate sample rate (should be 44.1kHz or 48kHz)
+            guard inputFormat.sampleRate >= 44100.0 else {
+                logger.error("Unsupported sample rate: \(inputFormat.sampleRate)")
+                throw MicrophoneError.unsupportedFormat
+            }
+            
+            // Install tap on input node
+            let bufferSize: AVAudioFrameCount = AVAudioFrameCount(hopSize)
+            inputNode.installTap(onBus: 0, bufferSize: bufferSize, format: inputFormat) { [weak self] buffer, time in
+                self?.processAudioBuffer(buffer, timestamp: time)
+            }
+            tapInstalled = true
+            
+            // Start audio engine
+            try audioEngine.start()
+        } catch {
+            // Clean up resources on failure
+            if tapInstalled {
+                inputNode.removeTap(onBus: 0)
+            }
+            
+            if audioEngine.isRunning {
+                audioEngine.stop()
+            }
+            
+            // Best-effort deactivation of audio session on failure
+            try? audioSession.setActive(false)
+            
+            logger.error("Failed to start microphone analysis: \(String(describing: error), privacy: .public)")
+            throw error
         }
-        
-        // Install tap on input node
-        let bufferSize: AVAudioFrameCount = AVAudioFrameCount(hopSize)
-        inputNode.installTap(onBus: 0, bufferSize: bufferSize, format: inputFormat) { [weak self] buffer, time in
-            self?.processAudioBuffer(buffer, timestamp: time)
-        }
-        
-        // Start audio engine
-        try audioEngine.start()
         
         isRunning = true
         startTime = Date()
@@ -125,7 +136,11 @@ final class MicrophoneAnalyzer {
         audioEngine.inputNode.removeTap(onBus: 0)
         
         // Deactivate audio session
-        try? AVAudioSession.sharedInstance().setActive(false)
+        do {
+            try AVAudioSession.sharedInstance().setActive(false)
+        } catch {
+            logger.error("Failed to deactivate AVAudioSession in MicrophoneAnalyzer.stop(): \(error.localizedDescription, privacy: .public)")
+        }
         
         isRunning = false
         startTime = nil
@@ -141,19 +156,33 @@ final class MicrophoneAnalyzer {
         }
         
         let frameCount = Int(buffer.frameLength)
-        let channel = channelData.pointee
+        let channelCount = Int(buffer.format.channelCount)
         
-        // Convert to mono if stereo
+        // Convert to mono by averaging all channels (non-interleaved layout)
         var monoBuffer: [Float]
-        if buffer.format.channelCount > 1 {
+        if channelCount == 1 {
+            // Single-channel audio: just copy the only channel
+            let channel = channelData[0]
             monoBuffer = Array(UnsafeBufferPointer(start: channel, count: frameCount))
-            // Average channels for mono (simplified - assumes interleaved)
-            // For simplicity, we use the first channel
         } else {
-            monoBuffer = Array(UnsafeBufferPointer(start: channel, count: frameCount))
+            // Multi-channel audio: average all channels sample-wise into mono
+            monoBuffer = [Float](repeating: 0, count: frameCount)
+            for channelIndex in 0..<channelCount {
+                let channel = channelData[channelIndex]
+                for frame in 0..<frameCount {
+                    monoBuffer[frame] += channel[frame]
+                }
+            }
+            let scale = 1.0 / Float(channelCount)
+            vDSP_vsmul(monoBuffer, 1, [scale], &monoBuffer, 1, vDSP_Length(frameCount))
         }
         
         // Process frames in chunks of fftSize
+        // Note: Partial frames at the end are intentionally skipped because FFT
+        // requires complete frames of size fftSize for accurate frequency analysis.
+        // Incomplete frames would produce invalid spectral data. The next buffer
+        // will contain new audio data including samples that would have been in
+        // the incomplete frame.
         var bufferIndex = 0
         while bufferIndex + fftSize <= monoBuffer.count {
             let frame = Array(monoBuffer[bufferIndex..<bufferIndex + fftSize])
@@ -171,6 +200,13 @@ final class MicrophoneAnalyzer {
             }
             
             spectralFluxValues.append(spectralFlux)
+            
+            // Limit spectral flux history to prevent unbounded memory growth
+            // Keep last 1000 values (approximately 23 seconds at 512 hop size @ 44.1kHz)
+            if spectralFluxValues.count > 1000 {
+                spectralFluxValues.removeFirst()
+            }
+            
             previousMagnitude = magnitude
             
             // Moving Average für dynamischen Threshold (wie von Gemini empfohlen)
@@ -188,6 +224,16 @@ final class MicrophoneAnalyzer {
                 // Prevent duplicate beats (minimum interval: ~100ms)
                 if currentTime - lastBeatTime > 0.1 {
                     beatTimestamps.append(currentTime)
+                    
+                    // Limit beat history to prevent unbounded memory growth.
+                    // MicrophoneAnalyzer keeps 1000 timestamps for internal BPM estimation
+                    // (covers ≈8-16 minutes at typical BPM rates), while SessionViewModel
+                    // maintains a smaller rolling window (100 beats) optimized for
+                    // light script generation and display.
+                    if beatTimestamps.count > 1000 {
+                        beatTimestamps.removeFirst()
+                    }
+                    
                     lastBeatTime = currentTime
                     
                     // Publish beat event
@@ -266,11 +312,11 @@ enum MicrophoneError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .permissionDenied:
-            return "Mikrofon-Berechtigung wurde verweigert"
+            return NSLocalizedString("error.microphone.permissionDenied", comment: "Error shown when the user has denied microphone permission")
         case .unsupportedFormat:
-            return "Audioformat wird nicht unterstützt"
+            return NSLocalizedString("error.microphone.unsupportedFormat", comment: "Error shown when the microphone audio format is not supported")
         case .engineStartFailed:
-            return "Audio-Engine konnte nicht gestartet werden"
+            return NSLocalizedString("error.microphone.engineStartFailed", comment: "Error shown when the AVAudioEngine for microphone analysis fails to start")
         }
     }
 }

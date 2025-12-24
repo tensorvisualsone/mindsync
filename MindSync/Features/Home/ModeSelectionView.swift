@@ -3,7 +3,6 @@ import SwiftUI
 /// View for selecting EntrainmentMode (Alpha, Theta, Gamma)
 struct ModeSelectionView: View {
     @Binding var selectedMode: EntrainmentMode
-    @State private var preferences = UserPreferences.load()
     let onModeSelected: ((EntrainmentMode) -> Void)?
     
     init(
@@ -18,11 +17,11 @@ struct ModeSelectionView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    Text("Entrainment-Modus wählen")
+                    Text(NSLocalizedString("modeSelection.title", comment: ""))
                         .font(.title2.bold())
                         .padding(.top)
                     
-                    Text("Wähle einen Modus basierend auf deinem gewünschten Bewusstseinszustand.")
+                    Text(NSLocalizedString("modeSelection.description", comment: ""))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -41,13 +40,16 @@ struct ModeSelectionView: View {
                     .padding()
                 }
             }
-            .navigationTitle("Modus")
+            .navigationTitle(NSLocalizedString("settings.mode", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
         }
     }
     
     private func selectMode(_ mode: EntrainmentMode) {
         selectedMode = mode
+        
+        // Load preferences fresh and save the new mode
+        var preferences = UserPreferences.load()
         preferences.preferredMode = mode
         preferences.save()
         
