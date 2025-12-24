@@ -51,6 +51,8 @@
 "session.dismiss" = "Dismiss";
 "session.back" = "Back";
 "session.fallDetected" = "Fall detected. Session has been ended for safety reasons.";
+"session.liveAudio" = "Live Audio";
+"session.microphone" = "Microphone";
 
 // MARK: - Analysis Progress
 "analysis.loading" = "Loading audio...";

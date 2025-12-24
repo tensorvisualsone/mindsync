@@ -497,8 +497,8 @@ final class SessionViewModel: ObservableObject {
         
         // Create a dummy track with current BPM and beat timestamps
         let dummyTrack = AudioTrack(
-            title: "Live Audio",
-            artist: "Mikrofon",
+            title: NSLocalizedString("session.liveAudio", comment: ""),
+            artist: NSLocalizedString("session.microphone", comment: ""),
             duration: estimatedDuration,
             bpm: bpm,
             beatTimestamps: microphoneBeatTimestamps

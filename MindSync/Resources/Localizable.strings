@@ -51,6 +51,8 @@
 "session.dismiss" = "Schließen";
 "session.back" = "Zurück";
 "session.fallDetected" = "Sturz erkannt. Session wurde aus Sicherheitsgründen beendet.";
+"session.liveAudio" = "Live Audio";
+"session.microphone" = "Mikrofon";
 
 // MARK: - Analysis Progress
 "analysis.loading" = "Audio wird geladen...";
