@@ -127,9 +127,16 @@ final class BeatDetector {
         
         realp.withUnsafeMutableBufferPointer { realpBuffer in
             imagp.withUnsafeMutableBufferPointer { imagpBuffer in
+                guard let realpAddress = realpBuffer.baseAddress,
+                      let imagpAddress = imagpBuffer.baseAddress else {
+                    // Return empty magnitude array if buffer addresses are nil
+                    // This should never happen with properly allocated arrays, but prevents crashes
+                    return
+                }
+                
                 var splitComplex = DSPSplitComplex(
-                    realp: realpBuffer.baseAddress!,
-                    imagp: imagpBuffer.baseAddress!
+                    realp: realpAddress,
+                    imagp: imagpAddress
                 )
                 
                 windowed.withUnsafeMutableBufferPointer { buffer in
