@@ -4,7 +4,22 @@ import Combine
 /// Zentraler Service-Container für MindSync
 @MainActor
 final class ServiceContainer: ObservableObject {
-    static let shared = ServiceContainer()
+    nonisolated(unsafe) static var shared: ServiceContainer {
+        // Access must be from Main Actor context
+        // This is safe because ServiceContainer is @MainActor
+        // and all access should be from Main Actor context
+        if Thread.isMainThread {
+            return _sharedInstance
+        } else {
+            // This should not happen, but if it does, we need to dispatch to main
+            return DispatchQueue.main.sync {
+                _sharedInstance
+            }
+        }
+    }
+    
+    @MainActor
+    private static let _sharedInstance = ServiceContainer()
 
     // Core Services
     let audioAnalyzer: AudioAnalyzer
