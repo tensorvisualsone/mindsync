@@ -112,24 +112,25 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
             let baseColor = lightColor.swiftUIColor
             
             // Check if cinematic mode - apply dynamic intensity modulation
-            var baseIntensity = event.intensity
-            // TODO: Uncomment when Cinematic Mode is implemented in Phase 2
-            // if script.mode == .cinematic {
-            //     // Get audio energy and calculate dynamic intensity
-            //     let audioEnergy = audioEnergyTracker?.currentEnergy ?? 0.0
-            //     let baseFreq = script.targetFrequency
-            //     let elapsed = result.elapsed
-            //     
-            //     // Calculate cinematic intensity
-            //     let cinematicIntensity = EntrainmentEngine.calculateCinematicIntensity(
-            //         baseFrequency: baseFreq,
-            //         currentTime: elapsed,
-            //         audioEnergy: audioEnergy
-            //     )
-            //     
-            //     // Multiply base event intensity with cinematic modulation
-            //     baseIntensity = event.intensity * cinematicIntensity
-            // }
+            let baseIntensity: Float
+            if script.mode == .cinematic {
+                // Get audio energy and calculate dynamic intensity
+                let audioEnergy = audioEnergyTracker?.currentEnergy ?? 0.0
+                let baseFreq = script.targetFrequency
+                let elapsed = result.elapsed
+                
+                // Calculate cinematic intensity
+                let cinematicIntensity = EntrainmentEngine.calculateCinematicIntensity(
+                    baseFrequency: baseFreq,
+                    currentTime: elapsed,
+                    audioEnergy: audioEnergy
+                )
+                
+                // Multiply base event intensity with cinematic modulation
+                baseIntensity = event.intensity * cinematicIntensity
+            } else {
+                baseIntensity = event.intensity
+            }
             
             // Create modified event with cinematic intensity for opacity calculation
             let modifiedEvent = LightEvent(
