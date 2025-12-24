@@ -166,11 +166,6 @@ final class SessionViewModel: ObservableObject {
             let lightSource = cachedPreferences.preferredLightSource
             let screenColor = cachedPreferences.screenColor
             
-            // Set color on screen controller if using screen mode
-            if lightSource == .screen, let screenController = lightController as? ScreenController {
-                screenController.setColor(screenColor)
-            }
-            
             let script = entrainmentEngine.generateLightScript(
                 from: track,
                 mode: mode,

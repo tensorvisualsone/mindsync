@@ -11,10 +11,10 @@ struct CurrentEventResult {
 class BaseLightController: NSObject {
     // MARK: - Shared Properties
     
-    var currentScript: LightScript?
-    var scriptStartTime: Date?
-    var displayLink: CADisplayLink?
-    var currentEventIndex: Int = 0
+    private(set) var currentScript: LightScript?
+    private(set) var scriptStartTime: Date?
+    private(set) var displayLink: CADisplayLink?
+    private(set) var currentEventIndex: Int = 0
     
     // MARK: - Display Link Management
     

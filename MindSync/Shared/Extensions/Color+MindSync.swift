@@ -14,7 +14,8 @@ extension LightEvent.LightColor {
         case .green:
             return .green
         case .custom:
-            // For custom, use white as fallback
+            // TODO: Custom color functionality not yet implemented
+            // For now, use white as fallback until RGB cycle feature is added
             return .white
         }
     }

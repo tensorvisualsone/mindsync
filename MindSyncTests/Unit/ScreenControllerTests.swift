@@ -70,12 +70,37 @@ final class ScreenControllerTests: XCTestCase {
     // MARK: - Color Setting Tests
     
     func testSetColor_UpdatesDefaultColor() {
-        // When
-        screenController.setColor(.red)
+        // Given: Script with no color specified in event
+        let event = LightEvent(
+            timestamp: 0,
+            intensity: 1.0,
+            duration: 1.0,
+            waveform: .square,
+            color: nil  // No explicit color, should use default
+        )
+        let script = LightScript(
+            trackId: UUID(),
+            mode: .alpha,
+            targetFrequency: 10.0,
+            multiplier: 1,
+            events: [event]
+        )
         
-        // Then: We can't directly test defaultColor as it's private,
-        // but we can verify it works through script execution
-        XCTAssertNotNil(screenController)
+        // When: Set default color to red and execute script
+        screenController.setColor(.red)
+        screenController.execute(script: script, syncedTo: Date())
+        
+        // Give the display link time to update
+        let expectation = expectation(description: "Color updates with default")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Then: Color should not be black (default color applied)
+            // We verify behavior (color is set) rather than internal state
+            XCTAssertNotEqual(self.screenController.currentColor, .black)
+            expectation.fulfill()
+        }
+        
+        wait(for: [expectation], timeout: 0.5)
+        screenController.cancelExecution()
     }
     
     // MARK: - Script Execution Tests
@@ -88,8 +113,17 @@ final class ScreenControllerTests: XCTestCase {
         // When
         screenController.execute(script: script, syncedTo: startTime)
         
-        // Then: Script execution should be initialized (verified by not crashing)
-        XCTAssertNotNil(screenController.currentScript)
+        // Give the display link time to update
+        let expectation = expectation(description: "Script execution starts")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            // Then: Verify behavior - color should be updated from black if event is active
+            // This tests that script execution is working without checking internal state
+            XCTAssertNotEqual(self.screenController.currentColor, .black)
+            expectation.fulfill()
+        }
+        
+        wait(for: [expectation], timeout: 0.3)
+        screenController.cancelExecution()
     }
     
     func testCancelExecution_ResetsState() {
@@ -100,8 +134,7 @@ final class ScreenControllerTests: XCTestCase {
         // When
         screenController.cancelExecution()
         
-        // Then
-        XCTAssertNil(screenController.currentScript)
+        // Then: Verify observable behavior - color should be reset to black
         XCTAssertEqual(screenController.currentColor, .black)
     }
     
@@ -155,8 +188,7 @@ final class ScreenControllerTests: XCTestCase {
         
         // When: Wait for script duration + small buffer
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            // Then: Script should be cancelled and color should be black
-            XCTAssertNil(self.screenController.currentScript)
+            // Then: Verify script completion through observable behavior - color should be black
             XCTAssertEqual(self.screenController.currentColor, .black)
             expectation.fulfill()
         }
