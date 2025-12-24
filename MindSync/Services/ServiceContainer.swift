@@ -4,31 +4,23 @@ import Combine
 /// Zentraler Service-Container für MindSync
 final class ServiceContainer: ObservableObject {
     nonisolated(unsafe) static var shared: ServiceContainer {
-        // Thread-safe lazy initialization using a lock
+        // Simple thread-safe lazy initialization
+        // Use a lock to ensure only one thread initializes
         _lock.lock()
         defer { _lock.unlock() }
         
         if _sharedInstance == nil {
-            // Initialize on Main Actor
-            // This ensures all @MainActor services (like ScreenController) are initialized correctly
+            // Initialize on main thread
             if Thread.isMainThread {
-                _sharedInstance = MainActor.assumeIsolated {
-                    ServiceContainer()
-                }
+                _sharedInstance = ServiceContainer()
             } else {
-                // If called from background thread, we need to dispatch to main
-                // But we can't use sync here as it could cause deadlocks
-                // So we use async and wait with a semaphore
+                // Dispatch to main thread and wait
                 let semaphore = DispatchSemaphore(value: 0)
-                var instance: ServiceContainer?
                 DispatchQueue.main.async {
-                    instance = MainActor.assumeIsolated {
-                        ServiceContainer()
-                    }
+                    _sharedInstance = ServiceContainer()
                     semaphore.signal()
                 }
                 semaphore.wait()
-                _sharedInstance = instance
             }
         }
         return _sharedInstance!
