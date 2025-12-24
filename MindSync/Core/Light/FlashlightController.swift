@@ -15,16 +15,12 @@ private final class WeakDisplayLinkTarget {
 }
 
 /// Controller for flashlight control
-final class FlashlightController: NSObject, LightControlling {
+final class FlashlightController: BaseLightController, LightControlling {
     var source: LightSource { .flashlight }
 
     private var device: AVCaptureDevice?
     private var isLocked = false
-    private var currentScript: LightScript?
-    private var scriptStartTime: Date?
-    private var displayLink: CADisplayLink?
     private var displayLinkTarget: WeakDisplayLinkTarget?
-    private var currentEventIndex: Int = 0
     private let thermalManager: ThermalManager
 
     init(thermalManager: ThermalManager) {
@@ -34,8 +30,7 @@ final class FlashlightController: NSObject, LightControlling {
     }
     
     deinit {
-        displayLink?.invalidate()
-        displayLink = nil
+        invalidateDisplayLink()
         displayLinkTarget = nil
     }
 
@@ -81,68 +76,34 @@ final class FlashlightController: NSObject, LightControlling {
     }
 
     func execute(script: LightScript, syncedTo startTime: Date) {
-        currentScript = script
-        scriptStartTime = startTime
-        currentEventIndex = 0
+        initializeScriptExecution(script: script, startTime: startTime)
 
         // CADisplayLink for precise timing with weak reference wrapper to avoid retain cycle
         let target = WeakDisplayLinkTarget(target: self)
         displayLinkTarget = target
-        displayLink = CADisplayLink(target: target, selector: #selector(WeakDisplayLinkTarget.updateLight))
-        displayLink?.preferredFrameRateRange = CAFrameRateRange(
-            minimum: 60,
-            maximum: 120,
-            preferred: 120
-        )
-        displayLink?.add(to: .main, forMode: .common)
+        setupDisplayLink(target: target, selector: #selector(WeakDisplayLinkTarget.updateLight))
     }
 
     func cancelExecution() {
-        displayLink?.invalidate()
-        displayLink = nil
+        invalidateDisplayLink()
         displayLinkTarget = nil
-        currentScript = nil
-        scriptStartTime = nil
-        currentEventIndex = 0
+        resetScriptExecution()
         setIntensity(0.0)
     }
 
     fileprivate func updateLight() {
-        guard let script = currentScript,
-              let startTime = scriptStartTime else {
-            return
-        }
-
-        let elapsed = Date().timeIntervalSince(startTime)
-
-        // Check if script is finished
-        if elapsed >= script.duration {
+        let result = findCurrentEvent()
+        
+        if result.isComplete {
             cancelExecution()
             return
         }
-
-        // Skip past events to find current event using index tracking
-        while currentEventIndex < script.events.count {
-            let event = script.events[currentEventIndex]
-            let eventEnd = event.timestamp + event.duration
-            
-            if elapsed < eventEnd {
-                // Current event is active
-                if elapsed >= event.timestamp {
-                    setIntensity(event.intensity)
-                } else {
-                    // Between events, turn off
-                    setIntensity(0.0)
-                }
-                break
-            } else {
-                // Move to next event
-                currentEventIndex += 1
-            }
-        }
         
-        // If we've passed all events, turn off
-        if currentEventIndex >= script.events.count {
+        if let event = result.event {
+            // Current event is active
+            setIntensity(event.intensity)
+        } else {
+            // Between events or no active event, turn off
             setIntensity(0.0)
         }
     }
