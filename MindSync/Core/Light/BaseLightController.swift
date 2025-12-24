@@ -1,4 +1,5 @@
 import Foundation
+import QuartzCore
 
 /// Result of finding the current event in a script
 struct CurrentEventResult {
@@ -8,18 +9,22 @@ struct CurrentEventResult {
 }
 
 /// Base class for light controllers to reduce code duplication
+@MainActor
 class BaseLightController: NSObject {
     // MARK: - Shared Properties
     
-    private(set) var currentScript: LightScript?
-    private(set) var scriptStartTime: Date?
-    private(set) var displayLink: CADisplayLink?
-    private(set) var currentEventIndex: Int = 0
+    @MainActor private(set) var currentScript: LightScript?
+    @MainActor private(set) var scriptStartTime: Date?
+    @MainActor private(set) var totalPauseDuration: TimeInterval = 0
+    @MainActor private(set) var pauseStartTime: Date?
+    @MainActor private(set) var isPaused: Bool = false
+    nonisolated(unsafe) private(set) var displayLink: CADisplayLink?
+    @MainActor private(set) var currentEventIndex: Int = 0
     
     // MARK: - Display Link Management
     
     /// Sets up the display link with a weak target wrapper
-    func setupDisplayLink(target: AnyObject, selector: Selector) {
+    @MainActor func setupDisplayLink(target: AnyObject, selector: Selector) {
         displayLink = CADisplayLink(target: target, selector: selector)
         displayLink?.preferredFrameRateRange = CAFrameRateRange(
             minimum: 60,
@@ -30,7 +35,7 @@ class BaseLightController: NSObject {
     }
     
     /// Invalidates and cleans up the display link
-    func invalidateDisplayLink() {
+    nonisolated func invalidateDisplayLink() {
         displayLink?.invalidate()
         displayLink = nil
     }
@@ -38,32 +43,55 @@ class BaseLightController: NSObject {
     // MARK: - Script Execution Helpers
     
     /// Initializes script execution state
-    func initializeScriptExecution(script: LightScript, startTime: Date) {
+    @MainActor func initializeScriptExecution(script: LightScript, startTime: Date) {
         currentScript = script
         scriptStartTime = startTime
         currentEventIndex = 0
     }
     
     /// Resets script execution state
-    func resetScriptExecution() {
+    @MainActor func resetScriptExecution() {
         currentScript = nil
         scriptStartTime = nil
         currentEventIndex = 0
+        totalPauseDuration = 0
+        pauseStartTime = nil
+        isPaused = false
+    }
+    
+    /// Pauses script execution by stopping the display link
+    /// - Note: Calls `invalidateDisplayLink()` which is `nonisolated` for safe cross-actor access.
+    ///   This is safe because CADisplayLink's invalidate() can be called from any thread.
+    @MainActor func pauseScriptExecution() {
+        guard !isPaused else { return }
+        isPaused = true
+        pauseStartTime = Date()
+        invalidateDisplayLink()
+    }
+    
+    /// Resumes script execution by adjusting start time to account for pause duration
+    @MainActor func resumeScriptExecution() {
+        guard isPaused, let pauseStart = pauseStartTime else { return }
+        isPaused = false
+        // Add the pause duration to the total pause time
+        totalPauseDuration += Date().timeIntervalSince(pauseStart)
+        pauseStartTime = nil
     }
     
     /// Finds the current event in the script based on elapsed time
     /// - Returns: CurrentEventResult containing the event (if active), elapsed time, and completion status
-    func findCurrentEvent() -> CurrentEventResult {
+    @MainActor func findCurrentEvent() -> CurrentEventResult {
         guard let script = currentScript,
               let startTime = scriptStartTime else {
             return CurrentEventResult(event: nil, elapsed: 0, isComplete: false)
         }
         
-        let elapsed = Date().timeIntervalSince(startTime)
+        // Calculate elapsed time accounting for pauses
+        let realElapsed = Date().timeIntervalSince(startTime) - totalPauseDuration
         
         // Check if script is finished
-        if elapsed >= script.duration {
-            return CurrentEventResult(event: nil, elapsed: elapsed, isComplete: true)
+        if realElapsed >= script.duration {
+            return CurrentEventResult(event: nil, elapsed: realElapsed, isComplete: true)
         }
         
         // Skip past events to find current event using index tracking
@@ -72,14 +100,14 @@ class BaseLightController: NSObject {
             let event = script.events[foundEventIndex]
             let eventEnd = event.timestamp + event.duration
             
-            if elapsed < eventEnd {
-                if elapsed >= event.timestamp {
+            if realElapsed < eventEnd {
+                if realElapsed >= event.timestamp {
                     // Current event is active
                     currentEventIndex = foundEventIndex
-                    return CurrentEventResult(event: event, elapsed: elapsed, isComplete: false)
+                    return CurrentEventResult(event: event, elapsed: realElapsed, isComplete: false)
                 } else {
                     // Between events
-                    return CurrentEventResult(event: nil, elapsed: elapsed, isComplete: false)
+                    return CurrentEventResult(event: nil, elapsed: realElapsed, isComplete: false)
                 }
             } else {
                 // Move to next event
@@ -88,6 +116,6 @@ class BaseLightController: NSObject {
         }
         
         // Passed all events
-        return CurrentEventResult(event: nil, elapsed: elapsed, isComplete: true)
+        return CurrentEventResult(event: nil, elapsed: realElapsed, isComplete: true)
     }
 }

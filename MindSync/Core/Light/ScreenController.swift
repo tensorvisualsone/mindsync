@@ -21,6 +21,7 @@ private final class WeakDisplayLinkTarget {
 }
 
 /// Controller for screen strobe control using fullscreen color flashing
+@MainActor
 final class ScreenController: BaseLightController, LightControlling, ObservableObject {
     var source: LightSource { .screen }
     
@@ -34,11 +35,6 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
     override init() {
         super.init()
         // Screen controller uses SwiftUI views for display
-    }
-    
-    deinit {
-        invalidateDisplayLink()
-        displayLinkTarget = nil
     }
 
     func start() throws {
@@ -78,6 +74,21 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
         displayLinkTarget = nil
         resetScriptExecution()
         currentColor = .black
+    }
+    
+    func pauseExecution() {
+        pauseScriptExecution()
+        displayLinkTarget = nil
+        currentColor = .black
+    }
+    
+    func resumeExecution() {
+        guard let script = currentScript, let startTime = scriptStartTime else { return }
+        resumeScriptExecution()
+        // Re-setup display link
+        let target = WeakDisplayLinkTarget(target: self)
+        displayLinkTarget = target
+        setupDisplayLink(target: target, selector: #selector(WeakDisplayLinkTarget.updateScreen))
     }
 
     /// Updates the screen color based on the current event in the script.

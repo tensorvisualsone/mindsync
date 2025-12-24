@@ -28,11 +28,6 @@ final class FlashlightController: BaseLightController, LightControlling {
         super.init()
         device = AVCaptureDevice.default(for: .video)
     }
-    
-    deinit {
-        invalidateDisplayLink()
-        displayLinkTarget = nil
-    }
 
     func start() throws {
         guard let device = device, device.hasTorch else {
@@ -89,6 +84,21 @@ final class FlashlightController: BaseLightController, LightControlling {
         displayLinkTarget = nil
         resetScriptExecution()
         setIntensity(0.0)
+    }
+    
+    func pauseExecution() {
+        pauseScriptExecution()
+        displayLinkTarget = nil
+        setIntensity(0.0)
+    }
+    
+    func resumeExecution() {
+        guard let script = currentScript, let startTime = scriptStartTime else { return }
+        resumeScriptExecution()
+        // Re-setup display link
+        let target = WeakDisplayLinkTarget(target: self)
+        displayLinkTarget = target
+        setupDisplayLink(target: target, selector: #selector(WeakDisplayLinkTarget.updateLight))
     }
 
     fileprivate func updateLight() {
