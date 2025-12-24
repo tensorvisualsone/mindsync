@@ -57,6 +57,7 @@ struct SettingsView: View {
                             .tag(mode)
                         }
                     }
+                    .accessibilityIdentifier("settings.modePicker")
                 } header: {
                     Text("Entrainment-Modus")
                 } footer: {
@@ -71,6 +72,7 @@ struct SettingsView: View {
                             preferences.save()
                         }
                     ))
+                    .accessibilityIdentifier("settings.fallDetectionToggle")
                     
                     Toggle("Thermischer Schutz", isOn: Binding(
                         get: { preferences.thermalProtectionEnabled },
@@ -79,6 +81,7 @@ struct SettingsView: View {
                             preferences.save()
                         }
                     ))
+                    .accessibilityIdentifier("settings.thermalProtectionToggle")
                     
                     Toggle("Haptisches Feedback", isOn: Binding(
                         get: { preferences.hapticFeedbackEnabled },
@@ -87,6 +90,7 @@ struct SettingsView: View {
                             preferences.save()
                         }
                     ))
+                    .accessibilityIdentifier("settings.hapticFeedbackToggle")
                 } header: {
                     Text("Sicherheit & Feedback")
                 }
@@ -94,9 +98,11 @@ struct SettingsView: View {
                 Section {
                     HStack {
                         Text("Standard-Intensität")
+                            .font(AppConstants.Typography.body)
                         Spacer()
                         Text("\(Int(preferences.defaultIntensity * 100))%")
-                            .foregroundStyle(.secondary)
+                            .font(AppConstants.Typography.body)
+                            .foregroundStyle(.mindSyncSecondaryText)
                     }
                     
                     Slider(
@@ -110,6 +116,7 @@ struct SettingsView: View {
                         in: 0.1...1.0,
                         step: 0.1
                     )
+                    .accessibilityIdentifier("settings.intensitySlider")
                 } header: {
                     Text("Intensität")
                 } footer: {
@@ -123,6 +130,7 @@ struct SettingsView: View {
                     Button("Fertig") {
                         dismiss()
                     }
+                    .accessibilityIdentifier("settings.doneButton")
                 }
             }
         }

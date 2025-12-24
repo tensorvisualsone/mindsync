@@ -34,11 +34,16 @@ struct SafetyBanner: View {
                     .accessibilityHint("Schließt die thermische Warnung")
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, AppConstants.Spacing.elementSpacing)
+            .padding(.vertical, AppConstants.Spacing.md)
             .background(backgroundColor)
-            .cornerRadius(12)
-            .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+            .cornerRadius(AppConstants.CornerRadius.card)
+            .shadow(
+                color: AppConstants.Shadow.medium.color,
+                radius: AppConstants.Shadow.medium.radius,
+                x: AppConstants.Shadow.medium.x,
+                y: AppConstants.Shadow.medium.y
+            )
             .transition(.move(edge: .top).combined(with: .opacity))
             .accessibilityElement(children: .combine)
             .accessibilityLabel(accessibilityLabel)

@@ -34,10 +34,7 @@ final class AudioEnergyTracker {
         self.mixerNode = mixerNode
         
         // Get the format from the mixer node's output
-        guard let format = mixerNode.outputFormat(forBus: 0) else {
-            logger.error("Failed to get output format from mixer node")
-            return
-        }
+        let format = mixerNode.outputFormat(forBus: 0)
         
         // Reset state
         averageEnergy = 0.0

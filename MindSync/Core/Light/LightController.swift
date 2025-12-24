@@ -1,9 +1,13 @@
 import Foundation
 
 /// Protocol for light control
+@MainActor
 protocol LightControlling {
     /// Current light source
     var source: LightSource { get }
+    
+    /// AudioEnergyTracker for cinematic mode dynamic intensity modulation (optional)
+    var audioEnergyTracker: AudioEnergyTracker? { get set }
 
     /// Starts light output
     func start() throws

@@ -17,78 +17,84 @@ struct SourceSelectionView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 32) {
+            VStack(spacing: AppConstants.Spacing.sectionSpacing) {
                 Text("Audioquelle auswählen")
-                    .font(.title.bold())
+                    .font(AppConstants.Typography.title)
                 
                 // Local music library
                 Button(action: {
                     requestMediaLibraryAccess()
                 }) {
-                    VStack(spacing: 12) {
+                    VStack(spacing: AppConstants.Spacing.md) {
                         Image(systemName: "music.note.list")
-                            .font(.system(size: 50))
+                            .font(.system(size: AppConstants.IconSize.extraLarge))
+                            .foregroundStyle(.mindSyncInfo)
                         Text("Musikbibliothek")
-                            .font(.headline)
+                            .font(AppConstants.Typography.headline)
                         Text("Wähle einen Song aus deiner lokalen Musikbibliothek")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(AppConstants.Typography.caption)
+                            .foregroundStyle(.mindSyncSecondaryText)
                             .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(16)
+                    .padding(AppConstants.Spacing.md)
+                    .background(Color.mindSyncCardBackground())
+                    .cornerRadius(AppConstants.CornerRadius.card)
                 }
                 .buttonStyle(.plain)
                 .disabled(authorizationStatus == .denied)
+                .accessibilityLabel("Musikbibliothek auswählen")
+                .accessibilityHint("Öffnet die Musikbibliothek zum Auswählen eines Songs")
                 
                 // Microphone mode
                 Button(action: {
                     requestMicrophoneAccess()
                 }) {
-                    VStack(spacing: 12) {
+                    VStack(spacing: AppConstants.Spacing.md) {
                         Image(systemName: "mic.fill")
-                            .font(.system(size: 50))
+                            .font(.system(size: AppConstants.IconSize.extraLarge))
+                            .foregroundStyle(.mindSyncInfo)
                         Text("Mikrofon")
-                            .font(.headline)
+                            .font(AppConstants.Typography.headline)
                         Text("Musik aus externen Quellen analysieren")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(AppConstants.Typography.caption)
+                            .foregroundStyle(.mindSyncSecondaryText)
                             .multilineTextAlignment(.center)
                         
                         // Info about latency
                         Text(NSLocalizedString("sourceSelection.microphoneNote", comment: ""))
-                            .font(.caption2)
-                            .foregroundStyle(.orange)
+                            .font(AppConstants.Typography.caption2)
+                            .foregroundStyle(.mindSyncWarning)
                             .multilineTextAlignment(.center)
-                            .padding(.top, 4)
+                            .padding(.top, AppConstants.Spacing.xs)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(16)
+                    .padding(AppConstants.Spacing.md)
+                    .background(Color.mindSyncCardBackground())
+                    .cornerRadius(AppConstants.CornerRadius.card)
                 }
                 .buttonStyle(.plain)
                 .disabled(microphoneStatus == .denied || onMicrophoneSelected == nil)
+                .accessibilityLabel("Mikrofon-Modus auswählen")
+                .accessibilityHint("Analysiert Musik aus externen Quellen über das Mikrofon")
                 
                 if authorizationStatus == .denied {
                     Text(NSLocalizedString("sourceSelection.musicLibraryDenied", comment: "Message shown when music library access is denied"))
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                        .font(AppConstants.Typography.caption)
+                        .foregroundStyle(.mindSyncError)
                         .multilineTextAlignment(.center)
-                        .padding()
+                        .padding(AppConstants.Spacing.md)
                 }
                 
                 if microphoneStatus == .denied {
                     Text(NSLocalizedString("sourceSelection.microphoneDenied", comment: "Message shown when microphone access is denied"))
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                        .font(AppConstants.Typography.caption)
+                        .foregroundStyle(.mindSyncError)
                         .multilineTextAlignment(.center)
-                        .padding()
+                        .padding(AppConstants.Spacing.md)
                 }
             }
-            .padding()
+            .padding(AppConstants.Spacing.md)
             .navigationTitle(NSLocalizedString("sourceSelection.title", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingMediaPicker) {

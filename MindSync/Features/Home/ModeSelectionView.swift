@@ -16,18 +16,18 @@ struct ModeSelectionView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: AppConstants.Spacing.sectionSpacing) {
                     Text(NSLocalizedString("modeSelection.title", comment: ""))
-                        .font(.title2.bold())
-                        .padding(.top)
+                        .font(AppConstants.Typography.title2)
+                        .padding(.top, AppConstants.Spacing.md)
                     
                     Text(NSLocalizedString("modeSelection.description", comment: ""))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(AppConstants.Typography.subheadline)
+                        .foregroundStyle(.mindSyncSecondaryText)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal)
+                        .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
                     
-                    VStack(spacing: 16) {
+                    VStack(spacing: AppConstants.Spacing.elementSpacing) {
                         ForEach(EntrainmentMode.allCases) { mode in
                             ModeCard(
                                 mode: mode,
@@ -37,7 +37,7 @@ struct ModeSelectionView: View {
                             }
                         }
                     }
-                    .padding()
+                    .padding(AppConstants.Spacing.md)
                 }
             }
             .navigationTitle(NSLocalizedString("settings.mode", comment: ""))
@@ -70,31 +70,31 @@ private struct ModeCard: View {
     
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 16) {
+            HStack(spacing: AppConstants.Spacing.elementSpacing) {
                 // Icon
                 Image(systemName: mode.iconName)
-                    .font(.system(size: 40))
-                    .foregroundStyle(isSelected ? .white : .blue)
-                    .frame(width: 60, height: 60)
+                    .font(.system(size: AppConstants.IconSize.large))
+                    .foregroundStyle(isSelected ? .white : mode.themeColor)
+                    .frame(width: AppConstants.TouchTarget.comfortable, height: AppConstants.TouchTarget.comfortable)
                     .background(
                         Circle()
-                            .fill(isSelected ? Color.blue : Color.blue.opacity(0.1))
+                            .fill(isSelected ? mode.themeColor : mode.themeColor.opacity(0.1))
                     )
                 
                 // Content
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: AppConstants.Spacing.xs) {
                     Text(mode.displayName)
-                        .font(.headline)
-                        .foregroundStyle(isSelected ? .white : .primary)
+                        .font(AppConstants.Typography.headline)
+                        .foregroundStyle(isSelected ? .white : .mindSyncPrimaryText)
                     
                     Text(mode.description)
-                        .font(.caption)
-                        .foregroundStyle(isSelected ? .white.opacity(0.9) : .secondary)
+                        .font(AppConstants.Typography.caption)
+                        .foregroundStyle(isSelected ? .white.opacity(AppConstants.Opacity.secondary) : .mindSyncSecondaryText)
                         .multilineTextAlignment(.leading)
                     
                     Text("\(Int(mode.frequencyRange.lowerBound))-\(Int(mode.frequencyRange.upperBound)) Hz")
-                        .font(.caption2)
-                        .foregroundStyle(isSelected ? .white.opacity(0.8) : .secondary)
+                        .font(AppConstants.Typography.caption2)
+                        .foregroundStyle(isSelected ? .white.opacity(AppConstants.Opacity.tertiary) : .mindSyncTertiaryText)
                 }
                 
                 Spacer()
@@ -106,13 +106,16 @@ private struct ModeCard: View {
                         .font(.title3)
                 }
             }
-            .padding()
+            .padding(AppConstants.Spacing.md)
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(isSelected ? Color.blue : Color(.systemGray6))
+                RoundedRectangle(cornerRadius: AppConstants.CornerRadius.card)
+                    .fill(isSelected ? mode.themeColor : Color.mindSyncCardBackground())
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(mode.displayName)
+        .accessibilityHint(isSelected ? "Ausgewählter Modus" : "Modus auswählen")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
