@@ -6,9 +6,11 @@ struct SessionView: View {
     @Environment(\.dismiss) private var dismiss
     
     let mediaItem: MPMediaItem?
+    let isMicrophoneMode: Bool
     
-    init(song: MPMediaItem? = nil) {
+    init(song: MPMediaItem? = nil, isMicrophoneMode: Bool = false) {
         self.mediaItem = song
+        self.isMicrophoneMode = isMicrophoneMode
     }
     
     var body: some View {
@@ -54,7 +56,9 @@ struct SessionView: View {
         }
         .preferredColorScheme(.dark)
         .task {
-            if let mediaItem = mediaItem {
+            if isMicrophoneMode {
+                await viewModel.startMicrophoneSession()
+            } else if let mediaItem = mediaItem {
                 await viewModel.startSession(with: mediaItem)
             }
         }

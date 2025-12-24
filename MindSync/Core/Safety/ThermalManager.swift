@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import os.log
 
 /// Thermal warning level for UI display
 enum ThermalWarningLevel: Equatable {
@@ -39,6 +40,7 @@ final class ThermalManager: ObservableObject {
     @Published private(set) var thermalState: ProcessInfo.ThermalState = .nominal
     
     private var cancellables = Set<AnyCancellable>()
+    private let logger = Logger(subsystem: "com.mindsync", category: "ThermalManager")
     
     init() {
         // Initial state
@@ -51,12 +53,27 @@ final class ThermalManager: ObservableObject {
                 self?.updateThermalState()
             }
             .store(in: &cancellables)
+        
+        logger.info("ThermalManager initialized, current state: \(String(describing: self.thermalState), privacy: .public)")
     }
     
     /// Updates the thermal state and warning level
     private func updateThermalState() {
-        thermalState = ProcessInfo.processInfo.thermalState
-        warningLevel = calculateWarningLevel(for: thermalState)
+        let previousState = self.thermalState
+        self.thermalState = ProcessInfo.processInfo.thermalState
+        self.warningLevel = calculateWarningLevel(for: self.thermalState)
+        
+        // Log state changes
+        if previousState != self.thermalState {
+            logger.info("Thermal state changed: \(String(describing: previousState), privacy: .public) -> \(String(describing: self.thermalState), privacy: .public), warning level: \(String(describing: self.warningLevel), privacy: .public)")
+            
+            // Log warnings for serious/critical states
+            if self.warningLevel == .reduced {
+                logger.warning("Thermal state serious - reducing flashlight intensity")
+            } else if self.warningLevel == .critical {
+                logger.error("Thermal state critical - flashlight should be disabled")
+            }
+        }
     }
     
     /// Calculates warning level from thermal state

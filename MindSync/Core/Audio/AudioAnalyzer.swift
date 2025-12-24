@@ -1,12 +1,14 @@
 import Foundation
 import Combine
 import MediaPlayer
+import os.log
 
 /// Main orchestrator for audio analysis
 final class AudioAnalyzer {
     private let fileReader = AudioFileReader()
     private let beatDetector: BeatDetector?
     private let tempoEstimator = TempoEstimator()
+    private let logger = Logger(subsystem: "com.mindsync", category: "AudioAnalyzer")
 
     private var cancellables = Set<AnyCancellable>()
     private var isCancelled = false
@@ -16,14 +18,17 @@ final class AudioAnalyzer {
     
     init() {
         self.beatDetector = BeatDetector()
+        logger.info("AudioAnalyzer initialized")
     }
 
     /// Analyzes a local audio track
     func analyze(url: URL, mediaItem: MPMediaItem) async throws -> AudioTrack {
         isCancelled = false
+        
+        let title = mediaItem.title ?? "Unknown"
+        logger.info("Starting analysis for track: \(title, privacy: .public)")
 
         // Extract metadata
-        let title = mediaItem.title ?? "Unknown"
         let artist = mediaItem.artist
         let albumTitle = mediaItem.albumTitle
         let duration = mediaItem.playbackDuration
@@ -73,6 +78,7 @@ final class AudioAnalyzer {
         let bpm = tempoEstimator.estimateBPM(from: beatTimestamps)
 
         guard !isCancelled else {
+            logger.warning("Analysis cancelled for track: \(title, privacy: .public)")
             throw AudioAnalysisError.cancelled
         }
 
@@ -82,6 +88,8 @@ final class AudioAnalyzer {
             progress: 1.0,
             message: "Complete!"
         ))
+
+        logger.info("Analysis complete for track: \(title, privacy: .public), BPM: \(bpm, privacy: .public), Beats: \(beatTimestamps.count, privacy: .public)")
 
         // Create AudioTrack
         return AudioTrack(
@@ -94,10 +102,16 @@ final class AudioAnalyzer {
             beatTimestamps: beatTimestamps
         )
     }
-
+    
     /// Cancels the running analysis
     func cancel() {
         isCancelled = true
+        logger.info("Analysis cancellation requested")
+    }
+    
+    /// Handles errors during analysis
+    private func handleAnalysisError(_ error: Error, trackTitle: String) {
+        logger.error("Analysis failed for track: \(trackTitle, privacy: .public), error: \(error.localizedDescription, privacy: .public)")
     }
 }
 

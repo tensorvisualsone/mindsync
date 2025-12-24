@@ -4,13 +4,16 @@ import MediaPlayer
 /// View for audio source selection
 struct SourceSelectionView: View {
     private let mediaLibraryService = ServiceContainer.shared.mediaLibraryService
+    private let permissionsService = ServiceContainer.shared.permissionsService
     @State private var authorizationStatus: MPMediaLibraryAuthorizationStatus = .notDetermined
+    @State private var microphoneStatus: MicrophonePermissionStatus = .undetermined
     @State private var showingMediaPicker = false
     @State private var selectedItem: MPMediaItem?
     @State private var showingError = false
     @State private var errorMessage = ""
     
     let onSongSelected: (MPMediaItem) -> Void
+    let onMicrophoneSelected: (() -> Void)?
     
     var body: some View {
         NavigationStack {
@@ -40,9 +43,9 @@ struct SourceSelectionView: View {
                 .buttonStyle(.plain)
                 .disabled(authorizationStatus == .denied)
                 
-                // Microphone mode (for later)
+                // Microphone mode
                 Button(action: {
-                    // TODO: Implement microphone mode (Phase 8)
+                    requestMicrophoneAccess()
                 }) {
                     VStack(spacing: 12) {
                         Image(systemName: "mic.fill")
@@ -53,17 +56,32 @@ struct SourceSelectionView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
+                        
+                        // Info about latency
+                        Text("Hinweis: Mikrofon-Modus ist weniger präzise als lokale Analyse (~100ms Latenz)")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                            .multilineTextAlignment(.center)
+                            .padding(.top, 4)
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color(.systemGray6).opacity(0.5))
+                    .background(Color(.systemGray6))
                     .cornerRadius(16)
                 }
                 .buttonStyle(.plain)
-                .disabled(true)  // Not yet implemented
+                .disabled(microphoneStatus == .denied || onMicrophoneSelected == nil)
                 
                 if authorizationStatus == .denied {
                     Text("Zugriff auf Musikbibliothek verweigert. Bitte in den Einstellungen aktivieren.")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                        .padding()
+                }
+                
+                if microphoneStatus == .denied {
+                    Text("Mikrofon-Zugriff verweigert. Bitte in den Einstellungen aktivieren.")
                         .font(.caption)
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
@@ -90,6 +108,7 @@ struct SourceSelectionView: View {
             }
             .onAppear {
                 authorizationStatus = mediaLibraryService.authorizationStatus
+                microphoneStatus = permissionsService.microphoneStatus
             }
         }
     }
@@ -103,6 +122,21 @@ struct SourceSelectionView: View {
                     showingMediaPicker = true
                 } else if status == .denied {
                     errorMessage = "Zugriff auf Musikbibliothek wurde verweigert. Bitte in den Einstellungen aktivieren."
+                    showingError = true
+                }
+            }
+        }
+    }
+    
+    private func requestMicrophoneAccess() {
+        Task {
+            let granted = await permissionsService.requestMicrophoneAccess()
+            await MainActor.run {
+                microphoneStatus = permissionsService.microphoneStatus
+                if granted {
+                    onMicrophoneSelected?()
+                } else {
+                    errorMessage = "Mikrofon-Zugriff wurde verweigert. Bitte in den Einstellungen aktivieren."
                     showingError = true
                 }
             }
@@ -167,8 +201,13 @@ struct MediaPickerView: UIViewControllerRepresentable {
 }
 
 #Preview {
-    SourceSelectionView { item in
-        print("Selected: \(item.title ?? "Unknown")")
-    }
+    SourceSelectionView(
+        onSongSelected: { item in
+            print("Selected: \(item.title ?? "Unknown")")
+        },
+        onMicrophoneSelected: {
+            print("Microphone selected")
+        }
+    )
 }
 

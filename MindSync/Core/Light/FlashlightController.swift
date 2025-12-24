@@ -93,7 +93,7 @@ final class FlashlightController: BaseLightController, LightControlling {
     }
     
     func resumeExecution() {
-        guard let script = currentScript, let startTime = scriptStartTime else { return }
+        guard currentScript != nil, scriptStartTime != nil else { return }
         resumeScriptExecution()
         // Re-setup display link
         let target = WeakDisplayLinkTarget(target: self)

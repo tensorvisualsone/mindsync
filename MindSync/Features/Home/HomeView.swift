@@ -5,6 +5,7 @@ struct HomeView: View {
     @State private var showingSourceSelection = false
     @State private var selectedMediaItem: MPMediaItem?
     @State private var showingSession = false
+    @State private var isMicrophoneSession = false
     @State private var preferences = UserPreferences.load()
     
     var body: some View {
@@ -48,15 +49,26 @@ struct HomeView: View {
                 preferences = UserPreferences.load()
             }
             .sheet(isPresented: $showingSourceSelection) {
-                SourceSelectionView { item in
-                    selectedMediaItem = item
-                    showingSourceSelection = false
-                    showingSession = true
-                }
+                SourceSelectionView(
+                    onSongSelected: { item in
+                        selectedMediaItem = item
+                        isMicrophoneSession = false
+                        showingSourceSelection = false
+                        showingSession = true
+                    },
+                    onMicrophoneSelected: {
+                        selectedMediaItem = nil
+                        isMicrophoneSession = true
+                        showingSourceSelection = false
+                        showingSession = true
+                    }
+                )
             }
             .fullScreenCover(isPresented: $showingSession) {
-                if let mediaItem = selectedMediaItem {
-                    SessionView(song: mediaItem)
+                if isMicrophoneSession {
+                    SessionView(song: nil, isMicrophoneMode: true)
+                } else if let mediaItem = selectedMediaItem {
+                    SessionView(song: mediaItem, isMicrophoneMode: false)
                 } else {
                     VStack(spacing: 16) {
                         Text("Unable to start session")

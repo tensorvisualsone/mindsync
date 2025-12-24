@@ -56,39 +56,12 @@ final class EntrainmentEngine {
         targetRange: ClosedRange<Double>,
         maxFrequency: Double
     ) -> Int {
-        // Base frequency: BPM / 60 (Hz)
-        let baseFrequency = bpm / 60.0
-        
-        // Find smallest multiplier that leads to target band
-        var multiplier = 1
-        while true {
-            let frequency = baseFrequency * Double(multiplier)
-            
-            // If we're in the target band, use this multiplier
-            if targetRange.contains(frequency) {
-                return multiplier
-            }
-            
-            // If we're above the target band, use the previous one
-            if frequency > targetRange.upperBound {
-                return max(1, multiplier - 1)
-            }
-            
-            // If we're above max frequency, limit
-            if frequency > maxFrequency {
-                return max(1, multiplier - 1)
-            }
-            
-            multiplier += 1
-            
-            // Safety check: prevent infinite loop with reasonable upper bound
-            if multiplier > 50 {
-                // Fallback: use multiplier for middle target frequency
-                let targetMid = (targetRange.lowerBound + targetRange.upperBound) / 2.0
-                let fallbackMultiplier = Int((targetMid / baseFrequency).rounded())
-                return max(1, fallbackMultiplier)
-            }
-        }
+        // Use FrequencyMapper for consistency
+        return FrequencyMapper.calculateMultiplier(
+            bpm: bpm,
+            targetRange: targetRange,
+            maxFrequency: maxFrequency
+        )
     }
     
     /// Generates light events from beat timestamps
