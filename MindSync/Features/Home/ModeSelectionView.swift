@@ -3,7 +3,6 @@ import SwiftUI
 /// View for selecting EntrainmentMode (Alpha, Theta, Gamma)
 struct ModeSelectionView: View {
     @Binding var selectedMode: EntrainmentMode
-    @State private var preferences = UserPreferences.load()
     let onModeSelected: ((EntrainmentMode) -> Void)?
     
     init(
@@ -48,6 +47,9 @@ struct ModeSelectionView: View {
     
     private func selectMode(_ mode: EntrainmentMode) {
         selectedMode = mode
+        
+        // Load preferences fresh and save the new mode
+        var preferences = UserPreferences.load()
         preferences.preferredMode = mode
         preferences.save()
         

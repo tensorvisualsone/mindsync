@@ -44,8 +44,10 @@ enum FrequencyMapper {
             
             multiplier += 1
             
-            // Safety check: prevent infinite loop with reasonable upper bound
-            if multiplier > 50 {
+            // Safety check: prevent infinite loop with reasonable upper bound.
+            // With typical BPM ranges (30–200) and target frequencies (≈4–60 Hz),
+            // a multiplier above 30 would only be needed for pathological inputs.
+            if multiplier > 30 {
                 // Fallback: use multiplier for middle target frequency
                 let targetMid = (targetRange.lowerBound + targetRange.upperBound) / 2.0
                 let fallbackMultiplier = Int((targetMid / baseFrequency).rounded())
@@ -80,18 +82,44 @@ enum FrequencyMapper {
     static func validateFrequency(_ frequency: Double) -> (isValid: Bool, isPSEZone: Bool, warningMessage: String?) {
         // Check absolute limits
         if frequency < SafetyLimits.absoluteMinFrequency {
-            return (false, false, "Frequenz zu niedrig (Minimum: \(Int(SafetyLimits.absoluteMinFrequency)) Hz)")
+            let minFrequency = Int(SafetyLimits.absoluteMinFrequency)
+            let message = String(
+                format: NSLocalizedString(
+                    "frequency.tooLow",
+                    comment: "Warning shown when selected strobe frequency is below the absolute minimum safe frequency. Uses %d for the minimum frequency in Hz."
+                ),
+                minFrequency
+            )
+            return (false, false, message)
         }
         
         if frequency > SafetyLimits.absoluteMaxFrequency {
-            return (false, false, "Frequenz zu hoch (Maximum: \(Int(SafetyLimits.absoluteMaxFrequency)) Hz)")
+            let maxFrequency = Int(SafetyLimits.absoluteMaxFrequency)
+            let message = String(
+                format: NSLocalizedString(
+                    "frequency.tooHigh",
+                    comment: "Warning shown when selected strobe frequency is above the absolute maximum safe frequency. Uses %d for the maximum frequency in Hz."
+                ),
+                maxFrequency
+            )
+            return (false, false, message)
         }
         
         // Check PSE danger zone
         let isPSEZone = frequency >= SafetyLimits.pseMinFrequency && frequency <= SafetyLimits.pseMaxFrequency
         
         if isPSEZone {
-            return (true, true, "Frequenz liegt im PSE-Gefahrenbereich (3-30 Hz). Personen mit photosensitiver Epilepsie sollten vorsichtig sein.")
+            let pseMin = Int(SafetyLimits.pseMinFrequency)
+            let pseMax = Int(SafetyLimits.pseMaxFrequency)
+            let message = String(
+                format: NSLocalizedString(
+                    "frequency.pseWarning",
+                    comment: "Warning shown when selected strobe frequency is within the PSE (photosensitive epilepsy) danger zone. Uses %d and %d for the lower and upper bounds in Hz."
+                ),
+                pseMin,
+                pseMax
+            )
+            return (true, true, message)
         }
         
         return (true, false, nil)

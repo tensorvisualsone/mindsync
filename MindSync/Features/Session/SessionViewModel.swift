@@ -45,6 +45,15 @@ final class SessionViewModel: ObservableObject {
     private var microphoneStartTime: Date?
     private var lastScriptBPM: Double?
     
+    // Maximum number of beat timestamps to keep in memory for BPM estimation.
+    // This limit prevents unbounded memory growth during long microphone sessions
+    // while maintaining sufficient history for accurate tempo estimation.
+    // At typical BPM rates (60-150), 100 beats represent ≈40-100 seconds of audio.
+    private let maxBeatHistoryCount = 100
+    
+    // Flag to prevent re-entrancy in fall detection handling
+    private var isHandlingFall = false
+    
     init() {
         self.audioAnalyzer = services.audioAnalyzer
         self.audioPlayback = services.audioPlayback
@@ -298,7 +307,10 @@ final class SessionViewModel: ObservableObject {
         guard state == .idle else { return }
         
         guard let microphoneAnalyzer = microphoneAnalyzer else {
-            errorMessage = "Mikrofon-Analyse ist nicht verfügbar"
+            errorMessage = NSLocalizedString(
+                "error.microphoneUnavailable",
+                comment: "Shown when microphone analysis is not available for starting a microphone-based session"
+            )
             state = .error
             return
         }
@@ -408,7 +420,6 @@ final class SessionViewModel: ObservableObject {
         microphoneBeatTimestamps = microphoneBeatTimestamps.filter { $0 >= cutoffTime }
         
         // Additionally, cap the history size to prevent unbounded growth
-        let maxBeatHistoryCount = 100
         if microphoneBeatTimestamps.count > maxBeatHistoryCount {
             microphoneBeatTimestamps = Array(microphoneBeatTimestamps.suffix(maxBeatHistoryCount))
         }
@@ -426,6 +437,14 @@ final class SessionViewModel: ObservableObject {
         // Debounce script updates: only regenerate when BPM changes significantly
         // to avoid frequent cancel/restart cycles and visible flicker.
         // Threshold: 5 BPM difference from the last script BPM.
+        // Check if BPM change is significant enough to warrant regeneration
+        // A 5 BPM threshold prevents excessive restarts from minor tempo variations.
+        // Note: While this approach uses cancelExecution/restart which could cause
+        // brief flickering, it ensures the light frequency remains synchronized with
+        // the detected tempo. More sophisticated smoothing (e.g., gradual frequency
+        // interpolation) would add complexity and may compromise the entrainment
+        // effect by temporarily using off-target frequencies. The 5 BPM threshold
+        // strikes a balance between responsiveness and stability.
         if let previousBPM = lastScriptBPM, abs(bpm - previousBPM) < 5.0 {
             return
         }
@@ -461,11 +480,26 @@ final class SessionViewModel: ObservableObject {
         screenColor: LightEvent.LightColor?,
         bpm: Double
     ) -> LightScript {
+        // Estimate a non-zero duration for the dummy track based on live analysis
+        let estimatedDuration: TimeInterval
+        if let lastBeat = microphoneBeatTimestamps.last {
+            let beatDuration = bpm > 0 ? 60.0 / bpm : 0
+            // Extend duration one beat beyond the last detected beat
+            estimatedDuration = lastBeat + beatDuration
+        } else if bpm > 0 {
+            // No beats yet: assume a short window of several beats
+            let beatDuration = 60.0 / bpm
+            estimatedDuration = beatDuration * 8.0
+        } else {
+            // Fallback duration when no timing information is available
+            estimatedDuration = 60.0
+        }
+        
         // Create a dummy track with current BPM and beat timestamps
         let dummyTrack = AudioTrack(
-            title: "Live Audio",
-            artist: "Mikrofon",
-            duration: 0,
+            title: NSLocalizedString("session.liveAudio", comment: "Title for live audio track in microphone mode"),
+            artist: NSLocalizedString("session.microphone", comment: "Artist name for live audio track in microphone mode"),
+            duration: estimatedDuration,
             bpm: bpm,
             beatTimestamps: microphoneBeatTimestamps
         )
@@ -480,7 +514,11 @@ final class SessionViewModel: ObservableObject {
     
     /// Handles fall detection event
     private func handleFallDetected() {
+        // Prevent re-entrancy if we're already handling a fall
+        guard !isHandlingFall else { return }
         guard state == .running || state == .paused else { return }
+        
+        isHandlingFall = true
         
         // Stop the session
         if var session = currentSession {
@@ -499,6 +537,8 @@ final class SessionViewModel: ObservableObject {
         if cachedPreferences.hapticFeedbackEnabled {
             HapticFeedback.error()
         }
+        
+        isHandlingFall = false
     }
     
     /// Resets the session state (called when view is dismissed)

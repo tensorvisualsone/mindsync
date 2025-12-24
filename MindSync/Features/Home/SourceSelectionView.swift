@@ -73,7 +73,7 @@ struct SourceSelectionView: View {
                 .disabled(microphoneStatus == .denied || onMicrophoneSelected == nil)
                 
                 if authorizationStatus == .denied {
-                    Text("Zugriff auf Musikbibliothek verweigert. Bitte in den Einstellungen aktivieren.")
+                    Text(NSLocalizedString("sourceSelection.musicLibraryDenied", comment: "Message shown when music library access is denied"))
                         .font(.caption)
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
@@ -81,7 +81,7 @@ struct SourceSelectionView: View {
                 }
                 
                 if microphoneStatus == .denied {
-                    Text("Mikrofon-Zugriff verweigert. Bitte in den Einstellungen aktivieren.")
+                    Text(NSLocalizedString("sourceSelection.microphoneDenied", comment: "Message shown when microphone access is denied"))
                         .font(.caption)
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)

@@ -1,8 +1,8 @@
 /* 
-  Localizable.strings (German)
+  Localizable.strings (Base – German / Deutsch, language code: de)
   MindSync
   
-  German localization strings
+  Base localization strings (default user-facing language: German / Deutsch)
 */
 
 // MARK: - Onboarding
@@ -51,6 +51,8 @@
 "session.dismiss" = "Schließen";
 "session.back" = "Zurück";
 "session.fallDetected" = "Sturz erkannt. Session wurde aus Sicherheitsgründen beendet.";
+"session.liveAudio" = "Live Audio";
+"session.microphone" = "Mikrofon";
 
 // MARK: - Analysis Progress
 "analysis.loading" = "Audio wird geladen...";
@@ -89,4 +91,12 @@
 "error.microphoneUnavailable" = "Mikrofon-Analyse ist nicht verfügbar";
 "error.microphonePermissionDenied" = "Mikrofon-Zugriff wurde verweigert. Bitte in den Einstellungen aktivieren.";
 "error.musicLibraryDenied" = "Zugriff auf Musikbibliothek wurde verweigert. Bitte in den Einstellungen aktivieren.";
+"error.microphone.permissionDenied" = "Mikrofon-Berechtigung wurde verweigert";
+"error.microphone.unsupportedFormat" = "Audioformat wird nicht unterstützt";
+"error.microphone.engineStartFailed" = "Audio-Engine konnte nicht gestartet werden";
+
+// MARK: - Frequency Validation
+"frequency.tooLow" = "Frequenz zu niedrig (Minimum: %d Hz)";
+"frequency.tooHigh" = "Frequenz zu hoch (Maximum: %d Hz)";
+"frequency.pseWarning" = "Frequenz liegt im PSE-Gefahrenbereich (%d-%d Hz). Personen mit photosensitiver Epilepsie sollten vorsichtig sein.";
 
