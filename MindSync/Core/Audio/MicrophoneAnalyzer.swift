@@ -66,7 +66,11 @@ final class MicrophoneAnalyzer {
         
         // Check permission
         let audioSession = AVAudioSession.sharedInstance()
-        let permissionStatus = await AVAudioApplication.requestRecordPermission()
+        let permissionStatus = await withCheckedContinuation { continuation in
+            audioSession.requestRecordPermission { granted in
+                continuation.resume(returning: granted)
+            }
+        }
         guard permissionStatus else {
             logger.error("Microphone permission denied")
             throw MicrophoneError.permissionDenied
