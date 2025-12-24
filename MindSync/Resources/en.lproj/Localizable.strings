@@ -89,4 +89,7 @@
 "error.microphoneUnavailable" = "Microphone analysis is not available";
 "error.microphonePermissionDenied" = "Microphone access was denied. Please enable in settings.";
 "error.musicLibraryDenied" = "Music library access was denied. Please enable in settings.";
+"error.microphone.permissionDenied" = "Microphone permission was denied";
+"error.microphone.unsupportedFormat" = "Audio format is not supported";
+"error.microphone.engineStartFailed" = "Audio engine could not be started";
 

@@ -89,4 +89,7 @@
 "error.microphoneUnavailable" = "Mikrofon-Analyse ist nicht verfügbar";
 "error.microphonePermissionDenied" = "Mikrofon-Zugriff wurde verweigert. Bitte in den Einstellungen aktivieren.";
 "error.musicLibraryDenied" = "Zugriff auf Musikbibliothek wurde verweigert. Bitte in den Einstellungen aktivieren.";
+"error.microphone.permissionDenied" = "Mikrofon-Berechtigung wurde verweigert";
+"error.microphone.unsupportedFormat" = "Audioformat wird nicht unterstützt";
+"error.microphone.engineStartFailed" = "Audio-Engine konnte nicht gestartet werden";
 
