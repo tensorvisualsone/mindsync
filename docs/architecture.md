@@ -41,9 +41,10 @@ Orchestriert die vollständige Audio-Analyse-Pipeline:
 **Datei**: `MindSync/Core/Audio/AudioFileReader.swift`
 
 Liest PCM-Daten aus Audio-Dateien:
-- Nutzt `AVAssetReader` für DRM-freie Dateien
+- Nutzt `AVURLAsset` und `AVAssetReader` für DRM-freie Dateien
 - Konvertiert zu Mono, 44.1kHz, Float32
-- Validierung: Max. 30 Minuten, DRM-Check
+- Validierung: Max. 30 Minuten, DRM-Check via async `load(.isReadable)`
+- **Code-Qualität**: Ungenutzte Variablen entfernt, moderne async APIs
 
 #### BeatDetector
 **Datei**: `MindSync/Core/Audio/BeatDetector.swift`
@@ -220,8 +221,9 @@ Echtzeit-Audio-Energie-Tracking (für Cinematic Mode):
 
 Musikbibliothek-Zugriff:
 - `MPMediaPickerController` Integration
-- DRM-Check via `AVAsset.hasProtectedContent`
+- DRM-Check via `AVURLAsset` und async `load(.hasProtectedContent)` / `load(.isReadable)`
 - Berechtigungs-Management
+- **API-Migration**: Verwendet moderne iOS APIs (AVURLAsset statt AVAsset, async Property Loading)
 
 #### PermissionsService
 **Datei**: `MindSync/Services/PermissionsService.swift`
@@ -253,6 +255,11 @@ Session-Orchestrierung:
   - Startet `AudioEnergyTracker` auf MixerNode bei `.cinematic` Mode
   - Setzt `audioEnergyTracker` auf `LightController` für dynamische Modulation
   - Stoppt Tracking bei Session-Ende
+- **Concurrency**: 
+  - `@MainActor` für Thread-Safety
+  - Timer für Affirmation-Observer nutzt `Task { @MainActor in }` für Main Actor Isolation
+  - `SessionState` explizit als `Equatable` markiert
+- **MediaLibraryService Integration**: Verwendet async `canAnalyze(item:)` Methode
 
 #### SessionView
 **Datei**: `MindSync/Features/Session/SessionView.swift`
@@ -558,6 +565,35 @@ String(format: NSLocalizedString("modeSelection.currentMode", comment: ""), mode
 2. **Konsistente Keys**: Verwende kategorisierte Keys (z.B. `home.title`, `settings.mode`)
 3. **Comments**: Kommentare in `NSLocalizedString` helfen Übersetzern
 4. **Accessibility**: Auch Accessibility-Labels sollten lokalisiert werden
+
+## Code-Qualität & Wartbarkeit
+
+### Concurrency & Thread-Safety
+
+- **Main Actor Isolation**: Alle ViewModels und Services nutzen `@MainActor` für Thread-Safety
+- **Timer-Handling**: Timer-Callbacks verwenden `Task { @MainActor in }` für sicheren Zugriff auf Main Actor-isolierte Eigenschaften
+- **SessionState**: Explizit als `Equatable` markiert für bessere Concurrency-Kompatibilität
+
+### API-Migrationen
+
+- **MediaLibraryService**: Migriert auf moderne iOS APIs:
+  - `AVAsset(url:)` → `AVURLAsset(url:)`
+  - `asset.hasProtectedContent` → `await asset.load(.hasProtectedContent)`
+  - `asset.isReadable` → `await asset.load(.isReadable)`
+  - `canAnalyze(item:)` ist jetzt async
+- **AudioFileReader**: Verwendet async Property Loading für bessere Performance
+
+### Code-Qualität
+
+- **Ungenutzte Variablen**: Entfernt (z.B. `formatDescription` in AudioFileReader)
+- **Deprecation-Warnungen**: Alle deprecated APIs wurden migriert
+- **Lokalisierung**: Alle user-facing Strings sind lokalisiert, inkl. Accessibility-Labels
+
+### UI-Konsistenz
+
+- **AppConstants**: Zentrale Definitionen für Spacing, Typography, Colors, Corner Radius, Icons
+- **Color Palette**: Adaptive Colors für Dark/Light Mode via `Color+MindSync` Extension
+- **Accessibility**: Minimum Touch Targets (44pt), vollständige Accessibility-Labels
 
 ## Zukünftige Erweiterungen
 

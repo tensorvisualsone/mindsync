@@ -192,9 +192,9 @@ final class SessionViewModel: ObservableObject {
         
         do {
             // Check if item can be analyzed
-            guard services.mediaLibraryService.canAnalyze(item: mediaItem),
+            guard await services.mediaLibraryService.canAnalyze(item: mediaItem),
                   let assetURL = services.mediaLibraryService.getAssetURL(for: mediaItem) else {
-                errorMessage = "Dieser Titel ist durch DRM geschützt und kann nicht analysiert werden. Bitte nutze den Mikrofonmodus oder wähle einen anderen Titel."
+                errorMessage = NSLocalizedString("error.drmProtected", comment: "")
                 state = .error
                 return
             }
@@ -643,21 +643,25 @@ final class SessionViewModel: ObservableObject {
         affirmationTimer?.invalidate()
         
         // Timer, der alle 10 Sekunden prüft, ob Affirmation abgespielt werden soll
-        affirmationTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] timer in
-            guard let self = self else {
-                timer.invalidate()
-                return
+        let timer = Timer(timeInterval: 10.0, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self else {
+                    return
+                }
+                
+                // Stoppe Timer wenn Session beendet
+                guard self.state == .running else {
+                    self.affirmationTimer?.invalidate()
+                    self.affirmationTimer = nil
+                    return
+                }
+                
+                // Prüfe ob Affirmation abgespielt werden soll
+                self.checkAndPlayAffirmation()
             }
-            
-            // Stoppe Timer wenn Session beendet
-            guard self.state == .running else {
-                timer.invalidate()
-                return
-            }
-            
-            // Prüfe ob Affirmation abgespielt werden soll
-            self.checkAndPlayAffirmation()
         }
+        RunLoop.main.add(timer, forMode: .common)
+        affirmationTimer = timer
     }
     
     /// Prüft ob Affirmation abgespielt werden soll und spielt sie ab
@@ -686,7 +690,7 @@ final class SessionViewModel: ObservableObject {
 }
 
 /// Session states
-enum SessionState {
+enum SessionState: Equatable {
     case idle           // No active session
     case analyzing      // Audio is being analyzed
     case running        // Session is running

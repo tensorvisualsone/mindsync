@@ -135,7 +135,7 @@ struct SourceSelectionView: View {
                 if status == .authorized {
                     showingMediaPicker = true
                 } else if status == .denied {
-                    errorMessage = "Zugriff auf Musikbibliothek wurde verweigert. Bitte in den Einstellungen aktivieren."
+                    errorMessage = NSLocalizedString("error.musicLibraryDenied", comment: "")
                     showingError = true
                 }
             }
@@ -161,13 +161,18 @@ struct SourceSelectionView: View {
     private func handleItemSelection(_ item: MPMediaItem) {
         // Check if song can be analyzed
         guard let mediaLibraryService = mediaLibraryService else { return }
-        if mediaLibraryService.canAnalyze(item: item) {
-            selectedItem = item
-            onSongSelected(item)
-            showingMediaPicker = false
-        } else {
-            errorMessage = "Dieser Titel ist durch DRM geschützt und kann nicht analysiert werden. Bitte wähle einen anderen Titel oder nutze den Mikrofonmodus."
-            showingError = true
+        Task {
+            let canAnalyze = await mediaLibraryService.canAnalyze(item: item)
+            await MainActor.run {
+                if canAnalyze {
+                    selectedItem = item
+                    onSongSelected(item)
+                    showingMediaPicker = false
+                } else {
+                    errorMessage = NSLocalizedString("error.drmProtected", comment: "")
+                    showingError = true
+                }
+            }
         }
     }
 }

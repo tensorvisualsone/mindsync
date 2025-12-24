@@ -34,7 +34,7 @@ final class AudioFileReader {
         }
 
         let formatDescriptions = try await audioTrack.load(.formatDescriptions)
-        guard let formatDescription = formatDescriptions.first else {
+        guard formatDescriptions.first != nil else {
             throw AudioAnalysisError.unsupportedFormat
         }
 
