@@ -130,7 +130,7 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
                 return Double(event.intensity)
             }
             let sineValue = sin(elapsed * 2.0 * .pi * targetFrequency)
-            // Map from [-1, 1] to [0, intensity]
+            // Map sine value from [-1, 1] to [0, 1], then scale by intensity
             let normalizedSine = (sineValue + 1.0) / 2.0
             return Double(event.intensity) * normalizedSine
             
