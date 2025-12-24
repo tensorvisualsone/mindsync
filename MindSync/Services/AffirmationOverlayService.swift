@@ -7,7 +7,7 @@ class AffirmationOverlayService {
     private var audioEngine: AVAudioEngine?
     private var audioPlayerNode: AVAudioPlayerNode?
     private var reverbNode: AVAudioUnitReverb?
-    private var musicPlayer: AVAudioPlayer? // Referenz zum Haupt-Audio-Player für Ducking
+    private var musicMixerNode: AVAudioMixerNode? // Referenz zum Haupt-Audio-MixerNode für Ducking
     
     // Konfiguration
     private let duckingVolume: Float = 0.3 // Leiser für mehr Dramatik
@@ -16,9 +16,9 @@ class AffirmationOverlayService {
     /// Spielt eine Affirmation ab, wenn die Theta-Phase stabil ist
     /// - Parameters:
     ///   - url: Die URL zum Sprachmemo des Users
-    ///   - musicPlayer: Die aktuelle AudioPlayback-Instanz für das Ducking
-    func playAffirmation(url: URL, musicPlayer: AVAudioPlayer) {
-        self.musicPlayer = musicPlayer
+    ///   - musicMixerNode: Der MixerNode der Haupt-Audio-Engine für Ducking (optional)
+    func playAffirmation(url: URL, musicMixerNode: AVAudioMixerNode?) {
+        self.musicMixerNode = musicMixerNode
         
         // 1. Eigene AudioEngine für Affirmationen erstellen
         let engine = AVAudioEngine()
@@ -74,16 +74,17 @@ class AffirmationOverlayService {
     
     private func fadeMusicVolume(to volume: Float) {
         // Ducking: Musik leiser machen während Affirmation spielt
-        // AVAudioPlayer hat keine direkte Volume-Kontrolle während Playback,
-        // daher nutzen wir einen Workaround mit einem Timer
-        let currentVolume = musicPlayer?.volume ?? 1.0
+        // Nutze MixerNode Volume-Control für präzises Ducking
+        guard let mixerNode = musicMixerNode else { return }
+        
+        let currentVolume = mixerNode.volume
         let targetVolume = volume
         let steps = 10
         let stepSize = (targetVolume - currentVolume) / Float(steps)
         
         for i in 1...steps {
             DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.1) { [weak self] in
-                self?.musicPlayer?.volume = currentVolume + (stepSize * Float(i))
+                self?.musicMixerNode?.volume = currentVolume + (stepSize * Float(i))
             }
         }
     }
@@ -110,6 +111,6 @@ class AffirmationOverlayService {
     func stop() {
         cleanupNodes()
         // Musik wieder auf normale Lautstärke
-        musicPlayer?.volume = standardVolume
+        musicMixerNode?.volume = standardVolume
     }
 }

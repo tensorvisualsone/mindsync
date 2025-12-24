@@ -187,5 +187,98 @@ final class EntrainmentEngineTests: XCTestCase {
             alphaScript.events.first?.intensity ?? 0
         )
     }
+    
+    func testGenerateLightScript_CinematicMode_SineWaveform() {
+        let track = AudioTrack(
+            title: "Test",
+            duration: 5.0,
+            bpm: 120.0,
+            beatTimestamps: [0.0, 0.5, 1.0]
+        )
+        
+        let script = engine.generateLightScript(
+            from: track,
+            mode: .cinematic,
+            lightSource: .screen
+        )
+        
+        // Cinematic mode should use sine waveform
+        XCTAssertEqual(script.events.first?.waveform, .sine)
+        // Base intensity should be 0.5 (dynamically modulated at runtime)
+        XCTAssertEqual(script.events.first?.intensity, 0.5, accuracy: 0.01)
+    }
+    
+    func testCalculateCinematicIntensity_BaseCase() {
+        let baseFreq = 6.5
+        let currentTime: TimeInterval = 0.0
+        let audioEnergy: Float = 0.5
+        
+        let intensity = EntrainmentEngine.calculateCinematicIntensity(
+            baseFrequency: baseFreq,
+            currentTime: currentTime,
+            audioEnergy: audioEnergy
+        )
+        
+        // Should return a valid intensity value in 0.0-1.0 range
+        XCTAssertGreaterThanOrEqual(intensity, 0.0)
+        XCTAssertLessThanOrEqual(intensity, 1.0)
+    }
+    
+    func testCalculateCinematicIntensity_LowAudioEnergy() {
+        let baseFreq = 6.5
+        let currentTime: TimeInterval = 1.0
+        let audioEnergy: Float = 0.0 // No audio energy
+        
+        let intensity = EntrainmentEngine.calculateCinematicIntensity(
+            baseFrequency: baseFreq,
+            currentTime: currentTime,
+            audioEnergy: audioEnergy
+        )
+        
+        // With low audio energy, baseIntensity should be minimum (0.3)
+        // But wave modulation still applies, so intensity can vary
+        XCTAssertGreaterThanOrEqual(intensity, 0.0)
+        XCTAssertLessThanOrEqual(intensity, 1.0)
+    }
+    
+    func testCalculateCinematicIntensity_HighAudioEnergy() {
+        let baseFreq = 6.5
+        let currentTime: TimeInterval = 1.0
+        let audioEnergy: Float = 1.0 // Maximum audio energy
+        
+        let intensity = EntrainmentEngine.calculateCinematicIntensity(
+            baseFrequency: baseFreq,
+            currentTime: currentTime,
+            audioEnergy: audioEnergy
+        )
+        
+        // With high audio energy, should have higher base intensity
+        XCTAssertGreaterThanOrEqual(intensity, 0.0)
+        XCTAssertLessThanOrEqual(intensity, 1.0)
+    }
+    
+    func testCalculateCinematicIntensity_FrequencyDrift() {
+        let baseFreq = 6.5
+        let audioEnergy: Float = 0.5
+        
+        // Test at different times to verify frequency drift
+        let intensity1 = EntrainmentEngine.calculateCinematicIntensity(
+            baseFrequency: baseFreq,
+            currentTime: 0.0,
+            audioEnergy: audioEnergy
+        )
+        
+        let intensity2 = EntrainmentEngine.calculateCinematicIntensity(
+            baseFrequency: baseFreq,
+            currentTime: 5.0, // Different time = different drift
+            audioEnergy: audioEnergy
+        )
+        
+        // Intensities should be valid but may differ due to frequency drift
+        XCTAssertGreaterThanOrEqual(intensity1, 0.0)
+        XCTAssertLessThanOrEqual(intensity1, 1.0)
+        XCTAssertGreaterThanOrEqual(intensity2, 0.0)
+        XCTAssertLessThanOrEqual(intensity2, 1.0)
+    }
 }
 

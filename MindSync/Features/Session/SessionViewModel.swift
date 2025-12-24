@@ -14,6 +14,8 @@ final class SessionViewModel: ObservableObject {
     private let microphoneAnalyzer: MicrophoneAnalyzer?
     private let fallDetector: FallDetector
     private let affirmationService: AffirmationOverlayService
+    // TODO: Uncomment when AudioEnergyTracker is implemented in Phase 2
+    // private let audioEnergyTracker: AudioEnergyTracker
     
     // Affirmation state
     private var affirmationPlayed = false
@@ -74,6 +76,10 @@ final class SessionViewModel: ObservableObject {
         
         // Affirmation Service
         self.affirmationService = services.affirmationService
+        
+        // Audio Energy Tracker (for Cinematic Mode)
+        // TODO: Uncomment when AudioEnergyTracker is implemented in Phase 2
+        // self.audioEnergyTracker = services.audioEnergyTracker
         
         // Setup playback completion callback
         audioPlayback.onPlaybackComplete = { [weak self] in
@@ -226,6 +232,16 @@ final class SessionViewModel: ObservableObject {
             // Start playback and light
             try startPlaybackAndLight(url: assetURL, script: script)
             
+            // If cinematic mode, start audio energy tracking and attach to light controller
+            // TODO: Uncomment when Cinematic Mode is implemented in Phase 2
+            // if mode == .cinematic {
+            //     if let mixerNode = audioPlayback.getMainMixerNode() {
+            //         audioEnergyTracker.startTracking(mixerNode: mixerNode)
+            //     }
+            //     // Attach audio energy tracker to light controller for dynamic intensity modulation
+            //     lightController?.audioEnergyTracker = audioEnergyTracker
+            // }
+            
             state = .running
             sessionStartTime = Date()
             affirmationPlayed = false
@@ -257,6 +273,9 @@ final class SessionViewModel: ObservableObject {
         audioPlayback.pause()
         lightController?.pauseExecution()
         
+        // Note: Audio energy tracking continues during pause (tracker remains attached)
+        // This ensures smooth transition when resuming
+        
         state = .paused
         
         // Haptic feedback for pause (if enabled)
@@ -287,6 +306,11 @@ final class SessionViewModel: ObservableObject {
         
         audioPlayback.stop()
         lightController?.stop()
+        
+        // Stop audio energy tracking if active (cinematic mode)
+        // TODO: Uncomment when Cinematic Mode is implemented in Phase 2
+        // audioEnergyTracker.stopTracking()
+        // lightController?.audioEnergyTracker = nil
         
         // Stop microphone and fall detection
         microphoneAnalyzer?.stop()
@@ -417,6 +441,9 @@ final class SessionViewModel: ObservableObject {
             // Start LightScript execution
             let startTime = Date()
             lightController?.execute(script: initialScript, syncedTo: startTime)
+            
+            // Note: Cinematic mode is not supported for microphone sessions
+            // as it requires audio file playback with mixer node access
             
             state = .running
             sessionStartTime = Date()
@@ -639,11 +666,11 @@ final class SessionViewModel: ObservableObject {
         guard sessionDuration >= 300 else { return } // 5 Minuten
         
         // Nur wenn Affirmation-URL vorhanden
-        guard let affirmationURL = cachedPreferences.selectedAffirmationURL,
-              let audioPlayer = audioPlayback.audioPlayer else { return }
+        guard let affirmationURL = cachedPreferences.selectedAffirmationURL else { return }
         
-        // Affirmation abspielen
-        affirmationService.playAffirmation(url: affirmationURL, musicPlayer: audioPlayer)
+        // Affirmation abspielen (mit MixerNode für Ducking)
+        let mixerNode = audioPlayback.getMainMixerNode()
+        affirmationService.playAffirmation(url: affirmationURL, musicMixerNode: mixerNode)
         affirmationPlayed = true
         
         print("--- MindSync: Theta-Infiltration gestartet ---")

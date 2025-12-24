@@ -1,12 +1,33 @@
 import Foundation
 import AVFoundation
+import os.log
 
-/// Service for audio playback
+/// Service for audio playback using AVAudioEngine
 final class AudioPlaybackService: NSObject {
-    private(set) var audioPlayer: AVAudioPlayer?
+    private let logger = Logger(subsystem: "com.mindsync", category: "AudioPlaybackService")
+    
+    private var audioEngine: AVAudioEngine?
+    private var playerNode: AVAudioPlayerNode?
+    private var audioFile: AVAudioFile?
+    private var playbackTimer: Timer?
     
     /// Callback when playback completes
     var onPlaybackComplete: (() -> Void)?
+    
+    /// Deprecated: Use getMainMixerNode() instead for volume control
+    /// Kept for backward compatibility with AffirmationService
+    @available(*, deprecated, message: "Use getMainMixerNode() for volume control instead")
+    var audioPlayer: AVAudioPlayer? {
+        // Return nil to signal that AVAudioPlayer is no longer used
+        // AffirmationService should be updated to use MixerNode volume control
+        return nil
+    }
+    
+    /// Returns the main mixer node for installing taps or controlling volume
+    /// - Returns: The main mixer node of the audio engine, or nil if engine is not initialized
+    func getMainMixerNode() -> AVAudioMixerNode? {
+        return audioEngine?.mainMixerNode
+    }
 
     /// Plays an audio file
     /// - Parameter url: URL of the audio file
@@ -20,44 +41,179 @@ final class AudioPlaybackService: NSObject {
         try audioSession.setCategory(.playback, mode: .default, options: [])
         try audioSession.setActive(true)
         
-        let player = try AVAudioPlayer(contentsOf: url)
-        player.delegate = self
-        audioPlayer = player
-        audioPlayer?.prepareToPlay()
-        audioPlayer?.play()
+        // Create audio engine and player node
+        let engine = AVAudioEngine()
+        let node = AVAudioPlayerNode()
+        
+        // Attach player node to engine
+        engine.attach(node)
+        
+        // Load audio file
+        let file = try AVAudioFile(forReading: url)
+        audioFile = file
+        
+        // Connect player node to main mixer
+        engine.connect(node, to: engine.mainMixerNode, format: file.processingFormat)
+        
+        // Schedule file for playback
+        node.scheduleFile(file, at: nil) { [weak self] in
+            DispatchQueue.main.async {
+                self?.handlePlaybackComplete()
+            }
+        }
+        
+        // Start engine
+        try engine.start()
+        
+        // Start playback
+        node.play()
+        
+        // Store references
+        audioEngine = engine
+        playerNode = node
+        
+        // Track playback position for currentTime property
+        startPlaybackTimer()
+        
+        logger.info("Audio playback started: \(url.lastPathComponent, privacy: .public)")
     }
 
     /// Stops playback
     func stop() {
-        audioPlayer?.stop()
-        audioPlayer = nil
+        playbackTimer?.invalidate()
+        playbackTimer = nil
+        
+        playerNode?.stop()
+        
+        // Disconnect and detach nodes before stopping engine
+        if let engine = audioEngine, let node = playerNode {
+            engine.disconnectNodeInput(node)
+            engine.detach(node)
+        }
+        
+        audioEngine?.stop()
+        audioEngine = nil
+        playerNode = nil
+        audioFile = nil
+        
+        // Reset timing tracking
+        playbackStartTime = nil
+        accumulatedPauseTime = 0
+        lastPauseTime = nil
+        fileDuration = 0
+        
+        logger.info("Audio playback stopped")
     }
 
     /// Pauses playback
     func pause() {
-        audioPlayer?.pause()
+        guard let node = playerNode, node.isPlaying else { return }
+        
+        // Track pause time for accurate resume
+        lastPauseTime = Date()
+        
+        node.pause()
+        playbackTimer?.invalidate()
+        playbackTimer = nil
+        
+        logger.info("Audio playback paused")
     }
 
     /// Resumes playback
     func resume() {
-        audioPlayer?.play()
+        guard let engine = audioEngine, let node = playerNode, let file = audioFile else { return }
+        
+        // Calculate paused position
+        let pausedPosition = currentTime
+        
+        // If we were paused, we need to reschedule from the paused position
+        if let lastPause = lastPauseTime {
+            // Adjust accumulated pause time
+            let pauseDuration = Date().timeIntervalSince(lastPause)
+            accumulatedPauseTime += pauseDuration
+            lastPauseTime = nil
+        }
+        
+        // Engine might have stopped, restart if needed
+        if !engine.isRunning {
+            do {
+                try engine.start()
+            } catch {
+                logger.error("Failed to restart audio engine: \(error.localizedDescription, privacy: .public)")
+                return
+            }
+        }
+        
+        // If we need to resume from a specific position, schedule the remaining segment
+        if pausedPosition > 0 && pausedPosition < fileDuration {
+            let startFrame = AVAudioFramePosition(pausedPosition * file.fileFormat.sampleRate)
+            let remainingFrames = file.length - startFrame
+            
+            if remainingFrames > 0 {
+                node.scheduleSegment(
+                    file,
+                    startingFrame: startFrame,
+                    frameCount: AVAudioFrameCount(remainingFrames),
+                    at: nil
+                ) { [weak self] in
+                    DispatchQueue.main.async {
+                        self?.handlePlaybackComplete()
+                    }
+                }
+            }
+        }
+        
+        node.play()
+        startPlaybackTimer()
+        logger.info("Audio playback resumed from position: \(pausedPosition, privacy: .public) seconds")
     }
 
     /// Current playback time in seconds
     var currentTime: TimeInterval {
-        audioPlayer?.currentTime ?? 0
+        guard let startTime = playbackStartTime else { return 0 }
+        
+        let elapsed = Date().timeIntervalSince(startTime)
+        let totalElapsed = elapsed - accumulatedPauseTime
+        
+        // If currently paused, don't count time since pause
+        if let pauseTime = lastPauseTime {
+            let pauseDuration = Date().timeIntervalSince(pauseTime)
+            return max(0, totalElapsed - pauseDuration)
+        }
+        
+        // Clamp to file duration if available
+        if fileDuration > 0 {
+            return min(max(0, totalElapsed), fileDuration)
+        }
+        
+        return max(0, totalElapsed)
+    }
+    
+    private var playbackStartTime: Date?
+    private var accumulatedPauseTime: TimeInterval = 0
+    private var lastPauseTime: Date?
+    private var fileDuration: TimeInterval = 0
+    
+    private func startPlaybackTimer() {
+        // Track playback start time and file duration
+        playbackStartTime = Date()
+        
+        // Get file duration
+        if let file = audioFile {
+            fileDuration = Double(file.length) / file.fileFormat.sampleRate
+        }
     }
 
     /// Is playback active?
     var isPlaying: Bool {
-        audioPlayer?.isPlaying ?? false
+        return playerNode?.isPlaying ?? false
     }
-}
-
-// MARK: - AVAudioPlayerDelegate
-
-extension AudioPlaybackService: AVAudioPlayerDelegate {
-    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+    
+    /// Handles playback completion
+    private func handlePlaybackComplete() {
+        playbackTimer?.invalidate()
+        playbackTimer = nil
+        logger.info("Audio playback completed")
         onPlaybackComplete?()
     }
 }

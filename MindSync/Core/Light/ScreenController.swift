@@ -111,10 +111,39 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
             let lightColor = event.color ?? defaultColor
             let baseColor = lightColor.swiftUIColor
             
+            // Check if cinematic mode - apply dynamic intensity modulation
+            var baseIntensity = event.intensity
+            // TODO: Uncomment when Cinematic Mode is implemented in Phase 2
+            // if script.mode == .cinematic {
+            //     // Get audio energy and calculate dynamic intensity
+            //     let audioEnergy = audioEnergyTracker?.currentEnergy ?? 0.0
+            //     let baseFreq = script.targetFrequency
+            //     let elapsed = result.elapsed
+            //     
+            //     // Calculate cinematic intensity
+            //     let cinematicIntensity = EntrainmentEngine.calculateCinematicIntensity(
+            //         baseFrequency: baseFreq,
+            //         currentTime: elapsed,
+            //         audioEnergy: audioEnergy
+            //     )
+            //     
+            //     // Multiply base event intensity with cinematic modulation
+            //     baseIntensity = event.intensity * cinematicIntensity
+            // }
+            
+            // Create modified event with cinematic intensity for opacity calculation
+            let modifiedEvent = LightEvent(
+                timestamp: event.timestamp,
+                intensity: baseIntensity,
+                duration: event.duration,
+                waveform: event.waveform,
+                color: event.color
+            )
+            
             // Apply intensity as opacity for smoother transitions
             // Waveform affects how intensity is applied over time
             let opacity = calculateOpacity(
-                event: event,
+                event: modifiedEvent,
                 elapsed: result.elapsed - event.timestamp,
                 targetFrequency: script.targetFrequency
             )

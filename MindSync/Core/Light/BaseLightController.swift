@@ -21,6 +21,10 @@ class BaseLightController: NSObject {
     nonisolated(unsafe) private(set) var displayLink: CADisplayLink?
     @MainActor private(set) var currentEventIndex: Int = 0
     
+    /// AudioEnergyTracker for cinematic mode dynamic intensity modulation (optional)
+    /// TODO: Uncomment when AudioEnergyTracker is implemented in Phase 2
+    // weak var audioEnergyTracker: AudioEnergyTracker?
+    
     // MARK: - Display Link Management
     
     /// Sets up the display link with a weak target wrapper
