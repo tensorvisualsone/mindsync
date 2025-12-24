@@ -17,7 +17,7 @@ struct SessionView: View {
             if let screenController = viewModel.screenController, screenController.isActive {
                 screenController.currentColor
                     .ignoresSafeArea()
-                    .animation(.linear(duration: 0.016), value: screenController.currentColor)
+                    .animation(.linear(duration: 0.08), value: screenController.currentColor)
             } else {
                 Color.black.ignoresSafeArea()
             }
