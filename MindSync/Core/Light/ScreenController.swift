@@ -16,18 +16,14 @@ private final class WeakDisplayLinkTarget {
 }
 
 /// Controller for screen strobe control using fullscreen color flashing
-final class ScreenController: NSObject, LightControlling, ObservableObject {
+final class ScreenController: BaseLightController, LightControlling, ObservableObject {
     var source: LightSource { .screen }
     
     /// Published color for SwiftUI view
     @Published var currentColor: Color = .black
     @Published var isActive: Bool = false
     
-    private var currentScript: LightScript?
-    private var scriptStartTime: Date?
-    private var displayLink: CADisplayLink?
     private var displayLinkTarget: WeakDisplayLinkTarget?
-    private var currentEventIndex: Int = 0
     private var defaultColor: LightEvent.LightColor = .white
     
     override init() {
@@ -36,8 +32,7 @@ final class ScreenController: NSObject, LightControlling, ObservableObject {
     }
     
     deinit {
-        displayLink?.invalidate()
-        displayLink = nil
+        invalidateDisplayLink()
         displayLinkTarget = nil
     }
 
@@ -63,74 +58,30 @@ final class ScreenController: NSObject, LightControlling, ObservableObject {
     }
 
     func execute(script: LightScript, syncedTo startTime: Date) {
-        currentScript = script
-        scriptStartTime = startTime
-        currentEventIndex = 0
+        initializeScriptExecution(script: script, startTime: startTime)
 
         // CADisplayLink for precise timing with weak reference wrapper to avoid retain cycle
         let target = WeakDisplayLinkTarget(target: self)
         displayLinkTarget = target
-        displayLink = CADisplayLink(target: target, selector: #selector(WeakDisplayLinkTarget.updateScreen))
-        displayLink?.preferredFrameRateRange = CAFrameRateRange(
-            minimum: 60,
-            maximum: 120,
-            preferred: 120
-        )
-        displayLink?.add(to: .main, forMode: .common)
+        setupDisplayLink(target: target, selector: #selector(WeakDisplayLinkTarget.updateScreen))
     }
 
     func cancelExecution() {
-        displayLink?.invalidate()
-        displayLink = nil
+        invalidateDisplayLink()
         displayLinkTarget = nil
-        currentScript = nil
-        scriptStartTime = nil
-        currentEventIndex = 0
+        resetScriptExecution()
         currentColor = .black
     }
 
     fileprivate func updateScreen() {
-        guard let script = currentScript,
-              let startTime = scriptStartTime else {
-            currentColor = .black
-            return
-        }
-
-        let elapsed = Date().timeIntervalSince(startTime)
-
-        // Check if script is finished
-        if elapsed >= script.duration {
+        let result = findCurrentEvent()
+        
+        if result.isComplete {
             cancelExecution()
             return
         }
-
-        // Find current event
-        var currentEvent: LightEvent?
-        var foundEventIndex = currentEventIndex
         
-        // Skip past events to find current event using index tracking
-        while foundEventIndex < script.events.count {
-            let event = script.events[foundEventIndex]
-            let eventEnd = event.timestamp + event.duration
-            
-            if elapsed < eventEnd {
-                if elapsed >= event.timestamp {
-                    // Current event is active
-                    currentEvent = event
-                    currentEventIndex = foundEventIndex
-                } else {
-                    // Between events, turn off (black)
-                    currentColor = .black
-                }
-                break
-            } else {
-                // Move to next event
-                foundEventIndex += 1
-            }
-        }
-        
-        // Update display based on current event
-        if let event = currentEvent {
+        if let event = result.event, let script = currentScript {
             // Get color from event or use default
             let lightColor = event.color ?? defaultColor
             let baseColor = lightColor.swiftUIColor
@@ -139,18 +90,13 @@ final class ScreenController: NSObject, LightControlling, ObservableObject {
             // Waveform affects how intensity is applied over time
             let opacity = calculateOpacity(
                 event: event,
-                elapsed: elapsed - event.timestamp,
+                elapsed: result.elapsed - event.timestamp,
                 targetFrequency: script.targetFrequency
             )
             
             currentColor = baseColor.opacity(Double(opacity))
         } else {
-            // No active event, show black
-            currentColor = .black
-        }
-        
-        // If we've passed all events, turn off
-        if foundEventIndex >= script.events.count {
+            // Between events or no active event, show black
             currentColor = .black
         }
     }
