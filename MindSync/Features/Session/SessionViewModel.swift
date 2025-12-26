@@ -2,7 +2,9 @@ import Foundation
 import SwiftUI
 import Combine
 import MediaPlayer
+import AVFoundation
 import os.log
+import UIKit
 
 /// ViewModel for session view
 @MainActor
@@ -35,6 +37,9 @@ final class SessionViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var currentSession: Session?
     @Published var thermalWarningLevel: ThermalWarningLevel = .none
+    @Published var playbackProgress: Double = 0.0
+    @Published var playbackTimeLabel: String = "0:00 / 0:00"
+    @Published var affirmationStatus: String?
     
     // Screen controller for UI binding (only published when screen mode is active)
     var screenController: ScreenController? {
@@ -62,6 +67,14 @@ final class SessionViewModel: ObservableObject {
     
     // Flag to prevent re-entrancy in fall detection handling
     private var isHandlingFall = false
+    
+    // Lifecycle pause flags
+    private var pausedBySystemInterruption = false
+    private var pausedByRouteChange = false
+    private var pausedByBackground = false
+    private var pausedBySilence = false
+    private var microphoneSilenceStart: Date?
+    private var playbackProgressTimer: Timer?
     
     init() {
         self.audioAnalyzer = services.audioAnalyzer
@@ -104,11 +117,53 @@ final class SessionViewModel: ObservableObject {
             }
             .store(in: &cancellables)
         
+        NotificationCenter.default.publisher(for: .mindSyncTorchFailed)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.handleTorchFailureEvent()
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] notification in
+                self?.handleAudioSessionInterruption(notification)
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] notification in
+                self?.handleAudioRouteChange(notification)
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.handleAppDidEnterBackground()
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.handleAppWillEnterForeground()
+            }
+            .store(in: &cancellables)
+        
         // Listen to fall detection events
         fallDetector.fallEventPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.handleFallDetected()
+            }
+            .store(in: &cancellables)
+        
+        microphoneAnalyzer?.signalLevelPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] level in
+                self?.handleMicrophoneSignalLevel(level)
             }
             .store(in: &cancellables)
     }
@@ -144,22 +199,208 @@ final class SessionViewModel: ObservableObject {
             return
         }
         
-        // Stop flashlight
-        lightController?.stop()
+        markSessionAsThermallyLimited()
+        switchToScreenController(using: currentScript, session: session)
+    }
+    
+    private func handleTorchFailureEvent() {
+        guard state == .running,
+              let currentScript = currentScript,
+              let session = currentSession,
+              lightController?.source == .flashlight else {
+            return
+        }
         
-        // Switch to screen controller
+        thermalWarningLevel = .critical
+        markSessionAsThermallyLimited()
+        switchToScreenController(using: currentScript, session: session)
+    }
+    
+    private func handleAudioSessionInterruption(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
+            return
+        }
+        
+        switch type {
+        case .began:
+            guard state == .running else { return }
+            pausedBySystemInterruption = true
+            pauseSession()
+        case .ended:
+            guard pausedBySystemInterruption else { return }
+            pausedBySystemInterruption = false
+            if state == .paused {
+                if let optionValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt {
+                    let options = AVAudioSession.InterruptionOptions(rawValue: optionValue)
+                    if options.contains(.shouldResume) {
+                        resumeSession()
+                    }
+                } else {
+                    resumeSession()
+                }
+            }
+        @unknown default:
+            break
+        }
+    }
+    
+    private func handleAudioRouteChange(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
+              let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else {
+            return
+        }
+        
+        switch reason {
+        case .oldDeviceUnavailable:
+            guard state == .running else { return }
+            pausedByRouteChange = true
+            pauseSession()
+        case .newDeviceAvailable:
+            guard pausedByRouteChange else { return }
+            pausedByRouteChange = false
+            if state == .paused {
+                resumeSession()
+            }
+        default:
+            break
+        }
+    }
+    
+    private func handleAppDidEnterBackground() {
+        guard state == .running else { return }
+        pausedByBackground = true
+        pauseSession()
+    }
+    
+    private func handleAppWillEnterForeground() {
+        guard pausedByBackground else { return }
+        pausedByBackground = false
+        if state == .paused {
+            resumeSession()
+        }
+    }
+    
+    private func handleMicrophoneSignalLevel(_ level: Float) {
+        guard currentSession?.audioSource == .microphone,
+              state == .running else {
+            microphoneSilenceStart = nil
+            pausedBySilence = false
+            return
+        }
+        
+        let silenceThreshold: Float = 0.02
+        let autoPauseDelay: TimeInterval = 2.0
+        let autoStopDelay: TimeInterval = 12.0
+        
+        if level < silenceThreshold {
+            if microphoneSilenceStart == nil {
+                microphoneSilenceStart = Date()
+            }
+            
+            guard let silenceStart = microphoneSilenceStart else { return }
+            let elapsed = Date().timeIntervalSince(silenceStart)
+            
+            if elapsed >= autoPauseDelay, !pausedBySilence {
+                pausedBySilence = true
+                lightController?.pauseExecution()
+            }
+            
+            if elapsed >= autoStopDelay {
+                microphoneSilenceStart = nil
+                pausedBySilence = false
+                errorMessage = NSLocalizedString("session.microphone.noSignal", comment: "")
+                stopSession()
+            }
+        } else {
+            microphoneSilenceStart = nil
+            if pausedBySilence {
+                pausedBySilence = false
+                lightController?.resumeExecution()
+            }
+        }
+    }
+    
+    private func switchToScreenController(using script: LightScript, session: Session) {
+        lightController?.stop()
         lightController = services.screenController
         
         do {
             try lightController?.start()
             
             // Resume from current session position using original session start time
-            lightController?.execute(script: currentScript, syncedTo: session.startedAt)
+            lightController?.execute(script: script, syncedTo: session.startedAt)
             
         } catch {
             // If screen controller also fails, stop the session
             stopSession()
         }
+    }
+    
+    private func markSessionAsThermallyLimited() {
+        if var session = currentSession {
+            session.thermalWarningOccurred = true
+            if session.endReason == nil {
+                session.endReason = .thermalShutdown
+            }
+            currentSession = session
+        }
+    }
+    
+    private func updateAffirmationStatusForCurrentPreferences() {
+        guard cachedPreferences.selectedAffirmationURL != nil,
+              cachedPreferences.preferredMode == .theta else {
+            affirmationStatus = nil
+            return
+        }
+        
+        if affirmationPlayed {
+            affirmationStatus = NSLocalizedString("session.affirmation.playing", comment: "")
+        } else {
+            affirmationStatus = NSLocalizedString("session.affirmation.waiting", comment: "")
+        }
+    }
+    
+    private func startPlaybackProgressUpdates(for duration: TimeInterval) {
+        stopPlaybackProgressUpdates(reset: false)
+        guard duration > 0 else {
+            playbackProgress = 0
+            playbackTimeLabel = "0:00 / 0:00"
+            return
+        }
+        
+        updatePlaybackProgress(duration: duration)
+        
+        let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
+            self?.updatePlaybackProgress(duration: duration)
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        playbackProgressTimer = timer
+    }
+    
+    private func stopPlaybackProgressUpdates(reset: Bool = true) {
+        playbackProgressTimer?.invalidate()
+        playbackProgressTimer = nil
+        if reset {
+            playbackProgress = 0
+            playbackTimeLabel = "0:00 / 0:00"
+        }
+    }
+    
+    private func updatePlaybackProgress(duration: TimeInterval) {
+        let current = audioPlayback.currentTime
+        let clampedDuration = max(duration, 0.1)
+        playbackProgress = min(1.0, max(0.0, current / clampedDuration))
+        playbackTimeLabel = "\(formatTime(current)) / \(formatTime(duration))"
+    }
+    
+    private func formatTime(_ value: TimeInterval) -> String {
+        let totalSeconds = Int(max(0, value))
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%d:%02d", minutes, seconds)
     }
     
     deinit {
@@ -184,6 +425,7 @@ final class SessionViewModel: ObservableObject {
         
         logger.info("Starting session with local media item")
         state = .analyzing
+        stopPlaybackProgressUpdates()
         
         // Refresh cached preferences to ensure we use current user settings
         cachedPreferences = UserPreferences.load()
@@ -198,16 +440,12 @@ final class SessionViewModel: ObservableObject {
         
         do {
             // Check if item can be analyzed
-            guard await services.mediaLibraryService.canAnalyze(item: mediaItem),
-                  let assetURL = services.mediaLibraryService.getAssetURL(for: mediaItem) else {
-                errorMessage = NSLocalizedString("error.drmProtected", comment: "")
-                state = .error
-                return
-            }
+            let assetURL = try await services.mediaLibraryService.assetURLForAnalysis(of: mediaItem)
             
             // Analyze audio
             let track = try await audioAnalyzer.analyze(url: assetURL, mediaItem: mediaItem)
             currentTrack = track
+            startPlaybackProgressUpdates(for: track.duration)
             
             // Generate LightScript using cached preferences
             let mode = cachedPreferences.preferredMode
@@ -232,6 +470,7 @@ final class SessionViewModel: ObservableObject {
                 trackBPM: track.bpm
             )
             currentSession = session
+            updateAffirmationStatusForCurrentPreferences()
             
             // Set custom color RGB if screen mode and custom color is selected
             if lightSource == .screen, screenColor == .custom,
@@ -273,6 +512,7 @@ final class SessionViewModel: ObservableObject {
             // to ensure the error state from the original failure is preserved
             audioPlayback.stop()
             lightController?.stop()
+            stopPlaybackProgressUpdates()
         }
     }
     
@@ -354,9 +594,16 @@ final class SessionViewModel: ObservableObject {
         microphoneStartTime = nil
         sessionStartTime = nil
         affirmationPlayed = false
+        pausedBySystemInterruption = false
+        pausedByRouteChange = false
+        pausedByBackground = false
+        pausedBySilence = false
+        microphoneSilenceStart = nil
         
         // Stop affirmation if playing
         affirmationService.stop()
+        stopPlaybackProgressUpdates()
+        affirmationStatus = nil
         
         // Haptic feedback for session stop (if enabled)
         if cachedPreferences.hapticFeedbackEnabled {
@@ -455,6 +702,7 @@ final class SessionViewModel: ObservableObject {
             )
             currentSession = session
             microphoneStartTime = Date()
+            updateAffirmationStatusForCurrentPreferences()
             
             // Set custom color RGB if screen mode and custom color is selected
             if lightSource == .screen, mode != .cinematic, screenColor == .custom,
@@ -638,6 +886,12 @@ final class SessionViewModel: ObservableObject {
         fallDetector.stopMonitoring()
         microphoneBeatTimestamps.removeAll()
         microphoneStartTime = nil
+        pausedBySystemInterruption = false
+        pausedByRouteChange = false
+        pausedByBackground = false
+        pausedBySilence = false
+        microphoneSilenceStart = nil
+        affirmationStatus = nil
         
         // Invalidate affirmation timer
         affirmationTimer?.invalidate()
@@ -714,6 +968,7 @@ final class SessionViewModel: ObservableObject {
         let mixerNode = audioPlayback.getMainMixerNode()
         affirmationService.playAffirmation(url: affirmationURL, musicMixerNode: mixerNode)
         affirmationPlayed = true
+        affirmationStatus = NSLocalizedString("session.affirmation.playing", comment: "")
         
         print("--- MindSync: Theta-Infiltration gestartet ---")
     }

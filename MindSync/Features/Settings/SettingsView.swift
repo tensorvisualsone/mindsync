@@ -1,9 +1,12 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Settings view for user preferences
 struct SettingsView: View {
     @State private var preferences: UserPreferences
     @Environment(\.dismiss) private var dismiss
+    @State private var showingAffirmationImporter = false
+    @State private var showingHistory = false
     
     init() {
         _preferences = State(initialValue: UserPreferences.load())
@@ -103,6 +106,62 @@ struct SettingsView: View {
                 }
                 
                 Section {
+                    if let url = preferences.selectedAffirmationURL {
+                        Text(url.lastPathComponent)
+                            .font(AppConstants.Typography.body)
+                            .foregroundColor(.mindSyncPrimaryText)
+                    } else {
+                        Text(NSLocalizedString("settings.affirmationNone", comment: ""))
+                            .font(AppConstants.Typography.caption)
+                            .foregroundColor(.mindSyncSecondaryText)
+                    }
+                    
+                    Button(NSLocalizedString("settings.affirmationSelect", comment: "")) {
+                        showingAffirmationImporter = true
+                    }
+                    
+                    if preferences.selectedAffirmationURL != nil {
+                        Button(NSLocalizedString("settings.affirmationRemove", comment: ""), role: .destructive) {
+                            preferences.selectedAffirmationURL = nil
+                            preferences.save()
+                        }
+                    }
+                } header: {
+                    Text(NSLocalizedString("settings.affirmations", comment: ""))
+                } footer: {
+                    Text(NSLocalizedString("settings.affirmationsDescription", comment: ""))
+                }
+                
+                Section {
+                    Picker(NSLocalizedString("settings.maxDuration", comment: ""), selection: Binding(
+                        get: { preferences.maxSessionDuration },
+                        set: { newValue in
+                            preferences.maxSessionDuration = newValue
+                            preferences.save()
+                        }
+                    )) {
+                        Text(NSLocalizedString("settings.duration.unlimited", comment: ""))
+                            .tag(TimeInterval?.none)
+                        Text("5 min").tag(TimeInterval?(300))
+                        Text("10 min").tag(TimeInterval?(600))
+                        Text("15 min").tag(TimeInterval?(900))
+                    }
+                    .pickerStyle(.menu)
+                } header: {
+                    Text(NSLocalizedString("settings.session", comment: ""))
+                } footer: {
+                    Text(NSLocalizedString("settings.sessionDescription", comment: ""))
+                }
+                
+                Section {
+                    Button {
+                        showingHistory = true
+                    } label: {
+                        Label(NSLocalizedString("settings.history", comment: ""), systemImage: "clock.arrow.circlepath")
+                    }
+                }
+                
+                Section {
                     HStack {
                         Text(NSLocalizedString("settings.defaultIntensity", comment: ""))
                             .font(AppConstants.Typography.body)
@@ -141,6 +200,16 @@ struct SettingsView: View {
                 }
             }
         }
+        .navigationDestination(isPresented: $showingHistory) {
+            SessionHistoryView()
+        }
+        .fileImporter(isPresented: $showingAffirmationImporter, allowedContentTypes: [.audio]) { result in
+            if case let .success(url) = result {
+                preferences.selectedAffirmationURL = url
+                preferences.save()
+            }
+        }
+        .mindSyncBackground()
     }
 }
 

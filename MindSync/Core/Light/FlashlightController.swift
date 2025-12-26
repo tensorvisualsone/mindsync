@@ -1,5 +1,10 @@
 import Foundation
 import AVFoundation
+import os.log
+
+extension Notification.Name {
+    static let mindSyncTorchFailed = Notification.Name("com.mindsync.notifications.torchFailed")
+}
 
 /// Weak reference wrapper for CADisplayLink target to avoid retain cycles
 private final class WeakDisplayLinkTarget {
@@ -26,6 +31,8 @@ final class FlashlightController: BaseLightController, LightControlling {
     private var isLocked = false
     private var displayLinkTarget: WeakDisplayLinkTarget?
     private let thermalManager: ThermalManager
+    private let logger = Logger(subsystem: "com.mindsync", category: "FlashlightController")
+    private var torchFailureNotified = false
 
     init(thermalManager: ThermalManager) {
         self.thermalManager = thermalManager
@@ -37,18 +44,23 @@ final class FlashlightController: BaseLightController, LightControlling {
         guard let device = device, device.hasTorch else {
             throw LightControlError.torchUnavailable
         }
-
-        var didLockConfiguration = false
-        defer {
-            isLocked = didLockConfiguration
+        
+        let attempts = 3
+        
+        for attempt in 1...attempts {
+            do {
+                try device.lockForConfiguration()
+                isLocked = true
+                torchFailureNotified = false
+                return
+            } catch {
+                logger.error("Torch lock failed (attempt \(attempt)): \(error.localizedDescription, privacy: .public)")
+                // Small backoff before retrying
+                Thread.sleep(forTimeInterval: 0.04 * Double(attempt))
+            }
         }
-
-        do {
-            try device.lockForConfiguration()
-            didLockConfiguration = true
-        } catch {
-            throw LightControlError.configurationFailed
-        }
+        
+        throw LightControlError.configurationFailed
     }
 
     func stop() {
@@ -57,11 +69,17 @@ final class FlashlightController: BaseLightController, LightControlling {
             device.unlockForConfiguration()
             isLocked = false
         }
+        torchFailureNotified = false
         cancelExecution()
     }
 
     func setIntensity(_ intensity: Float) {
         guard let device = device, isLocked else { return }
+        
+        if thermalManager.maxFlashlightIntensity <= 0 {
+            handleTorchSystemShutdown(error: LightControlError.thermalShutdown)
+            return
+        }
         
         // Gamma 2.2 Korrektur für natürliche Wahrnehmung
         // Das menschliche Auge funktioniert logarithmisch, daher wirken 50% LED-Power
@@ -72,7 +90,15 @@ final class FlashlightController: BaseLightController, LightControlling {
         let maxIntensity = thermalManager.maxFlashlightIntensity
         let clampedIntensity = max(0.0, min(maxIntensity, perceptionCorrected))
         
-        try? device.setTorchModeOn(level: clampedIntensity)
+        do {
+            if clampedIntensity <= 0 {
+                device.torchMode = .off
+            } else {
+                try device.setTorchModeOn(level: clampedIntensity)
+            }
+        } catch {
+            handleTorchSystemShutdown(error: error)
+        }
     }
 
     func setColor(_ color: LightEvent.LightColor) {
@@ -146,5 +172,27 @@ final class FlashlightController: BaseLightController, LightControlling {
             // Between events or no active event, turn off
             setIntensity(0.0)
         }
+    }
+    
+    // MARK: - Helpers
+    
+    private func handleTorchSystemShutdown(error: Error?) {
+        guard !torchFailureNotified else { return }
+        torchFailureNotified = true
+        
+        if let error {
+            logger.error("Torch shutdown detected: \(error.localizedDescription, privacy: .public)")
+        } else {
+            logger.error("Torch shutdown detected without explicit error")
+        }
+        
+        if let device = device, isLocked {
+            device.torchMode = .off
+            device.unlockForConfiguration()
+            isLocked = false
+        }
+        
+        cancelExecution()
+        NotificationCenter.default.post(name: .mindSyncTorchFailed, object: error)
     }
 }

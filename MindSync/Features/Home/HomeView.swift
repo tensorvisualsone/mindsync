@@ -12,59 +12,45 @@ struct HomeView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: AppConstants.Spacing.sectionSpacing) {
-                Text("MindSync")
-                    .font(AppConstants.Typography.largeTitle)
-                    .accessibilityIdentifier("home.title")
-
-                Text(NSLocalizedString("home.subtitle", comment: ""))
-                    .font(AppConstants.Typography.body)
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.mindSyncSecondaryText)
-                    .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
-
-                Button(NSLocalizedString("home.startSession", comment: "")) {
-                    HapticFeedback.light()
-                    showingSourceSelection = true
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .accessibilityLabel(NSLocalizedString("home.startSession", comment: ""))
-                .accessibilityHint(NSLocalizedString("home.startSessionHint", comment: "Accessibility hint: Opens the audio source selection"))
-                .accessibilityIdentifier("home.startSessionButton")
-                
-                // Show current mode (tappable)
-                Button(action: {
-                    HapticFeedback.light()
-                    showingModeSelection = true
-                }) {
+            ScrollView {
+                VStack(spacing: AppConstants.Spacing.sectionSpacing) {
                     VStack(spacing: AppConstants.Spacing.sm) {
-                        Text(NSLocalizedString("home.currentMode", comment: "Label for displaying the currently selected mode on the home screen"))
-                            .font(AppConstants.Typography.caption)
+                        Text("MindSync")
+                            .font(AppConstants.Typography.largeTitle)
+                            .accessibilityIdentifier("home.title")
+                        
+                        Text(NSLocalizedString("home.subtitle", comment: ""))
+                            .font(AppConstants.Typography.body)
+                            .multilineTextAlignment(.center)
                             .foregroundColor(.mindSyncSecondaryText)
-                        HStack(spacing: AppConstants.Spacing.sm) {
-                            Image(systemName: preferences.preferredMode.iconName)
-                                .font(.system(size: AppConstants.IconSize.medium))
-                                .foregroundColor(preferences.preferredMode.themeColor)
-                            Text(preferences.preferredMode.displayName)
-                                .font(AppConstants.Typography.headline)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: AppConstants.IconSize.small))
-                                .foregroundColor(.mindSyncSecondaryText)
-                        }
+                            .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
                     }
-                    .padding(AppConstants.Spacing.md)
-                    .frame(maxWidth: .infinity)
-                    .background(Color.mindSyncCardBackground())
-                    .cornerRadius(AppConstants.CornerRadius.card)
+                    
+                    LargeButton(
+                        title: NSLocalizedString("home.startSession", comment: ""),
+                        subtitle: NSLocalizedString("home.startSessionHint", comment: ""),
+                        systemImage: "sparkles",
+                        style: .filled(.mindSyncAccent)
+                    ) {
+                        HapticFeedback.light()
+                        showingSourceSelection = true
+                    }
+                    .accessibilityIdentifier("home.startSessionButton")
+                    
+                    HomeStatusGrid(
+                        preferences: preferences,
+                        modeAction: {
+                            HapticFeedback.light()
+                            showingModeSelection = true
+                        },
+                        settingsAction: {
+                            HapticFeedback.light()
+                            showingSettings = true
+                        }
+                    )
                 }
-                .buttonStyle(.plain)
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(String(format: NSLocalizedString("modeSelection.currentMode", comment: ""), preferences.preferredMode.displayName))
-                .accessibilityHint(NSLocalizedString("modeSelection.changeMode", comment: ""))
+                .padding(AppConstants.Spacing.md)
             }
-            .padding(AppConstants.Spacing.md)
             .navigationTitle(NSLocalizedString("common.home", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -139,6 +125,66 @@ struct HomeView: View {
                     }
                     .padding()
                 }
+            }
+        }
+        .mindSyncBackground()
+    }
+}
+
+private struct HomeStatusGrid: View {
+    let preferences: UserPreferences
+    let modeAction: () -> Void
+    let settingsAction: () -> Void
+    
+    var body: some View {
+        VStack(spacing: AppConstants.Spacing.md) {
+            Button(action: modeAction) {
+                VStack(alignment: .leading, spacing: AppConstants.Spacing.sm) {
+                    Text(NSLocalizedString("home.currentMode", comment: ""))
+                        .font(AppConstants.Typography.caption)
+                        .foregroundColor(.mindSyncSecondaryText)
+                    HStack {
+                        Label(preferences.preferredMode.displayName, systemImage: preferences.preferredMode.iconName)
+                            .font(AppConstants.Typography.headline)
+                            .foregroundColor(.white)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.mindSyncSecondaryText)
+                    }
+                }
+                .padding()
+                .mindSyncCardStyle()
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(String(format: NSLocalizedString("modeSelection.currentMode", comment: ""), preferences.preferredMode.displayName))
+            .accessibilityHint(NSLocalizedString("modeSelection.changeMode", comment: ""))
+            
+            HStack(spacing: AppConstants.Spacing.md) {
+                VStack(alignment: .leading, spacing: AppConstants.Spacing.xs) {
+                    Text(NSLocalizedString("settings.lightSource", comment: ""))
+                        .font(AppConstants.Typography.caption)
+                        .foregroundColor(.mindSyncSecondaryText)
+                    Text(preferences.preferredLightSource.displayName)
+                        .font(AppConstants.Typography.headline)
+                        .foregroundColor(.white)
+                }
+                .padding()
+                .mindSyncCardStyle()
+                
+                Button(action: settingsAction) {
+                    VStack(alignment: .leading, spacing: AppConstants.Spacing.xs) {
+                        Text(NSLocalizedString("settings.title", comment: ""))
+                            .font(AppConstants.Typography.caption)
+                            .foregroundColor(.mindSyncSecondaryText)
+                        Text(NSLocalizedString("common.open", comment: ""))
+                            .font(AppConstants.Typography.headline)
+                            .foregroundColor(.white)
+                    }
+                    .padding()
+                    .mindSyncCardStyle()
+                }
+                .buttonStyle(.plain)
             }
         }
     }

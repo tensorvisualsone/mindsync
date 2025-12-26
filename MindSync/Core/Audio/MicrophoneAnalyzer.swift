@@ -34,6 +34,7 @@ final class MicrophoneAnalyzer {
     // Publishers
     let beatEventPublisher = PassthroughSubject<TimeInterval, Never>()
     let bpmPublisher = PassthroughSubject<Double, Never>()
+    let signalLevelPublisher = PassthroughSubject<Float, Never>()
     
     // Services
     private let tempoEstimator = TempoEstimator()
@@ -42,6 +43,10 @@ final class MicrophoneAnalyzer {
     // State
     private var isRunning = false
     private var hasPermission = false
+    private var noiseFloor: Float = 0.005
+    private let noiseFloorSmoothing: Float = 0.005
+    private let noiseCompensationFactor: Float = 6.0
+    private let levelNormalizationFactor: Float = 12.0
     
     init?() {
         // Initialize FFT setup
@@ -124,6 +129,7 @@ final class MicrophoneAnalyzer {
         spectralFluxValues.removeAll()
         lastBeatTime = 0
         averageEnergy = 0.0 // Reset Moving Average
+        noiseFloor = 0.005
         
         logger.info("Microphone analysis started")
     }
@@ -190,6 +196,11 @@ final class MicrophoneAnalyzer {
             // Perform FFT
             let magnitude = performFFT(on: frame)
             
+            let frameRMS = calculateRMS(frame)
+            let normalizedLevel = min(1.0, max(0.0, frameRMS * levelNormalizationFactor))
+            signalLevelPublisher.send(normalizedLevel)
+            noiseFloor = (noiseFloor * (1.0 - noiseFloorSmoothing)) + (frameRMS * noiseFloorSmoothing)
+            
             // Calculate spectral flux
             var spectralFlux: Float = 0
             for i in 0..<min(magnitude.count, previousMagnitude.count) {
@@ -199,7 +210,8 @@ final class MicrophoneAnalyzer {
                 }
             }
             
-            spectralFluxValues.append(spectralFlux)
+            let adjustedFlux = max(0, spectralFlux - (noiseFloor * noiseCompensationFactor))
+            spectralFluxValues.append(adjustedFlux)
             
             // Limit spectral flux history to prevent unbounded memory growth
             // Keep last 1000 values (approximately 23 seconds at 512 hop size @ 44.1kHz)
@@ -211,14 +223,14 @@ final class MicrophoneAnalyzer {
             
             // Moving Average für dynamischen Threshold (wie von Gemini empfohlen)
             // Der Threshold passt sich kontinuierlich an die aktuelle Lautstärke an
-            averageEnergy = (averageEnergy * smoothingFactor) + (spectralFlux * (1.0 - smoothingFactor))
+            averageEnergy = (averageEnergy * smoothingFactor) + (adjustedFlux * (1.0 - smoothingFactor))
             
             // Dynamischer Threshold basierend auf Moving Average
             // Funktioniert besser bei Songs, die leise anfangen und laut enden
             let dynamicThreshold = averageEnergy * thresholdMultiplier
             
             // Detect beats mit dynamischem Threshold
-            if spectralFlux > dynamicThreshold {
+            if adjustedFlux > dynamicThreshold {
                 let currentTime = Date().timeIntervalSince(startTime ?? Date())
                 
                 // Prevent duplicate beats (minimum interval: ~100ms)
@@ -293,6 +305,12 @@ final class MicrophoneAnalyzer {
         }
         
         return magnitude
+    }
+    
+    private func calculateRMS(_ frame: [Float]) -> Float {
+        var result: Float = 0
+        vDSP_measqv(frame, 1, &result, vDSP_Length(frame.count))
+        return sqrt(result)
     }
     
     /// Current estimated BPM

@@ -68,83 +68,42 @@ struct SessionView: View {
     
     private var runningSessionView: some View {
         VStack(spacing: AppConstants.Spacing.sectionSpacing) {
-            // Track info
-            if let track = viewModel.currentTrack {
-                VStack(spacing: AppConstants.Spacing.sm) {
-                    Text(track.title)
-                        .font(AppConstants.Typography.title2)
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
-                    
-                    if let artist = track.artist {
-                        Text(artist)
-                            .font(AppConstants.Typography.subheadline)
-                            .foregroundStyle(.white.opacity(AppConstants.Opacity.secondary))
-                            .multilineTextAlignment(.center)
-                    }
-                    
-                    if let script = viewModel.currentScript {
-                        Text("\(Int(script.targetFrequency)) Hz • \(Int(track.bpm)) BPM")
-                            .font(AppConstants.Typography.caption)
-                            .foregroundStyle(.white.opacity(AppConstants.Opacity.tertiary))
-                            .padding(.top, AppConstants.Spacing.xs)
-                    }
-                }
-                .multilineTextAlignment(.center)
+            if let session = viewModel.currentSession {
+                SessionTrackInfoView(
+                    track: viewModel.currentTrack,
+                    script: viewModel.currentScript,
+                    session: session
+                )
+                .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
+            }
+            
+            if shouldShowPlaybackProgress {
+                playbackProgressSection
+                    .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
+            }
+            
+            if let affirmationStatus = viewModel.affirmationStatus {
+                AffirmationStatusView(status: affirmationStatus)
+                    .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
             }
             
             Spacer()
             
-            // Pause/Resume and Stop buttons
-            HStack(spacing: AppConstants.Spacing.elementSpacing) {
-                // Pause/Resume button
-                Button(action: {
+            SessionControlsView(
+                state: viewModel.state,
+                onTogglePause: {
                     if viewModel.state == .running {
                         viewModel.pauseSession()
                     } else if viewModel.state == .paused {
                         viewModel.resumeSession()
                     }
-                }) {
-                    VStack(spacing: AppConstants.Spacing.sm) {
-                        Image(systemName: viewModel.state == .running ? "pause.circle.fill" : "play.circle.fill")
-                            .font(.system(size: AppConstants.IconSize.large))
-                        Text(viewModel.state == .running ? NSLocalizedString("session.pause", comment: "") : NSLocalizedString("session.resume", comment: ""))
-                            .font(AppConstants.Typography.headline)
-                    }
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, AppConstants.Spacing.lg)
-                    .frame(minHeight: AppConstants.TouchTarget.large)
-                    .background(Color.mindSyncButtonBackground(color: .blue))
-                    .cornerRadius(AppConstants.CornerRadius.button)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(viewModel.state == .running ? NSLocalizedString("session.pauseAccessibility", comment: "") : NSLocalizedString("session.resumeAccessibility", comment: ""))
-                .accessibilityIdentifier("session.pauseResumeButton")
-                
-                // Stop button (large, for easy operation)
-                Button(action: {
+                },
+                onStop: {
                     viewModel.stopSession()
                     dismiss()
-                }) {
-                VStack(spacing: AppConstants.Spacing.sm) {
-                    Image(systemName: "stop.circle.fill")
-                        .font(.system(size: AppConstants.IconSize.extraLarge))
-                    Text(NSLocalizedString("session.stop", comment: ""))
-                        .font(AppConstants.Typography.headline)
                 }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, AppConstants.Spacing.lg)
-                .frame(minHeight: AppConstants.TouchTarget.large)
-                .background(Color.mindSyncButtonBackground(color: .red))
-                .cornerRadius(AppConstants.CornerRadius.button)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("session.stopButton")
-                .accessibilityLabel(NSLocalizedString("session.stopAccessibility", comment: ""))
-            }
-            .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
+            )
+            .accessibilityIdentifier("session.controls")
             
             Spacer()
         }
@@ -208,6 +167,115 @@ struct SessionView: View {
             .accessibilityLabel(NSLocalizedString("common.back", comment: ""))
         }
         .padding(AppConstants.Spacing.md)
+    }
+}
+
+private extension SessionView {
+    var shouldShowPlaybackProgress: Bool {
+        viewModel.currentSession?.audioSource == .localFile
+    }
+    
+    var playbackProgressSection: some View {
+        VStack(alignment: .leading, spacing: AppConstants.Spacing.xs) {
+            ProgressView(value: viewModel.playbackProgress)
+                .progressViewStyle(.linear)
+                .tint(.mindSyncAccent)
+            
+            Text(viewModel.playbackTimeLabel)
+                .font(AppConstants.Typography.caption)
+                .foregroundStyle(.white.opacity(AppConstants.Opacity.secondary))
+        }
+    }
+}
+
+private struct SessionTrackInfoView: View {
+    let track: AudioTrack?
+    let script: LightScript?
+    let session: Session
+    
+    var body: some View {
+        VStack(spacing: AppConstants.Spacing.sm) {
+            HStack(spacing: AppConstants.Spacing.sm) {
+                Image(systemName: session.audioSource == .microphone ? "waveform" : "music.note")
+                    .font(.system(size: AppConstants.IconSize.medium, weight: .semibold))
+                    .foregroundColor(session.audioSource == .microphone ? .mindSyncWarning : .mindSyncAccent)
+                
+                VStack(alignment: .leading, spacing: AppConstants.Spacing.xs) {
+                    Text(track?.title ?? NSLocalizedString("session.liveAudio", comment: ""))
+                        .font(AppConstants.Typography.title2)
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                    
+                    if let artist = track?.artist {
+                        Text(artist)
+                            .font(AppConstants.Typography.subheadline)
+                            .foregroundStyle(.white.opacity(AppConstants.Opacity.secondary))
+                    } else if session.audioSource == .microphone {
+                        Text(NSLocalizedString("session.microphone", comment: ""))
+                            .font(AppConstants.Typography.subheadline)
+                            .foregroundStyle(.white.opacity(AppConstants.Opacity.secondary))
+                    }
+                }
+                
+                Spacer()
+            }
+            
+            HStack(spacing: AppConstants.Spacing.sm) {
+                ModeChip(
+                    icon: session.mode.iconName,
+                    text: session.mode.displayName,
+                    color: session.mode.themeColor
+                )
+                
+                if let script = script, let bpm = track?.bpm {
+                    ModeChip(
+                        icon: "metronome.fill",
+                        text: "\(Int(script.targetFrequency)) Hz • \(Int(bpm)) BPM",
+                        color: .mint.opacity(0.8)
+                    )
+                }
+                
+                Spacer(minLength: 0)
+            }
+        }
+        .mindSyncCardStyle()
+    }
+}
+
+private struct ModeChip: View {
+    let icon: String
+    let text: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: AppConstants.Spacing.xs) {
+            Image(systemName: icon)
+                .font(.system(size: AppConstants.IconSize.small, weight: .semibold))
+            Text(text)
+                .font(AppConstants.Typography.caption)
+        }
+        .padding(.vertical, AppConstants.Spacing.xs)
+        .padding(.horizontal, AppConstants.Spacing.sm)
+        .background(color.opacity(0.15))
+        .foregroundColor(color)
+        .clipShape(RoundedRectangle(cornerRadius: AppConstants.CornerRadius.small, style: .continuous))
+    }
+}
+
+private struct AffirmationStatusView: View {
+    let status: String
+    
+    var body: some View {
+        HStack(spacing: AppConstants.Spacing.sm) {
+            Image(systemName: "waveform.and.mic")
+                .foregroundColor(.mindSyncInfo)
+            Text(status)
+                .font(AppConstants.Typography.caption)
+                .foregroundStyle(.white)
+            Spacer()
+        }
+        .padding(AppConstants.Spacing.md)
+        .mindSyncCardStyle()
     }
 }
 

@@ -215,6 +215,11 @@ final class AudioPlaybackService: NSObject {
         return playerNode?.isPlaying ?? false
     }
     
+    /// Total duration of the currently loaded file
+    var duration: TimeInterval {
+        fileDuration
+    }
+    
     /// Handles playback completion
     private func handlePlaybackComplete() {
         playbackTimer?.invalidate()
