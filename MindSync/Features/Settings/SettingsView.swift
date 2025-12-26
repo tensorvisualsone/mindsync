@@ -7,6 +7,8 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingAffirmationImporter = false
     @State private var showingHistory = false
+    @State private var importError: Error?
+    @State private var showingImportError = false
     
     init() {
         _preferences = State(initialValue: UserPreferences.load())
@@ -204,10 +206,19 @@ struct SettingsView: View {
             SessionHistoryView()
         }
         .fileImporter(isPresented: $showingAffirmationImporter, allowedContentTypes: [.audio]) { result in
-            if case let .success(url) = result {
+            switch result {
+            case .success(let url):
                 preferences.selectedAffirmationURL = url
                 preferences.save()
+            case .failure(let error):
+                importError = error
+                showingImportError = true
             }
+        }
+        .alert(NSLocalizedString("common.error", comment: ""), isPresented: $showingImportError, presenting: importError) { _ in
+            Button(NSLocalizedString("common.ok", comment: ""), role: .cancel) { }
+        } message: { error in
+            Text(NSLocalizedString("settings.importError", comment: "") + ": " + error.localizedDescription)
         }
         .mindSyncBackground()
     }

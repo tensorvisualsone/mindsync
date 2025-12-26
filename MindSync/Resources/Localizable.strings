@@ -67,7 +67,6 @@
 "session.pauseAccessibility" = "Sitzung pausieren";
 "session.resumeAccessibility" = "Sitzung fortsetzen";
 "session.stopAccessibility" = "Sitzung stoppen";
-"session.controls.hint" = "Doppeltipp oder Swipe nach unten, um sofort zu stoppen. Swipe nach oben, um kurz zu pausieren.";
 
 // MARK: - Analysis Progress
 "analysis.loading" = "Audio wird geladen...";
@@ -102,6 +101,38 @@
 "settings.maxDuration" = "Maximale Dauer";
 "settings.duration.unlimited" = "Kein Limit";
 "settings.history" = "Sitzungshistorie";
+"settings.importError" = "Fehler beim Importieren der Datei";
+
+// MARK: - History
+"history.title" = "Verlauf";
+"history.clear" = "Leeren";
+"history.empty.title" = "Noch keine Sitzungen";
+"history.empty.description" = "Deine abgeschlossenen Sitzungen erscheinen hier.";
+"history.overview" = "Übersicht";
+"history.totalSessions" = "Sitzungen Gesamt";
+"history.totalTime" = "Gesamtzeit";
+"history.filter" = "Filter";
+"history.mode" = "Modus";
+"history.allModes" = "Alle Modi";
+"history.sessions" = "Sitzungen";
+
+// MARK: - History Detail
+"history.detail.title" = "Sitzungsdetails";
+"history.detail.sessionInfo" = "Sitzungsinfo";
+"history.detail.date" = "Datum";
+"history.detail.time" = "Uhrzeit";
+"history.detail.duration" = "Dauer";
+"history.detail.mode" = "Modus";
+"history.detail.lightSource" = "Lichtquelle";
+"history.detail.audioInfo" = "Audio Info";
+"history.detail.title" = "Titel";
+"history.detail.artist" = "Künstler";
+"history.detail.bpm" = "BPM";
+"history.detail.source" = "Quelle";
+"history.detail.localFile" = "Lokale Datei";
+"history.detail.status" = "Status";
+"history.detail.endReason" = "Beendigungsgrund";
+"history.detail.thermalWarning" = "Thermische Warnung";
 
 // MARK: - Mode Selection
 "modeSelection.title" = "Entrainment-Modus wählen";
