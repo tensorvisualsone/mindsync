@@ -34,7 +34,7 @@ final class AudioFileReader {
         }
 
         let formatDescriptions = try await audioTrack.load(.formatDescriptions)
-        guard let formatDescription = formatDescriptions.first else {
+        guard formatDescriptions.first != nil else {
             throw AudioAnalysisError.unsupportedFormat
         }
 
@@ -80,8 +80,19 @@ final class AudioFileReader {
                 continue
             }
 
+            // Validate length before processing
+            // Each Float is 4 bytes, so we need at least 4 bytes to read one sample
+            guard length >= MemoryLayout<Float>.size else {
+                continue
+            }
+
             // Convert Int8 pointer to Float pointer using raw pointer rebinding
+            // Round down to ensure we only read complete Float samples
             let frameCount = length / MemoryLayout<Float>.size
+            guard frameCount > 0 else {
+                continue
+            }
+            
             let rawPointer = UnsafeMutableRawPointer(pointer)
             let floatPointer = rawPointer.assumingMemoryBound(to: Float.self)
             let frameArray = Array(UnsafeBufferPointer<Float>(start: floatPointer, count: frameCount))

@@ -2,9 +2,32 @@ import Foundation
 import Combine
 
 /// Zentraler Service-Container für MindSync
-@MainActor
 final class ServiceContainer: ObservableObject {
-    static let shared = ServiceContainer()
+    nonisolated(unsafe) static var shared: ServiceContainer {
+        // Simple thread-safe lazy initialization
+        // Use a lock to ensure only one thread initializes
+        _lock.lock()
+        defer { _lock.unlock() }
+        
+        if _sharedInstance == nil {
+            // Initialize on main thread
+            if Thread.isMainThread {
+                _sharedInstance = ServiceContainer()
+            } else {
+                // Dispatch to main thread and wait
+                let semaphore = DispatchSemaphore(value: 0)
+                DispatchQueue.main.async {
+                    _sharedInstance = ServiceContainer()
+                    semaphore.signal()
+                }
+                semaphore.wait()
+            }
+        }
+        return _sharedInstance!
+    }
+    
+    nonisolated(unsafe) private static var _sharedInstance: ServiceContainer?
+    nonisolated(unsafe) private static let _lock = NSLock()
 
     // Core Services
     let audioAnalyzer: AudioAnalyzer

@@ -13,7 +13,7 @@ enum MicrophonePermissionStatus {
 final class PermissionsService {
     /// Microphone permission status
     var microphoneStatus: MicrophonePermissionStatus {
-        switch AVAudioApplication.shared.recordPermission {
+        switch AVAudioSession.sharedInstance().recordPermission {
         case .undetermined:
             return .undetermined
         case .denied:
@@ -38,7 +38,7 @@ final class PermissionsService {
     /// Requests microphone permission
     func requestMicrophoneAccess() async -> Bool {
         await withCheckedContinuation { continuation in
-            AVAudioApplication.requestRecordPermission { granted in
+            AVAudioSession.sharedInstance().requestRecordPermission { granted in
                 continuation.resume(returning: granted)
             }
         }

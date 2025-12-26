@@ -115,13 +115,13 @@ struct SourceSelectionView: View {
             } message: {
                 Text(errorMessage)
             }
-            .onAppear {
-                Task { @MainActor in
-                    mediaLibraryService = ServiceContainer.shared.mediaLibraryService
-                    permissionsService = ServiceContainer.shared.permissionsService
-                    authorizationStatus = mediaLibraryService?.authorizationStatus ?? .notDetermined
-                    microphoneStatus = permissionsService?.microphoneStatus ?? .undetermined
-                }
+            .task {
+                // Initialize services on Main Actor to avoid crashes
+                let services = ServiceContainer.shared
+                mediaLibraryService = services.mediaLibraryService
+                permissionsService = services.permissionsService
+                authorizationStatus = services.mediaLibraryService.authorizationStatus
+                microphoneStatus = services.permissionsService.microphoneStatus
             }
         }
     }
@@ -135,7 +135,7 @@ struct SourceSelectionView: View {
                 if status == .authorized {
                     showingMediaPicker = true
                 } else if status == .denied {
-                    errorMessage = "Zugriff auf Musikbibliothek wurde verweigert. Bitte in den Einstellungen aktivieren."
+                    errorMessage = NSLocalizedString("error.musicLibraryDenied", comment: "")
                     showingError = true
                 }
             }
@@ -161,13 +161,18 @@ struct SourceSelectionView: View {
     private func handleItemSelection(_ item: MPMediaItem) {
         // Check if song can be analyzed
         guard let mediaLibraryService = mediaLibraryService else { return }
-        if mediaLibraryService.canAnalyze(item: item) {
-            selectedItem = item
-            onSongSelected(item)
-            showingMediaPicker = false
-        } else {
-            errorMessage = "Dieser Titel ist durch DRM geschützt und kann nicht analysiert werden. Bitte wähle einen anderen Titel oder nutze den Mikrofonmodus."
-            showingError = true
+        Task {
+            let canAnalyze = await mediaLibraryService.canAnalyze(item: item)
+            await MainActor.run {
+                if canAnalyze {
+                    selectedItem = item
+                    onSongSelected(item)
+                    showingMediaPicker = false
+                } else {
+                    errorMessage = NSLocalizedString("error.drmProtected", comment: "")
+                    showingError = true
+                }
+            }
         }
     }
 }
@@ -181,7 +186,7 @@ struct MediaPickerView: UIViewControllerRepresentable {
         let picker = MPMediaPickerController(mediaTypes: .music)
         picker.delegate = context.coordinator
         picker.allowsPickingMultipleItems = false
-        picker.showsCloudItems = false  // Only local files
+        picker.showsCloudItems = false
         return picker
     }
     
@@ -196,6 +201,7 @@ struct MediaPickerView: UIViewControllerRepresentable {
     class Coordinator: NSObject, MPMediaPickerControllerDelegate {
         let onItemSelected: (MPMediaItem) -> Void
         let onCancel: () -> Void
+        private var hasHandledSelection = false
         
         init(onItemSelected: @escaping (MPMediaItem) -> Void, onCancel: @escaping () -> Void) {
             self.onItemSelected = onItemSelected
@@ -203,15 +209,37 @@ struct MediaPickerView: UIViewControllerRepresentable {
         }
         
         func mediaPicker(_ mediaPicker: MPMediaPickerController, didPickMediaItems mediaItemCollection: MPMediaItemCollection) {
-            if let item = mediaItemCollection.items.first {
-                onItemSelected(item)
+            // Prevent multiple calls
+            guard !hasHandledSelection else { return }
+            hasHandledSelection = true
+            
+            guard let item = mediaItemCollection.items.first else {
+                // No item selected - just cancel
+                DispatchQueue.main.async { [weak self] in
+                    self?.onCancel()
+                }
+                return
             }
-            mediaPicker.dismiss(animated: true)
+            
+            // Ensure UI updates happen on main thread
+            // Note: Don't call dismiss here - SwiftUI sheet will handle it
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.onItemSelected(item)
+            }
         }
         
         func mediaPickerDidCancel(_ mediaPicker: MPMediaPickerController) {
-            onCancel()
-            mediaPicker.dismiss(animated: true)
+            // Prevent multiple calls
+            guard !hasHandledSelection else { return }
+            hasHandledSelection = true
+            
+            // Ensure UI updates happen on main thread
+            // Note: Don't call dismiss here - SwiftUI sheet will handle it
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.onCancel()
+            }
         }
     }
 }

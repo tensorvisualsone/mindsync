@@ -18,7 +18,11 @@ private final class WeakDisplayLinkTarget {
 final class FlashlightController: BaseLightController, LightControlling {
     var source: LightSource { .flashlight }
 
-    private var device: AVCaptureDevice?
+    private lazy var device: AVCaptureDevice? = {
+        // Lazy initialization to avoid crashes during app startup
+        // AVCaptureDevice.default can fail if called too early
+        return AVCaptureDevice.default(for: .video)
+    }()
     private var isLocked = false
     private var displayLinkTarget: WeakDisplayLinkTarget?
     private let thermalManager: ThermalManager
@@ -26,7 +30,7 @@ final class FlashlightController: BaseLightController, LightControlling {
     init(thermalManager: ThermalManager) {
         self.thermalManager = thermalManager
         super.init()
-        device = AVCaptureDevice.default(for: .video)
+        // Device is now lazy-initialized when first accessed
     }
 
     func start() throws {

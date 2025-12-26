@@ -14,17 +14,24 @@ final class MediaLibraryService {
     }
 
     /// Checks if an item can be analyzed (not DRM-protected)
-    func canAnalyze(item: MPMediaItem) -> Bool {
+    func canAnalyze(item: MPMediaItem) async -> Bool {
         guard let url = item.assetURL else { return false }
-        let asset = AVAsset(url: url)
+        let asset = AVURLAsset(url: url)
         
-        // DRM-protected content cannot be analyzed
-        if asset.hasProtectedContent {
+        do {
+            // DRM-protected content cannot be analyzed
+            let hasProtectedContent = try await asset.load(.hasProtectedContent)
+            if hasProtectedContent {
+                return false
+            }
+            
+            // For unprotected content, check if the asset is readable
+            let isReadable = try await asset.load(.isReadable)
+            return isReadable
+        } catch {
+            // If loading properties fails, assume the item cannot be analyzed
             return false
         }
-        
-        // For unprotected content, check if the asset is readable
-        return asset.isReadable
     }
 
     /// Gets the asset URL for an item

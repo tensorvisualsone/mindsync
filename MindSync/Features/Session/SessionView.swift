@@ -119,7 +119,7 @@ struct SessionView: View {
                     .cornerRadius(AppConstants.CornerRadius.button)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(viewModel.state == .running ? "Sitzung pausieren" : "Sitzung fortsetzen")
+                .accessibilityLabel(viewModel.state == .running ? NSLocalizedString("session.pauseAccessibility", comment: "") : NSLocalizedString("session.resumeAccessibility", comment: ""))
                 .accessibilityIdentifier("session.pauseResumeButton")
                 
                 // Stop button (large, for easy operation)
@@ -142,7 +142,7 @@ struct SessionView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("session.stopButton")
-                .accessibilityLabel("Sitzung stoppen")
+                .accessibilityLabel(NSLocalizedString("session.stopAccessibility", comment: ""))
             }
             .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
             

@@ -60,6 +60,9 @@
 "session.fallDetected" = "Sturz erkannt. Session wurde aus Sicherheitsgründen beendet.";
 "session.liveAudio" = "Live Audio";
 "session.microphone" = "Mikrofon";
+"session.pauseAccessibility" = "Sitzung pausieren";
+"session.resumeAccessibility" = "Sitzung fortsetzen";
+"session.stopAccessibility" = "Sitzung stoppen";
 
 // MARK: - Analysis Progress
 "analysis.loading" = "Audio wird geladen...";

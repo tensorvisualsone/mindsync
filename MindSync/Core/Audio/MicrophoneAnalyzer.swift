@@ -66,7 +66,11 @@ final class MicrophoneAnalyzer {
         
         // Check permission
         let audioSession = AVAudioSession.sharedInstance()
-        let permissionStatus = await AVAudioApplication.requestRecordPermission()
+        let permissionStatus = await withCheckedContinuation { continuation in
+            audioSession.requestRecordPermission { granted in
+                continuation.resume(returning: granted)
+            }
+        }
         guard permissionStatus else {
             logger.error("Microphone permission denied")
             throw MicrophoneError.permissionDenied
@@ -267,9 +271,15 @@ final class MicrophoneAnalyzer {
         
         realp.withUnsafeMutableBufferPointer { realpBuffer in
             imagp.withUnsafeMutableBufferPointer { imagpBuffer in
+                guard let realpAddress = realpBuffer.baseAddress,
+                      let imagpAddress = imagpBuffer.baseAddress else {
+                    logger.error("Failed to get base addresses for FFT buffers")
+                    return
+                }
+                
                 var splitComplex = DSPSplitComplex(
-                    realp: realpBuffer.baseAddress!,
-                    imagp: imagpBuffer.baseAddress!
+                    realp: realpAddress,
+                    imagp: imagpAddress
                 )
                 
                 windowed.withUnsafeMutableBufferPointer { buffer in
