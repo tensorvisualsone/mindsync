@@ -163,6 +163,16 @@ struct SourceSelectionView: View {
     private func handleItemSelection(_ item: MPMediaItem) {
         // Check if song can be analyzed
         guard let mediaLibraryService = mediaLibraryService else { return }
+        
+        // First check if the item has an asset URL (required for analysis)
+        let assetURL = item.assetURL
+        guard assetURL != nil else {
+            // Item doesn't have a local asset URL - likely a cloud item that needs to be downloaded
+            errorMessage = NSLocalizedString("error.drmProtected", comment: "")
+            showingError = true
+            return
+        }
+        
         Task {
             let canAnalyze = await mediaLibraryService.canAnalyze(item: item)
             await MainActor.run {
