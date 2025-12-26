@@ -198,6 +198,7 @@ struct SessionView: View {
             }
             
             Button(NSLocalizedString("common.back", comment: "")) {
+                HapticFeedback.light()
                 viewModel.reset()
                 dismiss()
             }

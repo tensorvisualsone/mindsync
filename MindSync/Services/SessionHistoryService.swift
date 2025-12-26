@@ -21,11 +21,13 @@ final class SessionHistoryService {
         // Limit to last 100 sessions
         if sessions.count > 100 {
             sessions = Array(sessions.suffix(100))
+            logger.info("Session history limit reached, keeping last 100 sessions")
         }
         
         do {
             let data = try JSONEncoder().encode(sessions)
             userDefaults.set(data, forKey: sessionsKey)
+            logger.info("Session saved successfully: mode=\(session.mode.rawValue), duration=\(session.duration)s, source=\(session.audioSource.rawValue)")
         } catch {
             logger.error("Failed to encode sessions: \(error.localizedDescription, privacy: .private)")
             // Note: Encoding failures are typically deterministic (e.g., non-encodable data)
@@ -53,6 +55,8 @@ final class SessionHistoryService {
     
     /// Deletes all saved sessions
     func clearAll() {
+        let count = loadAll().count
         userDefaults.removeObject(forKey: sessionsKey)
+        logger.info("Cleared all \(count) sessions from history")
     }
 }

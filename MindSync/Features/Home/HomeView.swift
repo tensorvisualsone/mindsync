@@ -24,6 +24,7 @@ struct HomeView: View {
                     .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
 
                 Button(NSLocalizedString("home.startSession", comment: "")) {
+                    HapticFeedback.light()
                     showingSourceSelection = true
                 }
                 .buttonStyle(.borderedProminent)
@@ -34,6 +35,7 @@ struct HomeView: View {
                 
                 // Show current mode (tappable)
                 Button(action: {
+                    HapticFeedback.light()
                     showingModeSelection = true
                 }) {
                     VStack(spacing: AppConstants.Spacing.sm) {
@@ -68,6 +70,7 @@ struct HomeView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
+                        HapticFeedback.light()
                         showingSettings = true
                     }) {
                         Image(systemName: "gearshape.fill")

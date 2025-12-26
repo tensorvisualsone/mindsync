@@ -2,12 +2,14 @@ import Foundation
 import SwiftUI
 import Combine
 import MediaPlayer
+import os.log
 
 /// ViewModel for session view
 @MainActor
 final class SessionViewModel: ObservableObject {
     // Services
     private let services = ServiceContainer.shared
+    private let logger = Logger(subsystem: "com.mindsync", category: "Session")
     private let audioAnalyzer: AudioAnalyzer
     private let audioPlayback: AudioPlaybackService
     private let entrainmentEngine: EntrainmentEngine
@@ -175,8 +177,12 @@ final class SessionViewModel: ObservableObject {
     
     /// Starts a session with a selected media item
     func startSession(with mediaItem: MPMediaItem) async {
-        guard state == .idle else { return }
+        guard state == .idle else { 
+            logger.warning("Attempted to start session while state is \(String(describing: self.state))")
+            return 
+        }
         
+        logger.info("Starting session with local media item")
         state = .analyzing
         
         // Refresh cached preferences to ensure we use current user settings
@@ -259,6 +265,7 @@ final class SessionViewModel: ObservableObject {
             
         } catch {
             // Set error state first to ensure it's always set, even if cleanup fails
+            logger.error("Session start failed: \(error.localizedDescription, privacy: .public)")
             errorMessage = error.localizedDescription
             state = .error
             
@@ -273,6 +280,7 @@ final class SessionViewModel: ObservableObject {
     func pauseSession() {
         guard state == .running else { return }
         
+        logger.info("Pausing session")
         audioPlayback.pause()
         lightController?.pauseExecution()
         
@@ -291,6 +299,7 @@ final class SessionViewModel: ObservableObject {
     func resumeSession() {
         guard state == .paused else { return }
         
+        logger.info("Resuming session")
         audioPlayback.resume()
         lightController?.resumeExecution()
         
@@ -307,6 +316,7 @@ final class SessionViewModel: ObservableObject {
         // Allow cleanup from any state except .idle to prevent resource leaks
         guard state != .idle else { return }
         
+        logger.info("Stopping session")
         audioPlayback.stop()
         lightController?.stop()
 
@@ -356,9 +366,15 @@ final class SessionViewModel: ObservableObject {
     
     /// Starts a microphone-based session
     func startMicrophoneSession() async {
-        guard state == .idle else { return }
+        guard state == .idle else { 
+            logger.warning("Attempted to start microphone session while state is \(String(describing: self.state))")
+            return 
+        }
+        
+        logger.info("Starting microphone session")
         
         guard let microphoneAnalyzer = microphoneAnalyzer else {
+            logger.error("Microphone analyzer not available")
             errorMessage = NSLocalizedString(
                 "error.microphoneUnavailable",
                 comment: "Shown when microphone analysis is not available for starting a microphone-based session"

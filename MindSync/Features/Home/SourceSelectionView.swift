@@ -24,6 +24,7 @@ struct SourceSelectionView: View {
                 
                 // Local music library
                 Button(action: {
+                    HapticFeedback.light()
                     requestMediaLibraryAccess()
                 }) {
                     VStack(spacing: AppConstants.Spacing.md) {
@@ -50,6 +51,7 @@ struct SourceSelectionView: View {
                 
                 // Microphone mode
                 Button(action: {
+                    HapticFeedback.light()
                     requestMicrophoneAccess()
                 }) {
                     VStack(spacing: AppConstants.Spacing.md) {
@@ -161,6 +163,7 @@ struct SourceSelectionView: View {
     private func handleItemSelection(_ item: MPMediaItem) {
         // Check if song can be analyzed
         guard let mediaLibraryService = mediaLibraryService else { return }
+        
         Task {
             let canAnalyze = await mediaLibraryService.canAnalyze(item: item)
             await MainActor.run {
@@ -186,7 +189,7 @@ struct MediaPickerView: UIViewControllerRepresentable {
         let picker = MPMediaPickerController(mediaTypes: .music)
         picker.delegate = context.coordinator
         picker.allowsPickingMultipleItems = false
-        picker.showsCloudItems = false
+        picker.showsCloudItems = true  // Show cloud items as well (Apple Music)
         return picker
     }
     

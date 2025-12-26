@@ -113,7 +113,6 @@ final class IsochronicAudioService {
 
     func stop() {
         if isPlaying {
-            sourceNode?.stop()
             engine.stop()
             engine.reset()
             if let node = sourceNode { engine.detach(node) }
