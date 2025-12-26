@@ -6,13 +6,15 @@ struct SessionHistoryView: View {
     
     var body: some View {
         NavigationStack {
-            List {
+            Group {
                 if viewModel.sessions.isEmpty {
                     emptyStateView
                 } else {
-                    statsSection
-                    filterSection
-                    sessionsList
+                    List {
+                        statsSection
+                        filterSection
+                        sessionsList
+                    }
                 }
             }
             .navigationTitle(NSLocalizedString("history.title", comment: "History"))
@@ -29,22 +31,19 @@ struct SessionHistoryView: View {
     }
     
     private var emptyStateView: some View {
-        Section {
-            VStack(spacing: 12) {
-                Image(systemName: "clock.arrow.circlepath")
-                    .font(.system(size: 48))
-                    .foregroundColor(.secondary)
-                Text(NSLocalizedString("history.empty.title", comment: "No sessions yet"))
-                    .font(.headline)
-                Text(NSLocalizedString("history.empty.description", comment: "Your completed sessions will appear here"))
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 40)
+        VStack(spacing: 12) {
+            Image(systemName: "clock.arrow.circlepath")
+                .font(.system(size: 48))
+                .foregroundColor(.secondary)
+            Text(NSLocalizedString("history.empty.title", comment: "No sessions yet"))
+                .font(.headline)
+            Text(NSLocalizedString("history.empty.description", comment: "Your completed sessions will appear here"))
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
         }
-        .listRowBackground(Color.clear)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
     }
     
     private var statsSection: some View {

@@ -1,0 +1,10 @@
+/* 
+  InfoPlist.strings
+  MindSync
+
+  German localization for Info.plist privacy descriptions
+*/
+
+"NSAppleMusicUsageDescription" = "MindSync benötigt Zugriff auf deine Musikbibliothek, um Songs für die Lichtsynchronisation zu analysieren.";
+"NSCameraUsageDescription" = "MindSync benötigt Zugriff auf die Kamera, um die Taschenlampe für die Lichtsynchronisation zu steuern.";
+"NSMicrophoneUsageDescription" = "MindSync benötigt Zugriff auf das Mikrofon für die Echtzeit-Audio-Analyse.";

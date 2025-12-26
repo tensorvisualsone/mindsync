@@ -18,8 +18,30 @@ final class SessionHistoryService: SessionHistoryServiceProtocol {
     private let sessionsKey = "savedSessions"
     private let logger = Logger(subsystem: "com.mindsync", category: "SessionHistory")
     
+    /// Creates a new `SessionHistoryService`.
+    ///
+    /// - Parameter userDefaults:
+    ///   The `UserDefaults` store used for persistence. In production, the default `.standard`
+    ///   instance is typically sufficient. In tests, **always** inject a dedicated instance
+    ///   (for example created via `UserDefaults(suiteName:)` or `SessionHistoryService.makeTestInstance()`)
+    ///   to avoid leaking state between tests.
     init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
+    }
+    
+    /// Convenience factory for creating an instance backed by an isolated `UserDefaults` suite.
+    ///
+    /// This method is useful for testing scenarios where you need an isolated storage environment.
+    ///
+    /// - Parameter suiteName: The suite name to use for the test store. Defaults to
+    ///   `"SessionHistoryServiceTests"`.
+    /// - Returns: A `SessionHistoryService` configured with an isolated `UserDefaults` instance.
+    ///
+    /// - Note: Remember to call `removePersistentDomain(forName:)` or `removeSuite(named:)` 
+    ///   in test teardown to clean up the isolated storage.
+    static func makeTestInstance(suiteName: String = "SessionHistoryServiceTests") -> SessionHistoryService {
+        let defaults = UserDefaults(suiteName: suiteName) ?? .standard
+        return SessionHistoryService(userDefaults: defaults)
     }
     
     /// Saves a session

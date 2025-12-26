@@ -329,6 +329,7 @@ final class SessionViewModel: ObservableObject {
         lightController?.stop()
         lightController = services.screenController
         
+        // Cancel any existing task
         activeTask?.cancel()
         activeTask = Task {
             do {
@@ -338,7 +339,9 @@ final class SessionViewModel: ObservableObject {
                 lightController?.execute(script: script, syncedTo: session.startedAt)
                 
             } catch {
-                // If screen controller also fails, stop the session
+                // If screen controller also fails, inform the user and stop the session
+                errorMessage = NSLocalizedString("session.screenController.error", 
+                                                comment: "Shown when switching to the screen-based light controller fails")
                 stopSession()
             }
         }
@@ -380,9 +383,7 @@ final class SessionViewModel: ObservableObject {
         
         let timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             guard let self = self else { return }
-            Task { @MainActor in
-                self.updatePlaybackProgress(duration: duration)
-            }
+            self.updatePlaybackProgress(duration: duration)
         }
         playbackProgressTimer = timer
     }

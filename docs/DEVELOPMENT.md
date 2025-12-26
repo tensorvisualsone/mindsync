@@ -5,7 +5,7 @@ Welcome to the MindSync development documentation. This guide will help you get 
 ## Prerequisites
 
 - Xcode 15.0+
-- iOS 16.0+ SDK
+- iOS 17.0+ SDK
 - Swift 5.9+
 
 ## Getting Started
