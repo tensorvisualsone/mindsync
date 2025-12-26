@@ -221,13 +221,6 @@ struct SettingsView: View {
             guard !isImportingAffirmation else { return }
             isImportingAffirmation = true
             
-            // Use defer to ensure flag is reset in all code paths
-            defer {
-                if case .failure = result {
-                    isImportingAffirmation = false
-                }
-            }
-            
             switch result {
             case .success(let url):
                 // Validate that the file is playable before saving (async load for consistency)
@@ -259,6 +252,7 @@ struct SettingsView: View {
             case .failure(let error):
                 importError = error
                 showingImportError = true
+                isImportingAffirmation = false
             }
         }
         .alert(NSLocalizedString("common.error", comment: ""), isPresented: $showingImportError, presenting: importError) { _ in

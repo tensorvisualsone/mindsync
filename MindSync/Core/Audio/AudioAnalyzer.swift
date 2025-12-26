@@ -21,7 +21,7 @@ final class AudioAnalyzer {
     /// - If analysis complexity changes (e.g. more passes or higher-resolution windows),
     ///   revisit this constant and consider a timeout that scales with `MPMediaItem.playbackDuration`.
     ///
-    /// Note: 0.6 seconds per minute of track duration * 30 minutes = 18 seconds
+    /// Note: 0.6 seconds per minute of track * 30 minutes max track length = 18 seconds
     private let analysisTimeout: TimeInterval = 0.6 * 30.0  // 18.0 seconds for ~30-minute tracks
     private let targetSampleRate: Double = 44_100.0
     private let fallbackWindowDuration: Double = 0.35
