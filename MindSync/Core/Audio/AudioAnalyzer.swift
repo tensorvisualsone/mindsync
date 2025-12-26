@@ -21,9 +21,8 @@ final class AudioAnalyzer {
     /// - If analysis complexity changes (e.g. more passes or higher-resolution windows),
     ///   revisit this constant and consider a timeout that scales with `MPMediaItem.playbackDuration`.
     ///
-    /// Note: This value is expressed as "seconds per minute * max minutes" to make the
-    /// design assumption explicit and avoid an unexplained magic number.
-    private let analysisTimeout: TimeInterval = 0.6 * (30 * 60) / 60.0  // 18.0 seconds
+    /// Note: 0.6 seconds per minute of track duration * 30 minutes = 18 seconds
+    private let analysisTimeout: TimeInterval = 0.6 * 30.0  // 18.0 seconds for ~30-minute tracks
     private let targetSampleRate: Double = 44_100.0
     private let fallbackWindowDuration: Double = 0.35
     private let minimumDetectedBeats = 4
@@ -293,7 +292,10 @@ final class AudioAnalyzer {
             
             if relativeDifference > 0.05 {
                 let percentDifference = relativeDifference * 100
-                logger.warning("Significant duration discrepancy: metadata=\(metadataDuration, privacy: .public, format: .fixed(precision: 3))s, waveform=\(waveformDuration, privacy: .public, format: .fixed(precision: 3))s, difference=\(percentDifference, privacy: .public, format: .fixed(precision: 2))%")
+                let metadataDurationString = String(format: "%.3f", metadataDuration)
+                let waveformDurationString = String(format: "%.3f", waveformDuration)
+                let percentDifferenceString = String(format: "%.2f", percentDifference)
+                logger.warning("Significant duration discrepancy: metadata=\(metadataDurationString, privacy: .public)s, waveform=\(waveformDurationString, privacy: .public)s, difference=\(percentDifferenceString, privacy: .public)%")
             }
         }
         
@@ -368,6 +370,7 @@ final class AudioAnalyzer {
         // Prevent runaway arrays on extremely long tracks
         let maxBeats = 5000
         if timestamps.count > maxBeats {
+            logger.warning("Energy-driven beat detection produced \(timestamps.count, privacy: .public) beats, capping to \(maxBeats, privacy: .public) to avoid memory issues")
             return Array(timestamps.prefix(maxBeats))
         }
         return timestamps
@@ -378,9 +381,9 @@ final class AudioAnalyzer {
         
         let sanitizedBPM = max(30, min(200, bpm))
         
-        // Log when BPM is clamped to inform debugging
+        // Log when BPM is clamped, as this indicates the tempo estimate may be unreliable
         if sanitizedBPM != bpm {
-            logger.warning("BPM \(bpm, privacy: .public) is outside valid range (30-200), clamping to \(sanitizedBPM, privacy: .public)")
+            logger.error("BPM \(bpm, privacy: .public) is outside valid range (30-200); clamping to \(sanitizedBPM, privacy: .public)")
         }
         
         let interval = 60.0 / sanitizedBPM

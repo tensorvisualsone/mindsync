@@ -16,6 +16,7 @@ struct SettingsView: View {
     @State private var showingHistory = false
     @State private var importError: Error?
     @State private var showingImportError = false
+    @State private var isImportingAffirmation = false
     
     init() {
         _preferences = State(initialValue: UserPreferences.load())
@@ -213,6 +214,10 @@ struct SettingsView: View {
             SessionHistoryView()
         }
         .fileImporter(isPresented: $showingAffirmationImporter, allowedContentTypes: [.audio]) { result in
+            // Prevent concurrent imports
+            guard !isImportingAffirmation else { return }
+            isImportingAffirmation = true
+            
             switch result {
             case .success(let url):
                 // Validate that the file is playable before saving (async load for consistency)
@@ -235,17 +240,20 @@ struct SettingsView: View {
                                 )
                                 showingImportError = true
                             }
+                            isImportingAffirmation = false
                         }
                     } catch {
                         await MainActor.run {
                             importError = error
                             showingImportError = true
+                            isImportingAffirmation = false
                         }
                     }
                 }
             case .failure(let error):
                 importError = error
                 showingImportError = true
+                isImportingAffirmation = false
             }
         }
         .alert(NSLocalizedString("common.error", comment: ""), isPresented: $showingImportError, presenting: importError) { _ in

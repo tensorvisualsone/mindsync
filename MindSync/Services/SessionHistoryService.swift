@@ -22,9 +22,13 @@ final class SessionHistoryService: SessionHistoryServiceProtocol {
     ///
     /// - Parameter userDefaults:
     ///   The `UserDefaults` store used for persistence. In production, the default `.standard`
-    ///   instance is typically sufficient. In tests, **always** inject a dedicated instance
+    ///   instance is typically sufficient. In tests, you should inject a dedicated instance
     ///   (for example created via `UserDefaults(suiteName:)` or `SessionHistoryService.makeTestInstance()`)
     ///   to avoid leaking state between tests.
+    ///
+    /// - Note: The `MockSessionHistoryService` used in unit tests operates in-memory and does not
+    ///   require isolated `UserDefaults`, but when testing the real implementation you should use
+    ///   `makeTestInstance()` or provide an isolated suite.
     init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
     }
