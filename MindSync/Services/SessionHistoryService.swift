@@ -27,7 +27,7 @@ final class SessionHistoryService {
         do {
             let data = try JSONEncoder().encode(sessions)
             userDefaults.set(data, forKey: sessionsKey)
-            logger.info("Session saved successfully: mode=\(session.mode.rawValue), duration=\(session.duration)s, source=\(session.audioSource)")
+            logger.info("Session saved successfully: mode=\(session.mode.rawValue), duration=\(session.duration)s, source=\(session.audioSource.rawValue)")
         } catch {
             logger.error("Failed to encode sessions: \(error.localizedDescription, privacy: .private)")
             // Note: Encoding failures are typically deterministic (e.g., non-encodable data)
