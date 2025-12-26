@@ -44,6 +44,8 @@ final class SessionHistoryViewModel: ObservableObject {
     }
     
     func deleteSession(at offsets: IndexSet) {
+        // Map indices from filteredSessions to session IDs to avoid index mismatches
+        // when a filter is active
         let sessionsToDelete = offsets.map { filteredSessions[$0] }
         let idsToDelete = Set(sessionsToDelete.map { $0.id })
         
@@ -52,6 +54,9 @@ final class SessionHistoryViewModel: ObservableObject {
         
         // Update persistent storage
         historyService.delete(ids: idsToDelete)
+        
+        // Note: filteredSessions will be automatically updated via the Combine pipeline
+        // that observes changes to sessions and selectedModeFilter
     }
     
     func clearHistory() {
@@ -77,12 +82,22 @@ final class SessionHistoryViewModel: ObservableObject {
         let roundedDuration = totalDuration.rounded()
         let hours = Int(roundedDuration) / 3600
         let minutes = (Int(roundedDuration) % 3600) / 60
-        let format = NSLocalizedString(
-            "history.totalDuration.format",
-            value: "%dh %02dm",
-            comment: "Total duration in hours and minutes (e.g. 2h 05m)"
-        )
-        return String(format: format, hours, minutes)
+        
+        if hours > 0 {
+            let format = NSLocalizedString(
+                "history.totalDuration.format",
+                value: "%dh %02dm",
+                comment: "Total duration in hours and minutes (e.g. 2h 05m)"
+            )
+            return String(format: format, hours, minutes)
+        } else {
+            let format = NSLocalizedString(
+                "history.totalDuration.minutesOnlyFormat",
+                value: "%dm",
+                comment: "Total duration in minutes when under one hour (e.g. 5m)"
+            )
+            return String(format: format, minutes)
+        }
     }
 }
 
