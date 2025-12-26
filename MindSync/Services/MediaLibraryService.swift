@@ -1,9 +1,12 @@
 import Foundation
 import MediaPlayer
 import AVFoundation
+import os.log
 
 /// Service for accessing the music library
 final class MediaLibraryService {
+    private let logger = Logger(subsystem: "com.mindsync", category: "MediaLibraryService")
+
     var authorizationStatus: MPMediaLibraryAuthorizationStatus {
         MPMediaLibrary.authorizationStatus()
     }
@@ -45,7 +48,7 @@ final class MediaLibraryService {
         } catch {
             // If loading properties fails, we cannot determine if it's analyzable
             // Log the error for debugging but return false to be safe
-            print("MediaLibraryService: Error checking analyzability: \(error.localizedDescription)")
+            logger.error("Error checking analyzability: \(error.localizedDescription)")
             return false
         }
     }

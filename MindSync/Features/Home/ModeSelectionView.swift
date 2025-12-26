@@ -47,13 +47,16 @@ struct ModeSelectionView: View {
     }
     
     private func selectMode(_ mode: EntrainmentMode) {
-        // Haptic feedback for mode selection
-        HapticFeedback.medium()
+        // Load preferences fresh and save the new mode
+        var preferences = UserPreferences.load()
+        
+        // Haptic feedback for mode selection (if enabled)
+        if preferences.hapticFeedbackEnabled {
+            HapticFeedback.medium()
+        }
         
         selectedMode = mode
         
-        // Load preferences fresh and save the new mode
-        var preferences = UserPreferences.load()
         preferences.preferredMode = mode
         preferences.save()
         

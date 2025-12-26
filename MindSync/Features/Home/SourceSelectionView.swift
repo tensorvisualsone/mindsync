@@ -164,15 +164,6 @@ struct SourceSelectionView: View {
         // Check if song can be analyzed
         guard let mediaLibraryService = mediaLibraryService else { return }
         
-        // First check if the item has an asset URL (required for analysis)
-        let assetURL = item.assetURL
-        guard assetURL != nil else {
-            // Item doesn't have a local asset URL - likely a cloud item that needs to be downloaded
-            errorMessage = NSLocalizedString("error.drmProtected", comment: "")
-            showingError = true
-            return
-        }
-        
         Task {
             let canAnalyze = await mediaLibraryService.canAnalyze(item: item)
             await MainActor.run {
@@ -198,7 +189,7 @@ struct MediaPickerView: UIViewControllerRepresentable {
         let picker = MPMediaPickerController(mediaTypes: .music)
         picker.delegate = context.coordinator
         picker.allowsPickingMultipleItems = false
-        picker.showsCloudItems = true  // Zeige auch Cloud-Items an (Apple Music)
+        picker.showsCloudItems = true  // Show cloud items as well (Apple Music)
         return picker
     }
     

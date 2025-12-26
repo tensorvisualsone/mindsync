@@ -99,7 +99,6 @@ struct SessionView: View {
             HStack(spacing: AppConstants.Spacing.elementSpacing) {
                 // Pause/Resume button
                 Button(action: {
-                    HapticFeedback.medium()
                     if viewModel.state == .running {
                         viewModel.pauseSession()
                     } else if viewModel.state == .paused {
@@ -125,7 +124,6 @@ struct SessionView: View {
                 
                 // Stop button (large, for easy operation)
                 Button(action: {
-                    HapticFeedback.heavy()
                     viewModel.stopSession()
                     dismiss()
                 }) {
@@ -163,7 +161,6 @@ struct SessionView: View {
                 .accessibilityIdentifier("session.pausedLabel")
             
             Button(NSLocalizedString("session.resume", comment: "")) {
-                HapticFeedback.medium()
                 viewModel.resumeSession()
             }
             .buttonStyle(.borderedProminent)
@@ -172,7 +169,6 @@ struct SessionView: View {
             .accessibilityLabel(NSLocalizedString("session.resume", comment: ""))
             
             Button(NSLocalizedString("session.stop", comment: "")) {
-                HapticFeedback.heavy()
                 viewModel.stopSession()
                 dismiss()
             }
