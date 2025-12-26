@@ -1,15 +1,25 @@
 import Foundation
 import os.log
 
+protocol SessionHistoryServiceProtocol {
+    func save(session: Session)
+    func loadAll() -> [Session]
+    func clearAll()
+}
+
 /// Service for session history management
 /// - Note: Current implementation loads and saves all sessions to UserDefaults on every save operation,
 ///         which scales poorly with the number of sessions (up to 100). For better performance, consider
 ///         using a more efficient storage approach such as individual keys for recent sessions, a database,
 ///         or incremental updates rather than rewriting the entire array each time.
-final class SessionHistoryService {
-    private let userDefaults = UserDefaults.standard
+final class SessionHistoryService: SessionHistoryServiceProtocol {
+    private let userDefaults: UserDefaults
     private let sessionsKey = "savedSessions"
     private let logger = Logger(subsystem: "com.mindsync", category: "SessionHistory")
+    
+    init(userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
+    }
     
     /// Saves a session
     /// - Note: This operation loads all existing sessions, appends the new one, and saves the entire array

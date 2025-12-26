@@ -19,6 +19,7 @@ final class SessionViewModel: ObservableObject {
     private let fallDetector: FallDetector
     private let affirmationService: AffirmationOverlayService
     private let audioEnergyTracker: AudioEnergyTracker
+    private let historyService: SessionHistoryServiceProtocol
     
     // Affirmation state
     private var affirmationPlayed = false
@@ -76,10 +77,11 @@ final class SessionViewModel: ObservableObject {
     private var microphoneSilenceStart: Date?
     private var playbackProgressTimer: Timer?
     
-    init() {
+    init(historyService: SessionHistoryServiceProtocol = ServiceContainer.shared.sessionHistoryService) {
         self.audioAnalyzer = services.audioAnalyzer
         self.audioPlayback = services.audioPlayback
         self.cachedPreferences = UserPreferences.load()
+        self.historyService = historyService
         
         // EntrainmentEngine from ServiceContainer
         self.entrainmentEngine = services.entrainmentEngine
@@ -582,7 +584,7 @@ final class SessionViewModel: ObservableObject {
             if session.endReason == nil {
                 session.endReason = .userStopped
             }
-            services.sessionHistoryService.save(session: session)
+            historyService.save(session: session)
         }
         
         state = .idle
@@ -859,7 +861,7 @@ final class SessionViewModel: ObservableObject {
         if var session = currentSession {
             session.endedAt = Date()
             session.endReason = .fallDetected
-            services.sessionHistoryService.save(session: session)
+            historyService.save(session: session)
         }
         
         stopSession()

@@ -17,9 +17,7 @@ struct SessionView: View {
         ZStack {
             // Background: Use screen controller color if available, otherwise black
             if let screenController = viewModel.screenController, screenController.isActive {
-                screenController.currentColor
-                    .ignoresSafeArea()
-                    .animation(.linear(duration: 0.08), value: screenController.currentColor)
+                ScreenStrobeView(controller: screenController)
             } else {
                 Color.black.ignoresSafeArea()
             }
@@ -167,6 +165,17 @@ struct SessionView: View {
             .accessibilityLabel(NSLocalizedString("common.back", comment: ""))
         }
         .padding(AppConstants.Spacing.md)
+    }
+}
+
+/// Dedicated view for screen strobe to isolate high-frequency updates
+struct ScreenStrobeView: View {
+    @ObservedObject var controller: ScreenController
+    
+    var body: some View {
+        controller.currentColor
+            .ignoresSafeArea()
+            .animation(.linear(duration: 0.08), value: controller.currentColor)
     }
 }
 

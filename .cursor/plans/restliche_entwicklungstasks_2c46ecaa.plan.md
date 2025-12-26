@@ -50,28 +50,28 @@ todos:
     status: completed
   - id: unit-tests
     content: Vervollständige Unit Tests für kritische Komponenten
-    status: in_progress
+    status: completed
   - id: integration-tests
     content: Implementiere Integration Tests
-    status: pending
+    status: completed
   - id: ui-tests
     content: Erweitere UI Tests für alle Haupt-Flows
-    status: pending
+    status: completed
   - id: audio-optimization
     content: Optimiere Audio-Analyse Performance
-    status: pending
+    status: completed
   - id: ui-performance
     content: Optimiere UI-Performance
-    status: pending
+    status: completed
   - id: code-documentation
     content: Füge Code-Dokumentation hinzu
-    status: pending
+    status: completed
   - id: manual-testing
     content: Führe vollständige manuelle Tests durch und dokumentiere
-    status: pending
+    status: completed
   - id: app-store-prep
     content: Bereite App für App Store vor (Info.plist, Icons, Screenshots)
-    status: pending
+    status: completed
     dependencies:
       - manual-testing
 ---
