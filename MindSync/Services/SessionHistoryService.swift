@@ -9,6 +9,11 @@ protocol SessionHistoryServiceProtocol {
 }
 
 /// Service for session history management
+///
+/// This service uses the injected `UserDefaults` instance for all persistence operations,
+/// making it easy to test with isolated storage (via `makeTestInstance()`) while using
+/// `.standard` in production.
+///
 /// - Note: Current implementation loads and saves all sessions to UserDefaults on every save operation,
 ///         which scales poorly with the number of sessions (up to 100). For better performance, consider
 ///         using a more efficient storage approach such as individual keys for recent sessions, a database,

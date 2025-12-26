@@ -69,10 +69,31 @@ final class SessionViewModel: ObservableObject {
     // Flag to prevent re-entrancy in fall detection handling
     private var isHandlingFall = false
     
-    // Microphone signal monitoring constants
-    private let silenceThreshold: Float = 0.02
-    private let autoPauseDelay: TimeInterval = 2.0
-    private let autoStopDelay: TimeInterval = 12.0
+    // Microphone signal monitoring configuration
+    // These values can be overridden via UserDefaults to adapt to different environments
+    // and microphone sensitivities. If no custom value is configured, sane defaults are used.
+    //
+    // Default values:
+    // - silenceThreshold: 0.02 (2% of normalized signal level)
+    // - autoPauseDelay: 2.0 seconds of silence before pausing
+    // - autoStopDelay: 12.0 seconds of silence before stopping
+    private var silenceThreshold: Float {
+        let key = "microphone_silenceThreshold"
+        let value = UserDefaults.standard.float(forKey: key)
+        return value > 0 ? value : 0.02
+    }
+    
+    private var autoPauseDelay: TimeInterval {
+        let key = "microphone_autoPauseDelay"
+        let value = UserDefaults.standard.double(forKey: key)
+        return value > 0 ? value : 2.0
+    }
+    
+    private var autoStopDelay: TimeInterval {
+        let key = "microphone_autoStopDelay"
+        let value = UserDefaults.standard.double(forKey: key)
+        return value > 0 ? value : 12.0
+    }
     
     // Lifecycle pause flags
     private var pausedBySystemInterruption = false
