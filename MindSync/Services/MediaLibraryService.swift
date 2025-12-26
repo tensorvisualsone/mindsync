@@ -15,16 +15,20 @@ final class MediaLibraryService {
 
     /// Checks if an item can be analyzed (not DRM-protected)
     func canAnalyze(item: MPMediaItem) async -> Bool {
-        guard let url = item.assetURL else { return false }
+        // Accessing `MPMediaItem` properties must happen on the main thread.
+        // Read the `assetURL` on the MainActor, then perform async AVAsset work off-main.
+        let assetURL = await MainActor.run { item.assetURL }
+        guard let url = assetURL else { return false }
+
         let asset = AVURLAsset(url: url)
-        
+
         do {
             // DRM-protected content cannot be analyzed
             let hasProtectedContent = try await asset.load(.hasProtectedContent)
             if hasProtectedContent {
                 return false
             }
-            
+
             // For unprotected content, check if the asset is readable
             let isReadable = try await asset.load(.isReadable)
             return isReadable
