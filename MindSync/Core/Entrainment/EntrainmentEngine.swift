@@ -128,10 +128,18 @@ final class EntrainmentEngine {
         let eventColor: LightEvent.LightColor? = (lightSource == .screen) ? (screenColor ?? .white) : nil
         
         var events: [LightEvent] = []
-        let period = 1.0 / targetFrequency  // Duration of one cycle in seconds
-        
-        // Create a light event for each beat
+
+        // Create a light event for each beat. Use ramping so frequency at timestamp
+        // smoothly interpolates from mode.startFrequency -> targetFrequency over mode.rampDuration.
+        let startFreq = mode.startFrequency
+        let rampTime = mode.rampDuration
+
         for beatTimestamp in beatTimestamps {
+            // Calculate progress for ramp at this beat timestamp
+            let progress = rampTime > 0 ? min(beatTimestamp / rampTime, 1.0) : 1.0
+            let smooth = progress * progress * (3.0 - 2.0 * progress)
+            let currentFreq = startFreq + (targetFrequency - startFreq) * smooth
+            let period = 1.0 / max(0.0001, currentFreq) // avoid div by zero
             // Select waveform based on mode
             let waveform: LightEvent.Waveform = {
                 switch mode {
@@ -185,40 +193,57 @@ final class EntrainmentEngine {
         screenColor: LightEvent.LightColor?
     ) -> [LightEvent] {
         var events: [LightEvent] = []
-        let period = 1.0 / frequency
-        var currentTime: TimeInterval = 0
-        
         let eventColor: LightEvent.LightColor? = (lightSource == .screen) ? (screenColor ?? .white) : nil
-        
+
         // Determine intensity and waveform for fallback based on mode
         let fallbackIntensity: Float = {
             switch mode {
             case .alpha: return 0.4
             case .theta: return 0.3
             case .gamma: return 0.7
-            case .cinematic: return 0.5  // Base intensity for cinematic mode
+            case .cinematic: return 0.5
             }
         }()
-        
+
         let fallbackWaveform: LightEvent.Waveform = {
             switch mode {
             case .alpha, .theta, .cinematic: return .sine
             case .gamma: return .square
             }
         }()
-        
+
+        // Ramping: start from mode.startFrequency and interpolate to provided frequency
+        let startFreq = mode.startFrequency
+        let targetFreq = frequency
+        let rampTime = mode.rampDuration
+
+        var currentTime: TimeInterval = 0
+
         while currentTime < duration {
+            // Calculate progress for ramp [0..1]
+            let progress = rampTime > 0 ? min(currentTime / rampTime, 1.0) : 1.0
+
+            // Smoothstep for nicer transitions
+            let smooth = progress * progress * (3.0 - 2.0 * progress)
+
+            let currentFreq = startFreq + (targetFreq - startFreq) * smooth
+            let period = 1.0 / max(0.0001, currentFreq)
+
+            let eventDuration: TimeInterval = (fallbackWaveform == .square) ? (period / 2.0) : period
+
             let event = LightEvent(
                 timestamp: currentTime,
                 intensity: fallbackIntensity,
-                duration: period / 2.0,
+                duration: eventDuration,
                 waveform: fallbackWaveform,
                 color: eventColor
             )
+
             events.append(event)
+
             currentTime += period
         }
-        
+
         return events
     }
 }

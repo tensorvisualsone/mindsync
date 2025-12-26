@@ -37,6 +37,27 @@ enum EntrainmentMode: String, Codable, CaseIterable, Identifiable {
         return (range.lowerBound + range.upperBound) / 2.0
     }
 
+    /// Startfrequenz (welche Frequenz nehmen wir als Ausgangspunkt beim Ramping)
+    /// Standardmäßig nehmen wir eine typische Beta-Range, damit der Ramp den Nutzer "abholt".
+    var startFrequency: Double {
+        switch self {
+        case .alpha: return 15.0
+        case .theta: return 16.0
+        case .gamma: return 12.0
+        case .cinematic: return 18.0
+        }
+    }
+
+    /// Dauer des Ramp-Vorgangs in Sekunden. Nach Ablauf bleibt die Ziel-Frequenz erhalten.
+    var rampDuration: TimeInterval {
+        switch self {
+        case .alpha: return 180.0   // 3 Minuten
+        case .theta: return 180.0   // 3 Minuten
+        case .gamma: return 120.0   // 2 Minuten (schneller Hochfahren)
+        case .cinematic: return 180.0
+        }
+    }
+
     /// SF Symbol Icon
     var iconName: String {
         switch self {

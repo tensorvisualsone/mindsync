@@ -29,6 +29,12 @@ final class AudioPlaybackService: NSObject {
         return audioEngine?.mainMixerNode
     }
 
+    /// Returns the internal AVAudioEngine instance if available. Useful for attaching
+    /// additional nodes (e.g., isochronic source) for perfectly synchronized audio.
+    func getAudioEngine() -> AVAudioEngine? {
+        return audioEngine
+    }
+
     /// Plays an audio file
     /// - Parameter url: URL of the audio file
     /// - Throws: Error if playback is not possible
