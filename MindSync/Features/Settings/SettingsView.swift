@@ -214,10 +214,10 @@ struct SettingsView: View {
             SessionHistoryView()
         }
         .fileImporter(isPresented: $showingAffirmationImporter, allowedContentTypes: [.audio]) { result in
-            // Prevent overlapping import operations
-            // Note: SwiftUI's fileImporter ensures only one dialog at a time, but we guard
-            // against potential edge cases where the callback might be invoked while an
-            // async validation is still in progress.
+            // Prevent overlapping import operations.
+            // SwiftUI's fileImporter is a synchronous UI callback on MainActor that cannot
+            // be invoked concurrently. The guard+flag pattern prevents new imports from
+            // starting while an async validation is in progress from a previous import.
             guard !isImportingAffirmation else { return }
             isImportingAffirmation = true
             
