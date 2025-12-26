@@ -115,6 +115,7 @@
 "history.mode" = "Modus";
 "history.allModes" = "Alle Modi";
 "history.sessions" = "Sitzungen";
+"history.totalDuration.format" = "%dh %02dm";
 
 // MARK: - History Detail
 "history.detail.title" = "Sitzungsdetails";

@@ -100,6 +100,38 @@
 "settings.duration.unlimited" = "No limit";
 "settings.history" = "Session History";
 
+// MARK: - History
+"history.title" = "History";
+"history.clear" = "Clear";
+"history.empty.title" = "No sessions yet";
+"history.empty.description" = "Your completed sessions will appear here.";
+"history.overview" = "Overview";
+"history.totalSessions" = "Total Sessions";
+"history.totalTime" = "Total Time";
+"history.filter" = "Filter";
+"history.mode" = "Mode";
+"history.allModes" = "All Modes";
+"history.sessions" = "Sessions";
+"history.totalDuration.format" = "%dh %02dm";
+
+// MARK: - History Detail
+"history.detail.title" = "Session Details";
+"history.detail.sessionInfo" = "Session Info";
+"history.detail.date" = "Date";
+"history.detail.time" = "Time";
+"history.detail.duration" = "Duration";
+"history.detail.mode" = "Mode";
+"history.detail.lightSource" = "Light Source";
+"history.detail.audioInfo" = "Audio Info";
+"history.detail.trackTitle" = "Title";
+"history.detail.artist" = "Artist";
+"history.detail.bpm" = "BPM";
+"history.detail.source" = "Source";
+"history.detail.localFile" = "Local File";
+"history.detail.status" = "Status";
+"history.detail.endReason" = "End Reason";
+"history.detail.thermalWarning" = "Thermal Warning";
+
 // MARK: - Mode Selection
 "modeSelection.title" = "Choose Entrainment Mode";
 "modeSelection.description" = "Select a mode based on your desired state of mind.";
