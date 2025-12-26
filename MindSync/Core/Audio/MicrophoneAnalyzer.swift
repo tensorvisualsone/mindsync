@@ -65,12 +65,7 @@ final class MicrophoneAnalyzer {
         guard !isRunning else { return }
         
         // Check permission
-        let audioSession = AVAudioSession.sharedInstance()
-        let permissionStatus = await withCheckedContinuation { continuation in
-            audioSession.requestRecordPermission { granted in
-                continuation.resume(returning: granted)
-            }
-        }
+        let permissionStatus = await AVAudioApplication.requestRecordPermission()
         guard permissionStatus else {
             logger.error("Microphone permission denied")
             throw MicrophoneError.permissionDenied
@@ -79,6 +74,7 @@ final class MicrophoneAnalyzer {
         hasPermission = true
         
         // Configure audio session and start engine with proper error cleanup
+        let audioSession = AVAudioSession.sharedInstance()
         var tapInstalled = false
         let inputNode = audioEngine.inputNode
         
