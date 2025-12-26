@@ -100,6 +100,38 @@
 "settings.duration.unlimited" = "No limit";
 "settings.history" = "Session History";
 
+// MARK: - History
+"history.title" = "History";
+"history.clear" = "Clear";
+"history.empty.title" = "No sessions yet";
+"history.empty.description" = "Your completed sessions will appear here.";
+"history.overview" = "Overview";
+"history.totalSessions" = "Total Sessions";
+"history.totalTime" = "Total Time";
+"history.filter" = "Filter";
+"history.mode" = "Mode";
+"history.allModes" = "All Modes";
+"history.sessions" = "Sessions";
+"history.totalDuration.format" = "%dh %02dm";
+
+// MARK: - History Detail
+"history.detail.title" = "Session Details";
+"history.detail.sessionInfo" = "Session Info";
+"history.detail.date" = "Date";
+"history.detail.time" = "Time";
+"history.detail.duration" = "Duration";
+"history.detail.mode" = "Mode";
+"history.detail.lightSource" = "Light Source";
+"history.detail.audioInfo" = "Audio Info";
+"history.detail.trackTitle" = "Title";
+"history.detail.artist" = "Artist";
+"history.detail.bpm" = "BPM";
+"history.detail.source" = "Source";
+"history.detail.localFile" = "Local File";
+"history.detail.status" = "Status";
+"history.detail.endReason" = "End Reason";
+"history.detail.thermalWarning" = "Thermal Warning";
+
 // MARK: - Mode Selection
 "modeSelection.title" = "Choose Entrainment Mode";
 "modeSelection.description" = "Select a mode based on your desired state of mind.";
@@ -167,154 +199,16 @@
 "lightSource.selectColor" = "Select color: %@";
 "lightSource.selectCustomColor" = "Select color: Custom";
 
+// MARK: - Session End Reasons
+"session.endReason.userStopped" = "User Stopped";
+"session.endReason.trackEnded" = "Track Ended";
+"session.endReason.thermalShutdown" = "Thermal Shutdown";
+"session.endReason.fallDetected" = "Fall Detected";
+"session.endReason.phoneCall" = "Phone Call";
+"session.endReason.appBackgrounded" = "App Backgrounded";
+
 // MARK: - Mode Selection
 "modeSelection.selectedMode" = "Selected mode";
 "modeSelection.selectMode" = "Select mode";
 "modeSelection.changeMode" = "Tap to change mode";
 "modeSelection.currentMode" = "Current mode: %@";
-/* 
-  Localizable.strings (English)
-  MindSync
-  
-  English localization strings
-*/
-
-// MARK: - Onboarding
-"onboarding.title" = "Important Safety Information";
-"onboarding.learnMore" = "Learn More";
-"onboarding.learnMoreHint" = "Opens detailed safety information";
-"onboarding.accept" = "I understand and accept";
-"onboarding.acceptHint" = "Confirms understanding of safety information and starts the app";
-"onboarding.description" = "This app uses stroboscopic light that can trigger seizures in people with photosensitive epilepsy.";
-
-// MARK: - Epilepsy Warning
-"epilepsyWarning.title" = "Epilepsy and Safety Warning";
-"epilepsyWarning.description" = "This app uses intense, stroboscopic light that can trigger seizures in people with photosensitive epilepsy (PSE).";
-"epilepsyWarning.doNotUse" = "Do not use MindSync if:";
-"epilepsyWarning.condition1" = "you have ever been diagnosed with an epileptic seizure";
-"epilepsyWarning.condition2" = "there is a family history of seizures";
-"epilepsyWarning.condition3" = "medical professionals have advised you against stroboscopic light";
-"epilepsyWarning.additionalNotes" = "Additional Notes";
-"epilepsyWarning.note1" = "Use MindSync only in a safe, seated or lying position in a dark room.";
-"epilepsyWarning.note2" = "Remove yourself from hazards (stairs, edges, sharp objects).";
-"epilepsyWarning.note3" = "End the session immediately if you feel unwell, dizzy, or disoriented.";
-"epilepsyWarning.disclaimer" = "MindSync is a wellness and entertainment tool and does not replace medical treatment or advice.";
-"epilepsyWarning.close" = "Close";
-
-// MARK: - Home
-"home.title" = "MindSync";
-"home.subtitle" = "Audio-synchronized strobe for altered states of consciousness.";
-"home.startSession" = "Start Session";
-"home.startSessionHint" = "Opens the audio source selection";
-"home.currentMode" = "Current Mode";
-
-// MARK: - Source Selection
-"sourceSelection.title" = "Select Audio Source";
-"sourceSelection.musicLibrary" = "Music Library";
-"sourceSelection.musicLibraryDescription" = "Choose a song from your local music library";
-"sourceSelection.musicLibraryButton" = "Select Music Library";
-"sourceSelection.musicLibraryHint" = "Opens the music library to select a song";
-"sourceSelection.microphone" = "Microphone";
-"sourceSelection.microphoneDescription" = "Analyze music from external sources";
-"sourceSelection.microphoneButton" = "Select Microphone Mode";
-"sourceSelection.microphoneHint" = "Analyzes music from external sources via microphone";
-"sourceSelection.microphoneNote" = "Note: Microphone mode is less precise than local analysis (~100ms latency)";
-"sourceSelection.musicLibraryDenied" = "Music library access denied. Please enable in settings.";
-"sourceSelection.microphoneDenied" = "Microphone access denied. Please enable in settings.";
-
-// MARK: - Session
-"session.pause" = "Pause";
-"session.resume" = "Resume";
-"session.stop" = "Stop";
-"session.paused" = "Paused";
-"session.unableToStart" = "Unable to start session";
-"session.noMediaItem" = "No media item was selected. Please dismiss and try starting a new session.";
-"session.dismiss" = "Dismiss";
-"session.back" = "Back";
-"session.fallDetected" = "Fall detected. Session has been ended for safety reasons.";
-"session.liveAudio" = "Live Audio";
-"session.microphone" = "Microphone";
-
-// MARK: - Analysis Progress
-"analysis.loading" = "Loading audio...";
-"analysis.extracting" = "Extracting PCM data...";
-"analysis.analyzing" = "Analyzing frequencies...";
-"analysis.detecting" = "Detecting beats...";
-"analysis.mapping" = "Creating LightScript...";
-"analysis.complete" = "Complete!";
-
-// MARK: - Settings
-"settings.title" = "Settings";
-"settings.done" = "Done";
-"settings.lightSource" = "Light Source";
-"settings.lightSourceDescription" = "Choose between flashlight (brighter) or screen (with colors).";
-"settings.entrainmentMode" = "Entrainment Mode";
-"settings.entrainmentModeDescription" = "Alpha: Relaxation, Theta: Trip, Gamma: Focus, Cinematic: Flow State";
-"settings.mode" = "Mode";
-"settings.safetyAndFeedback" = "Safety & Feedback";
-"settings.fallDetection" = "Fall Detection";
-"settings.thermalProtection" = "Thermal Protection";
-"settings.hapticFeedback" = "Haptic Feedback";
-"settings.intensity" = "Intensity";
-"settings.defaultIntensity" = "Default Intensity";
-"settings.intensityDescription" = "Default brightness for strobe light (flashlight only).";
-
-// MARK: - Mode Selection
-"modeSelection.title" = "Select Entrainment Mode";
-"modeSelection.description" = "Choose a mode based on your desired state of consciousness.";
-
-// MARK: - Entrainment Modes
-"mode.alpha.displayName" = "Relaxation";
-"mode.alpha.description" = "Relaxed wakefulness, light meditation, stress relief";
-"mode.theta.displayName" = "Trip";
-"mode.theta.description" = "Deep meditation, creativity, dream-like states";
-"mode.gamma.displayName" = "Focus";
-"mode.gamma.description" = "High concentration, cognitive clarity, insight";
-"mode.cinematic.displayName" = "Cinematic";
-"mode.cinematic.description" = "Flow State Sync - Dynamic & Reactive";
-
-// MARK: - Safety Banner
-"safety.thermalReduced" = "Intensity reduced due to device heat";
-"safety.thermalCritical" = "Flashlight disabled – too hot";
-
-// MARK: - Errors
-"error.drmProtected" = "This track is DRM-protected and cannot be analyzed. Please use microphone mode or choose another track.";
-"error.microphoneUnavailable" = "Microphone analysis is not available";
-"error.microphonePermissionDenied" = "Microphone access was denied. Please enable in settings.";
-"error.musicLibraryDenied" = "Music library access was denied. Please enable in settings.";
-"error.microphone.permissionDenied" = "Microphone permission was denied";
-"error.microphone.unsupportedFormat" = "Audio format is not supported";
-"error.microphone.engineStartFailed" = "Audio engine could not be started";
-
-// MARK: - Frequency Validation
-"frequency.tooLow" = "Frequency too low (minimum: %d Hz)";
-"frequency.tooHigh" = "Frequency too high (maximum: %d Hz)";
-"frequency.pseWarning" = "Frequency is in PSE danger zone (%d-%d Hz). People with photosensitive epilepsy should be cautious.";
-
-// MARK: - Common UI
-"common.ok" = "OK";
-"common.cancel" = "Cancel";
-"common.close" = "Close";
-"common.dismiss" = "Dismiss";
-"common.back" = "Back";
-"common.home" = "Home";
-"common.error" = "Error";
-
-// MARK: - Light Source Picker
-"lightSource.title" = "Light Source";
-"lightSource.flashlight" = "Flashlight";
-"lightSource.screen" = "Screen";
-"lightSource.screenColor" = "Screen Color";
-"lightSource.screenColorDescription" = "Choose the color for the strobe light";
-"lightSource.customColor" = "Choose Custom Color";
-"lightSource.selectFlashlight" = "Select Flashlight";
-"lightSource.selectScreen" = "Select Screen";
-"lightSource.selectColor" = "Select color: %@";
-"lightSource.selectCustomColor" = "Select color: Custom Color";
-
-// MARK: - Mode Selection
-"modeSelection.selectedMode" = "Selected Mode";
-"modeSelection.selectMode" = "Select Mode";
-"modeSelection.changeMode" = "Tap to change mode";
-"modeSelection.currentMode" = "Current Mode: %@";
-

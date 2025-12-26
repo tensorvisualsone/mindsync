@@ -77,12 +77,36 @@ private struct DetailRow: View {
 extension Session.EndReason {
     var localizedDescription: String {
         switch self {
-        case .userStopped: return "User Stopped"
-        case .trackEnded: return "Track Ended"
-        case .thermalShutdown: return "Thermal Shutdown"
-        case .fallDetected: return "Fall Detected"
-        case .phoneCall: return "Phone Call"
-        case .appBackgrounded: return "Backgrounded"
+        case .userStopped:
+            return NSLocalizedString(
+                "session.endReason.userStopped",
+                comment: "End reason: user manually stopped the session"
+            )
+        case .trackEnded:
+            return NSLocalizedString(
+                "session.endReason.trackEnded",
+                comment: "End reason: audio track finished playing"
+            )
+        case .thermalShutdown:
+            return NSLocalizedString(
+                "session.endReason.thermalShutdown",
+                comment: "End reason: session stopped due to device thermal shutdown"
+            )
+        case .fallDetected:
+            return NSLocalizedString(
+                "session.endReason.fallDetected",
+                comment: "End reason: session stopped because a fall was detected"
+            )
+        case .phoneCall:
+            return NSLocalizedString(
+                "session.endReason.phoneCall",
+                comment: "End reason: session interrupted by phone call"
+            )
+        case .appBackgrounded:
+            return NSLocalizedString(
+                "session.endReason.appBackgrounded",
+                comment: "End reason: app moved to background"
+            )
         }
     }
 }

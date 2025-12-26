@@ -115,6 +115,7 @@
 "history.mode" = "Modus";
 "history.allModes" = "Alle Modi";
 "history.sessions" = "Sitzungen";
+"history.totalDuration.format" = "%dh %02dm";
 
 // MARK: - History Detail
 "history.detail.title" = "Sitzungsdetails";
@@ -125,7 +126,7 @@
 "history.detail.mode" = "Modus";
 "history.detail.lightSource" = "Lichtquelle";
 "history.detail.audioInfo" = "Audio Info";
-"history.detail.title" = "Titel";
+"history.detail.trackTitle" = "Titel";
 "history.detail.artist" = "Künstler";
 "history.detail.bpm" = "BPM";
 "history.detail.source" = "Quelle";
@@ -133,6 +134,14 @@
 "history.detail.status" = "Status";
 "history.detail.endReason" = "Beendigungsgrund";
 "history.detail.thermalWarning" = "Thermische Warnung";
+
+// MARK: - Session End Reasons
+"session.endReason.userStopped" = "Vom Benutzer gestoppt";
+"session.endReason.trackEnded" = "Track beendet";
+"session.endReason.thermalShutdown" = "Thermische Abschaltung";
+"session.endReason.fallDetected" = "Sturz erkannt";
+"session.endReason.phoneCall" = "Telefonanruf";
+"session.endReason.appBackgrounded" = "App im Hintergrund";
 
 // MARK: - Mode Selection
 "modeSelection.title" = "Entrainment-Modus wählen";
