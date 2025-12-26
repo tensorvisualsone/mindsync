@@ -57,7 +57,7 @@ final class FlashlightController: BaseLightController, LightControlling {
             } catch {
                 lastError = error
                 logger.error("Torch lock failed (attempt \(attempt)/\(attempts)): \(error.localizedDescription, privacy: .public)")
-                // Small backoff before retrying
+                // Exponential backoff before retrying: 40ms, 80ms, 120ms for attempts 1-3
                 if attempt < attempts {
                     try? await Task.sleep(nanoseconds: UInt64(0.04 * Double(attempt) * 1_000_000_000))
                 }

@@ -215,22 +215,33 @@ struct SettingsView: View {
         .fileImporter(isPresented: $showingAffirmationImporter, allowedContentTypes: [.audio]) { result in
             switch result {
             case .success(let url):
-                // Validate that the file is playable before saving
-                let asset = AVAsset(url: url)
-                let isPlayable = asset.isPlayable
-                
-                if isPlayable {
-                    preferences.selectedAffirmationURL = url
-                    preferences.save()
-                } else {
-                    importError = NSError(
-                        domain: ValidationError.domain,
-                        code: ValidationError.invalidAudioFileCode,
-                        userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("settings.invalidAudioFile", 
-                                                                               value: "The selected file is not a valid or playable audio file",
-                                                                               comment: "Error shown when imported audio file cannot be played")]
-                    )
-                    showingImportError = true
+                // Validate that the file is playable before saving (async load for consistency)
+                Task {
+                    let asset = AVAsset(url: url)
+                    do {
+                        let isPlayable = try await asset.load(.isPlayable)
+                        
+                        await MainActor.run {
+                            if isPlayable {
+                                preferences.selectedAffirmationURL = url
+                                preferences.save()
+                            } else {
+                                importError = NSError(
+                                    domain: ValidationError.domain,
+                                    code: ValidationError.invalidAudioFileCode,
+                                    userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("settings.invalidAudioFile",
+                                                                                           value: "The selected file is not a valid or playable audio file",
+                                                                                           comment: "Error shown when imported audio file cannot be played")]
+                                )
+                                showingImportError = true
+                            }
+                        }
+                    } catch {
+                        await MainActor.run {
+                            importError = error
+                            showingImportError = true
+                        }
+                    }
                 }
             case .failure(let error):
                 importError = error

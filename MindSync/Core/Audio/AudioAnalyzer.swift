@@ -264,8 +264,22 @@ final class AudioAnalyzer {
         if metadataDuration <= 0 {
             return waveformDuration
         }
-        // Use the greater duration to avoid truncated scripts
-        return max(metadataDuration, waveformDuration)
+        
+        // Use the greater duration to avoid truncated scripts, but log if there's
+        // a significant discrepancy between metadata and waveform durations.
+        let maxDuration = max(metadataDuration, waveformDuration)
+        let minDuration = min(metadataDuration, waveformDuration)
+        
+        if maxDuration > 0 {
+            let relativeDifference = (maxDuration - minDuration) / maxDuration
+            
+            if relativeDifference > 0.05 {
+                let percentDifference = relativeDifference * 100
+                logger.warning("Significant duration discrepancy: metadata=\(metadataDuration, privacy: .public, format: .fixed(precision: 3))s, waveform=\(waveformDuration, privacy: .public, format: .fixed(precision: 3))s, difference=\(percentDifference, privacy: .public, format: .fixed(precision: 2))%")
+            }
+        }
+        
+        return maxDuration
     }
     
     /// Generates beats based on audio energy analysis.
@@ -345,6 +359,12 @@ final class AudioAnalyzer {
         guard duration > 0 else { return [] }
         
         let sanitizedBPM = max(30, min(200, bpm))
+        
+        // Log when BPM is clamped to inform debugging
+        if sanitizedBPM != bpm {
+            logger.warning("BPM \(bpm, privacy: .public) is outside valid range (30-200), clamping to \(sanitizedBPM, privacy: .public)")
+        }
+        
         let interval = 60.0 / sanitizedBPM
         guard interval > 0 else { return [] }
         let beatCount = min(5000, Int(duration / interval))

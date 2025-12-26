@@ -132,7 +132,14 @@ enum AudioAnalysisError: Error, LocalizedError {
             return NSLocalizedString("error.audio.cancelled", comment: "")
         case .fileTooLong(let duration):
             let minutes = Int(duration / 60)
-            return String(format: NSLocalizedString("error.audio.fileTooLong", comment: ""), minutes)
+            return String(
+                format: NSLocalizedString(
+                    "error.audio.fileTooLong",
+                    value: "Die Audiodatei ist zu lang (%d Minuten). Bitte wähle eine kürzere Datei.",
+                    comment: "Error when the selected audio file exceeds the maximum supported duration; %d is the file length in minutes."
+                ),
+                minutes
+            )
         case .corruptedData:
             return NSLocalizedString("error.audio.corruptedData", comment: "")
         case .analysisTimeout:

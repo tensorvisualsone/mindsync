@@ -89,17 +89,20 @@ final class SessionHistoryViewModelTests: XCTestCase {
     
     // Helper
     private func createTestSession(mode: EntrainmentMode = .theta, duration: TimeInterval = 600) -> Session {
-        return Session(
+        let startDate = Date()
+        var session = Session(
+            startedAt: startDate,
             mode: mode,
             lightSource: .screen,
             audioSource: .localFile,
             trackTitle: "Test Track",
             trackArtist: "Test Artist",
-            trackBPM: 120.0,
-            duration: duration,
-            startedAt: Date(),
-            endedAt: Date().addingTimeInterval(duration),
-            endReason: .userStopped
+            trackBPM: 120.0
         )
+        // Set end time and duration for deterministic testing
+        session.endedAt = startDate.addingTimeInterval(duration)
+        session.actualDuration = duration
+        session.endReason = .userStopped
+        return session
     }
 }
