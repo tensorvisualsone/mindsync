@@ -329,7 +329,7 @@ final class SessionViewModel: ObservableObject {
         lightController?.stop()
         lightController = services.screenController
         
-        // Cancel any existing task and wait for it to complete
+        // Cancel any existing task
         activeTask?.cancel()
         activeTask = Task {
             do {

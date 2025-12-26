@@ -4,6 +4,12 @@ import AVFoundation
 
 /// Settings view for user preferences
 struct SettingsView: View {
+    // MARK: - Error Constants
+    private enum ValidationError {
+        static let domain = "com.mindsync.settings"
+        static let invalidAudioFileCode = 1
+    }
+    
     @State private var preferences: UserPreferences
     @Environment(\.dismiss) private var dismiss
     @State private var showingAffirmationImporter = false
@@ -218,8 +224,8 @@ struct SettingsView: View {
                     preferences.save()
                 } else {
                     importError = NSError(
-                        domain: "com.mindsync.settings",
-                        code: 1,
+                        domain: ValidationError.domain,
+                        code: ValidationError.invalidAudioFileCode,
                         userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("settings.invalidAudioFile", 
                                                                                value: "The selected file is not a valid or playable audio file",
                                                                                comment: "Error shown when imported audio file cannot be played")]
