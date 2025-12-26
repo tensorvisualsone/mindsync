@@ -188,7 +188,7 @@ struct MediaPickerView: UIViewControllerRepresentable {
         let picker = MPMediaPickerController(mediaTypes: .music)
         picker.delegate = context.coordinator
         picker.allowsPickingMultipleItems = false
-        picker.showsCloudItems = false
+        picker.showsCloudItems = true  // Zeige auch Cloud-Items an (Apple Music)
         return picker
     }
     
