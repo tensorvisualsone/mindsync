@@ -309,6 +309,9 @@ final class SessionViewModel: ObservableObject {
         
         audioPlayback.stop()
         lightController?.stop()
+
+        // Stop isochronic audio if active
+        IsochronicAudioService.shared.stop()
         
         // Stop audio energy tracking if active (cinematic mode)
         audioEnergyTracker.stopTracking()
@@ -448,6 +451,11 @@ final class SessionViewModel: ObservableObject {
             
             // Start LightScript execution
             let startTime = Date()
+
+            // Start optional isochronic audio for microphone sessions (no music playback)
+            IsochronicAudioService.shared.carrierFrequency = 150.0
+            IsochronicAudioService.shared.start(mode: mode)
+
             lightController?.execute(script: initialScript, syncedTo: startTime)
             
             // Note: Cinematic mode is not supported for microphone sessions
@@ -629,6 +637,12 @@ final class SessionViewModel: ObservableObject {
         // Start audio playback
         try audioPlayback.play(url: url)
         
+        // If cinematic mode, attach isochronic audio to the playback engine for perfect sync
+        if currentSession?.mode == .cinematic, let engine = audioPlayback.getAudioEngine() {
+            IsochronicAudioService.shared.carrierFrequency = 150.0
+            IsochronicAudioService.shared.start(mode: currentSession!.mode, attachToEngine: engine)
+        }
+
         // Start light controller
         try lightController.start()
         
