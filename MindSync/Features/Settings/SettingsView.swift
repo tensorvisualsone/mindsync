@@ -250,9 +250,11 @@ struct SettingsView: View {
                     }
                 }
             case .failure(let error):
-                importError = error
-                showingImportError = true
-                isImportingAffirmation = false
+                Task { @MainActor in
+                    importError = error
+                    showingImportError = true
+                    isImportingAffirmation = false
+                }
             }
         }
         .alert(NSLocalizedString("common.error", comment: ""), isPresented: $showingImportError, presenting: importError) { _ in
