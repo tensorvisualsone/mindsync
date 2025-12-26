@@ -40,7 +40,7 @@ final class FlashlightController: BaseLightController, LightControlling {
         // Device is now lazy-initialized when first accessed
     }
 
-    func start() throws {
+    func start() async throws {
         guard let device = device, device.hasTorch else {
             throw LightControlError.torchUnavailable
         }
@@ -56,7 +56,7 @@ final class FlashlightController: BaseLightController, LightControlling {
             } catch {
                 logger.error("Torch lock failed (attempt \(attempt)): \(error.localizedDescription, privacy: .public)")
                 // Small backoff before retrying
-                Thread.sleep(forTimeInterval: 0.04 * Double(attempt))
+                try? await Task.sleep(nanoseconds: UInt64(0.04 * Double(attempt) * 1_000_000_000))
             }
         }
         

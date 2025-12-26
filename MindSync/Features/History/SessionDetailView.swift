@@ -5,34 +5,34 @@ struct SessionDetailView: View {
     
     var body: some View {
         List {
-            Section(header: Text("Session Info")) {
-                DetailRow(title: "Date", value: formatDate(session.startedAt))
-                DetailRow(title: "Time", value: formatTime(session.startedAt))
-                DetailRow(title: "Duration", value: session.formattedDuration)
-                DetailRow(title: "Mode", value: session.mode.displayName)
-                DetailRow(title: "Light Source", value: session.lightSource.displayName)
+            Section(header: Text(NSLocalizedString("history.detail.sessionInfo", comment: "Session Info"))) {
+                DetailRow(title: NSLocalizedString("history.detail.date", comment: "Date"), value: formatDate(session.startedAt))
+                DetailRow(title: NSLocalizedString("history.detail.time", comment: "Time"), value: formatTime(session.startedAt))
+                DetailRow(title: NSLocalizedString("history.detail.duration", comment: "Duration"), value: session.formattedDuration)
+                DetailRow(title: NSLocalizedString("history.detail.mode", comment: "Mode"), value: session.mode.displayName)
+                DetailRow(title: NSLocalizedString("history.detail.lightSource", comment: "Light Source"), value: session.lightSource.displayName)
             }
             
-            Section(header: Text("Audio Info")) {
+            Section(header: Text(NSLocalizedString("history.detail.audioInfo", comment: "Audio Info"))) {
                 if let title = session.trackTitle {
-                    DetailRow(title: "Title", value: title)
+                    DetailRow(title: NSLocalizedString("history.detail.title", comment: "Title"), value: title)
                 }
                 if let artist = session.trackArtist {
-                    DetailRow(title: "Artist", value: artist)
+                    DetailRow(title: NSLocalizedString("history.detail.artist", comment: "Artist"), value: artist)
                 }
                 if let bpm = session.trackBPM {
-                    DetailRow(title: "BPM", value: "\(Int(bpm))")
+                    DetailRow(title: NSLocalizedString("history.detail.bpm", comment: "BPM"), value: "\(Int(bpm))")
                 }
-                DetailRow(title: "Source", value: session.audioSource == .microphone ? "Microphone" : "Local File")
+                DetailRow(title: NSLocalizedString("history.detail.source", comment: "Source"), value: session.audioSource == .microphone ? NSLocalizedString("session.microphone", comment: "") : NSLocalizedString("history.detail.localFile", comment: ""))
             }
             
-            Section(header: Text("Status")) {
+            Section(header: Text(NSLocalizedString("history.detail.status", comment: "Status"))) {
                 if let endReason = session.endReason {
-                    DetailRow(title: "End Reason", value: endReason.localizedDescription)
+                    DetailRow(title: NSLocalizedString("history.detail.endReason", comment: "End Reason"), value: endReason.localizedDescription)
                 }
                 if session.thermalWarningOccurred {
                     HStack {
-                        Text("Thermal Warning")
+                        Text(NSLocalizedString("history.detail.thermalWarning", comment: "Thermal Warning"))
                         Spacer()
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.mindSyncWarning)
@@ -40,7 +40,7 @@ struct SessionDetailView: View {
                 }
             }
         }
-        .navigationTitle("Session Details")
+        .navigationTitle(NSLocalizedString("history.detail.title", comment: "Session Details"))
         .navigationBarTitleDisplayMode(.inline)
     }
     

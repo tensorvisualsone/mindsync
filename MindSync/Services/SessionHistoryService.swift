@@ -5,6 +5,7 @@ protocol SessionHistoryServiceProtocol {
     func save(session: Session)
     func loadAll() -> [Session]
     func clearAll()
+    func delete(ids: Set<UUID>)
 }
 
 /// Service for session history management

@@ -34,11 +34,14 @@ final class SessionHistoryViewModel: ObservableObject {
     }
     
     func deleteSession(at offsets: IndexSet) {
-        // Note: The current SessionHistoryService doesn't support deleting individual sessions by ID easily
-        // without reloading and saving everything. This is a limitation of the array-based storage.
-        // For now, we'll just implement clearing all history or we would need to extend the service.
-        // Given the requirement to not edit the service deeply right now, we will skip individual deletion
-        // or implement it if critical. The UI can offer "Clear All".
+        let sessionsToDelete = offsets.map { filteredSessions[$0] }
+        let idsToDelete = Set(sessionsToDelete.map { $0.id })
+        
+        // Update local state
+        sessions.removeAll { idsToDelete.contains($0.id) }
+        
+        // Update persistent storage
+        historyService.delete(ids: idsToDelete)
     }
     
     func clearHistory() {

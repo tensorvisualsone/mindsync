@@ -31,6 +31,10 @@ final class MicrophoneAnalyzer {
     private let smoothingFactor: Float = 0.95 // 95% alt, 5% neu
     private let thresholdMultiplier: Float = 1.4 // Dynamischer Threshold = averageEnergy * 1.4
     
+    // Counter for throttling signal level updates
+    private var signalEmissionCounter: Int = 0
+    private let signalEmissionInterval: Int = 4 // Emit every ~4th frame (approx 20Hz)
+    
     // Publishers
     let beatEventPublisher = PassthroughSubject<TimeInterval, Never>()
     let bpmPublisher = PassthroughSubject<Double, Never>()
@@ -198,7 +202,16 @@ final class MicrophoneAnalyzer {
             
             let frameRMS = calculateRMS(frame)
             let normalizedLevel = min(1.0, max(0.0, frameRMS * levelNormalizationFactor))
-            signalLevelPublisher.send(normalizedLevel)
+            
+            // Throttle signal level emission to reduce UI/processing load
+            // At 44.1kHz with 512 hop size, we get ~86 frames/sec.
+            // Emitting every 4th frame gives ~21 updates/sec, which is sufficient for UI and silence detection.
+            signalEmissionCounter += 1
+            if signalEmissionCounter >= signalEmissionInterval {
+                signalLevelPublisher.send(normalizedLevel)
+                signalEmissionCounter = 0
+            }
+            
             noiseFloor = (noiseFloor * (1.0 - noiseFloorSmoothing)) + (frameRMS * noiseFloorSmoothing)
             
             // Calculate spectral flux

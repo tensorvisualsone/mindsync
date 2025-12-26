@@ -255,6 +255,19 @@ final class AudioAnalyzer {
         return max(metadataDuration, waveformDuration)
     }
     
+    /// Generates beats based on audio energy analysis.
+    ///
+    /// This method implements a dynamic thresholding algorithm to detect beats in the audio signal.
+    /// It calculates the Root Mean Square (RMS) energy for sliding windows of the audio samples
+    /// and identifies peaks that exceed a dynamic threshold based on the local mean energy.
+    ///
+    /// - Parameters:
+    ///   - samples: The raw audio samples (mono).
+    ///   - windowDuration: The duration of the analysis window in seconds (typically 0.35s).
+    ///   - sampleRate: The sample rate of the audio data.
+    ///   - trackDuration: The total duration of the track to ensure timestamps are within bounds.
+    /// - Returns: An array of timestamps (in seconds) representing detected beats.
+    ///            The array is capped at 5000 beats to prevent memory issues.
     private func generateEnergyDrivenBeats(
         from samples: [Float],
         windowDuration: Double,

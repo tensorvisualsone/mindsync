@@ -69,6 +69,11 @@ final class SessionViewModel: ObservableObject {
     // Flag to prevent re-entrancy in fall detection handling
     private var isHandlingFall = false
     
+    // Microphone signal monitoring constants
+    private let silenceThreshold: Float = 0.02
+    private let autoPauseDelay: TimeInterval = 2.0
+    private let autoStopDelay: TimeInterval = 12.0
+    
     // Lifecycle pause flags
     private var pausedBySystemInterruption = false
     private var pausedByRouteChange = false
@@ -293,10 +298,6 @@ final class SessionViewModel: ObservableObject {
             return
         }
         
-        let silenceThreshold: Float = 0.02
-        let autoPauseDelay: TimeInterval = 2.0
-        let autoStopDelay: TimeInterval = 12.0
-        
         if level < silenceThreshold {
             if microphoneSilenceStart == nil {
                 microphoneSilenceStart = Date()
@@ -329,15 +330,17 @@ final class SessionViewModel: ObservableObject {
         lightController?.stop()
         lightController = services.screenController
         
-        do {
-            try lightController?.start()
-            
-            // Resume from current session position using original session start time
-            lightController?.execute(script: script, syncedTo: session.startedAt)
-            
-        } catch {
-            // If screen controller also fails, stop the session
-            stopSession()
+        Task {
+            do {
+                try await lightController?.start()
+                
+                // Resume from current session position using original session start time
+                lightController?.execute(script: script, syncedTo: session.startedAt)
+                
+            } catch {
+                // If screen controller also fails, stop the session
+                stopSession()
+            }
         }
     }
     
@@ -406,6 +409,7 @@ final class SessionViewModel: ObservableObject {
     }
     
     deinit {
+        stopPlaybackProgressUpdates(reset: false)
         // Note: Cleanup is handled by stopSession() which should be called before deallocation.
         // The AudioPlaybackService handles its own lifecycle and will stop when deallocated.
         // We intentionally don't call MainActor-isolated methods from deinit to avoid
@@ -713,7 +717,7 @@ final class SessionViewModel: ObservableObject {
             }
             
             // Start light controller
-            try lightController?.start()
+            try await lightController?.start()
             
             // Start LightScript execution
             let startTime = Date()
@@ -916,7 +920,7 @@ final class SessionViewModel: ObservableObject {
         }
 
         // Start light controller
-        try lightController.start()
+        try await lightController.start()
         
         // Start LightScript execution synchronized with audio
         let startTime = Date()

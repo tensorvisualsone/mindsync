@@ -10,7 +10,7 @@ protocol LightControlling {
     var audioEnergyTracker: AudioEnergyTracker? { get set }
 
     /// Starts light output
-    func start() throws
+    func start() async throws
 
     /// Stops light output
     func stop()

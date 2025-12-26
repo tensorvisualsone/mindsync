@@ -15,11 +15,11 @@ struct SessionHistoryView: View {
                     sessionsList
                 }
             }
-            .navigationTitle("History")
+            .navigationTitle(NSLocalizedString("history.title", comment: "History"))
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if !viewModel.sessions.isEmpty {
-                        Button("Clear") {
+                        Button(NSLocalizedString("history.clear", comment: "Clear")) {
                             viewModel.clearHistory()
                         }
                     }
@@ -34,9 +34,9 @@ struct SessionHistoryView: View {
                 Image(systemName: "clock.arrow.circlepath")
                     .font(.system(size: 48))
                     .foregroundColor(.secondary)
-                Text("No sessions yet")
+                Text(NSLocalizedString("history.empty.title", comment: "No sessions yet"))
                     .font(.headline)
-                Text("Your completed sessions will appear here.")
+                Text(NSLocalizedString("history.empty.description", comment: "Your completed sessions will appear here"))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -48,13 +48,13 @@ struct SessionHistoryView: View {
     }
     
     private var statsSection: some View {
-        Section(header: Text("Overview")) {
+        Section(header: Text(NSLocalizedString("history.overview", comment: "Overview"))) {
             HStack {
                 VStack(alignment: .leading) {
                     Text("\(viewModel.totalSessions)")
                         .font(.title2)
                         .bold()
-                    Text("Total Sessions")
+                    Text(NSLocalizedString("history.totalSessions", comment: "Total Sessions"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -63,7 +63,7 @@ struct SessionHistoryView: View {
                     Text(viewModel.formattedTotalDuration())
                         .font(.title2)
                         .bold()
-                    Text("Total Time")
+                    Text(NSLocalizedString("history.totalTime", comment: "Total Time"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -72,9 +72,9 @@ struct SessionHistoryView: View {
     }
     
     private var filterSection: some View {
-        Section(header: Text("Filter")) {
-            Picker("Mode", selection: $viewModel.selectedModeFilter) {
-                Text("All Modes").tag(EntrainmentMode?.none)
+        Section(header: Text(NSLocalizedString("history.filter", comment: "Filter"))) {
+            Picker(NSLocalizedString("history.mode", comment: "Mode"), selection: $viewModel.selectedModeFilter) {
+                Text(NSLocalizedString("history.allModes", comment: "All Modes")).tag(EntrainmentMode?.none)
                 ForEach(EntrainmentMode.allCases, id: \.self) { mode in
                     Text(mode.displayName).tag(EntrainmentMode?.some(mode))
                 }
@@ -83,12 +83,13 @@ struct SessionHistoryView: View {
     }
     
     private var sessionsList: some View {
-        Section(header: Text("Sessions")) {
+        Section(header: Text(NSLocalizedString("history.sessions", comment: "Sessions"))) {
             ForEach(viewModel.filteredSessions) { session in
                 NavigationLink(destination: SessionDetailView(session: session)) {
                     SessionRow(session: session)
                 }
             }
+            .onDelete(perform: viewModel.deleteSession)
         }
     }
 }
