@@ -244,8 +244,6 @@ final class SessionViewModel: ObservableObject {
                     if options.contains(.shouldResume) {
                         resumeSession()
                     }
-                } else {
-                    resumeSession()
                 }
             }
         @unknown default:

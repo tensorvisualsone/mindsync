@@ -58,9 +58,24 @@ final class SessionHistoryViewModel: ObservableObject {
     }
     
     func formattedTotalDuration() -> String {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.hour, .minute]
+        formatter.unitsStyle = .abbreviated
+        formatter.zeroFormattingBehavior = [.pad]
+
+        if let formatted = formatter.string(from: totalDuration) {
+            return formatted
+        }
+
+        // Fallback: localized format string for hours and minutes
         let hours = Int(totalDuration) / 3600
         let minutes = (Int(totalDuration) % 3600) / 60
-        return String(format: "%dh %02dm", hours, minutes)
+        let format = NSLocalizedString(
+            "history.totalDuration.format",
+            value: "%dh %02dm",
+            comment: "Total duration in hours and minutes (e.g. 2h 05m)"
+        )
+        return String(format: format, hours, minutes)
     }
 }
 
