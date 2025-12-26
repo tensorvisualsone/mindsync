@@ -22,7 +22,13 @@ final class AudioAnalyzer {
     private lazy var cacheDirectory: URL = {
         let paths = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
         let cacheDir = paths[0].appendingPathComponent("AudioAnalysisCache")
-        try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        do {
+            try FileManager.default.createDirectory(at: cacheDir,
+                                                    withIntermediateDirectories: true,
+                                                    attributes: nil)
+        } catch {
+            logger.error("Failed to create cache directory at \(cacheDir.path, privacy: .public): \(String(describing: error), privacy: .public)")
+        }
         return cacheDir
     }()
 
@@ -136,12 +142,19 @@ final class AudioAnalyzer {
         }
         
         if beatTimestamps.count < 2 {
-            let uniformBeats = generateUniformBeats(
-                duration: resolvedDuration,
-                bpm: bpm
-            )
-            if !uniformBeats.isEmpty {
-                beatTimestamps = uniformBeats
+            let isValidBPM = bpm.isFinite && bpm > 0
+            
+            if isValidBPM {
+                let uniformBeats = generateUniformBeats(
+                    duration: resolvedDuration,
+                    bpm: bpm
+                )
+                if !uniformBeats.isEmpty {
+                    beatTimestamps = uniformBeats
+                    logger.info("Uniform beat fallback used for track: \(title, privacy: .public) with BPM: \(bpm, privacy: .public)")
+                }
+            } else {
+                logger.info("Skipping uniform beat fallback for track: \(title, privacy: .public) due to invalid BPM estimate: \(bpm, privacy: .public)")
             }
         }
         

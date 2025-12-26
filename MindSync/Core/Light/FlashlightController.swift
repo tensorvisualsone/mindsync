@@ -46,6 +46,7 @@ final class FlashlightController: BaseLightController, LightControlling {
         }
         
         let attempts = 3
+        var lastError: Error?
         
         for attempt in 1...attempts {
             do {
@@ -54,12 +55,18 @@ final class FlashlightController: BaseLightController, LightControlling {
                 torchFailureNotified = false
                 return
             } catch {
-                logger.error("Torch lock failed (attempt \(attempt)): \(error.localizedDescription, privacy: .public)")
+                lastError = error
+                logger.error("Torch lock failed (attempt \(attempt)/\(attempts)): \(error.localizedDescription, privacy: .public)")
                 // Small backoff before retrying
-                try? await Task.sleep(nanoseconds: UInt64(0.04 * Double(attempt) * 1_000_000_000))
+                if attempt < attempts {
+                    try? await Task.sleep(nanoseconds: UInt64(0.04 * Double(attempt) * 1_000_000_000))
+                }
             }
         }
         
+        if let lastError {
+            logger.error("All \(attempts) torch lock attempts failed. Last error: \(lastError.localizedDescription, privacy: .public)")
+        }
         throw LightControlError.configurationFailed
     }
 
@@ -176,6 +183,18 @@ final class FlashlightController: BaseLightController, LightControlling {
     
     // MARK: - Helpers
     
+    /// Handles torch system shutdown and notifies observers.
+    ///
+    /// This method is called when the torch fails during operation. The `torchFailureNotified` flag
+    /// prevents duplicate notifications for the same failure event.
+    ///
+    /// - Parameter error: The error that caused the shutdown, if available.
+    ///
+    /// - Note: The `torchFailureNotified` flag is reset in two scenarios:
+    ///   1. When `stop()` is called (user manually stops the session)
+    ///   2. When `start()` succeeds (new session begins successfully)
+    ///   This ensures that each new session can properly report torch failures, while preventing
+    ///   duplicate notifications within a single session.
     private func handleTorchSystemShutdown(error: Error?) {
         guard !torchFailureNotified else { return }
         torchFailureNotified = true

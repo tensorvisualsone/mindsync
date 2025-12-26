@@ -62,6 +62,7 @@
 "session.microphone" = "Mikrofon";
 "session.controls.hint" = "Doppeltipp oder Swipe nach unten, um sofort zu stoppen. Swipe nach oben, um kurz zu pausieren.";
 "session.microphone.noSignal" = "Kein Audio erkannt. Session wurde automatisch beendet.";
+"session.screenController.error" = "Fehler beim Wechseln zum bildschirmbasierten Lichtcontroller";
 "session.affirmation.waiting" = "Affirmation wird nach 5 Minuten im Theta-Modus abgespielt.";
 "session.affirmation.playing" = "Affirmation läuft – entspanne dich und lausche.";
 "session.pauseAccessibility" = "Sitzung pausieren";
@@ -101,6 +102,7 @@
 "settings.maxDuration" = "Maximale Dauer";
 "settings.duration.unlimited" = "Kein Limit";
 "settings.history" = "Sitzungshistorie";
+"settings.invalidAudioFile" = "Die ausgewählte Datei ist keine gültige oder abspielbare Audiodatei";
 "settings.importError" = "Fehler beim Importieren der Datei";
 
 // MARK: - History

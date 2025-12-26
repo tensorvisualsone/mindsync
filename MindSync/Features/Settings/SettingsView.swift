@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import AVFoundation
 
 /// Settings view for user preferences
 struct SettingsView: View {
@@ -208,8 +209,23 @@ struct SettingsView: View {
         .fileImporter(isPresented: $showingAffirmationImporter, allowedContentTypes: [.audio]) { result in
             switch result {
             case .success(let url):
-                preferences.selectedAffirmationURL = url
-                preferences.save()
+                // Validate that the file is playable before saving
+                let asset = AVAsset(url: url)
+                let isPlayable = asset.isPlayable
+                
+                if isPlayable {
+                    preferences.selectedAffirmationURL = url
+                    preferences.save()
+                } else {
+                    importError = NSError(
+                        domain: "com.mindsync.settings",
+                        code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("settings.invalidAudioFile", 
+                                                                               value: "The selected file is not a valid or playable audio file",
+                                                                               comment: "Error shown when imported audio file cannot be played")]
+                    )
+                    showingImportError = true
+                }
             case .failure(let error):
                 importError = error
                 showingImportError = true

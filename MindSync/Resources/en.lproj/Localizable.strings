@@ -60,6 +60,7 @@
 "session.microphone" = "Microphone";
 "session.controls.hint" = "Double-tap or swipe down to stop immediately. Swipe up for a quick pause.";
 "session.microphone.noSignal" = "No audio detected. Session ended automatically.";
+"session.screenController.error" = "Failed to switch to screen-based light controller";
 "session.affirmation.waiting" = "Affirmation scheduled – will play after 5 minutes in Theta mode.";
 "session.affirmation.playing" = "Affirmation playing – relax and listen.";
 "session.pauseAccessibility" = "Pause session";
@@ -99,6 +100,8 @@
 "settings.maxDuration" = "Maximum duration";
 "settings.duration.unlimited" = "No limit";
 "settings.history" = "Session History";
+"settings.invalidAudioFile" = "The selected file is not a valid or playable audio file";
+"settings.importError" = "Import error";
 
 // MARK: - History
 "history.title" = "History";

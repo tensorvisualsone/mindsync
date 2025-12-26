@@ -154,6 +154,7 @@ final class MicrophoneAnalyzer {
         
         isRunning = false
         startTime = nil
+        signalEmissionCounter = 0 // Reset counter for next session
         
         logger.info("Microphone analysis stopped")
     }
@@ -213,6 +214,10 @@ final class MicrophoneAnalyzer {
             }
             
             noiseFloor = (noiseFloor * (1.0 - noiseFloorSmoothing)) + (frameRMS * noiseFloorSmoothing)
+            // NOTE: The noise floor smoothing factor (0.005) results in an adaptation time of ~2.3 seconds
+            // to reach 63% of a new noise level (at 44.1kHz with 512-sample hop, ~86 frames/sec).
+            // This slow adaptation helps distinguish between brief spikes and sustained environmental changes,
+            // but may cause delays when transitioning between very different audio environments.
             
             // Calculate spectral flux
             var spectralFlux: Float = 0

@@ -73,8 +73,10 @@ final class SessionHistoryViewModel: ObservableObject {
         }
 
         // Fallback: localized format string for hours and minutes
-        let hours = Int(totalDuration) / 3600
-        let minutes = (Int(totalDuration) % 3600) / 60
+        // Round to nearest second to avoid truncation errors
+        let roundedDuration = totalDuration.rounded()
+        let hours = Int(roundedDuration) / 3600
+        let minutes = (Int(roundedDuration) % 3600) / 60
         let format = NSLocalizedString(
             "history.totalDuration.format",
             value: "%dh %02dm",
