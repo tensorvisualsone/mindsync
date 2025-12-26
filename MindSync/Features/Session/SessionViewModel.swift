@@ -104,6 +104,10 @@ final class SessionViewModel: ObservableObject {
         self.historyService = historyService
         
         // Load microphone monitoring configuration from UserDefaults
+        // Note: We validate that values are positive (> 0) to ensure sensible behavior.
+        // A silenceThreshold of 0 would never detect silence, and delays of 0 would
+        // cause immediate pause/stop. If the key doesn't exist or has an invalid value,
+        // we fall back to the documented defaults.
         let defaults = UserDefaults.standard
         let thresholdValue = defaults.float(forKey: MicrophoneConfigKeys.silenceThreshold)
         self.silenceThreshold = thresholdValue > 0 ? thresholdValue : 0.02
