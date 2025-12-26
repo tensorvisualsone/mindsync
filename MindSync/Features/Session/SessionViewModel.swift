@@ -327,8 +327,8 @@ final class SessionViewModel: ObservableObject {
     
     private func switchToScreenController(using script: LightScript, session: Session) {
         // Prevent race conditions by checking if a task is already running
-        // If activeTask is present and NOT cancelled, we should bail out
-        guard activeTask == nil || activeTask?.isCancelled == true else {
+        // Bail out if there's an active task that hasn't been cancelled
+        if let task = activeTask, !task.isCancelled {
             logger.warning("switchToScreenController called while previous task is still running")
             return
         }
@@ -419,6 +419,8 @@ final class SessionViewModel: ObservableObject {
     }
     
     deinit {
+        // Skip resetting published properties during deallocation to avoid issues with
+        // potentially active observers. The properties will be cleaned up with the view model.
         stopPlaybackProgressUpdates(reset: false)
         // Note: Cleanup is handled by stopSession() which should be called before deallocation.
         // The AudioPlaybackService handles its own lifecycle and will stop when deallocated.

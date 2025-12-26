@@ -57,12 +57,6 @@ final class SessionHistoryViewModel: ObservableObject {
         
         // Note: filteredSessions will be automatically updated via the Combine pipeline
         // that observes changes to sessions and selectedModeFilter
-        
-        // Explicitly reload sessions to trigger UI update for non-filtered view if needed
-        // and ensure the pipeline fires.
-        // (This might be redundant if the Combine pipeline is set up correctly on $sessions,
-        // but ensures consistency).
-        self.sessions = sessions
     }
     
     func clearHistory() {
@@ -83,11 +77,10 @@ final class SessionHistoryViewModel: ObservableObject {
             return formatted
         }
 
-        // Fallback: localized format string for hours and minutes
-        // Round to nearest second to avoid truncation errors
-        let roundedDuration = totalDuration.rounded()
-        let hours = Int(roundedDuration) / 3600
-        let minutes = (Int(roundedDuration) % 3600) / 60
+        // Fallback: basic localized format for hours and minutes if formatting fails
+        let totalSeconds = Int(totalDuration)
+        let hours = totalSeconds / 3600
+        let minutes = (totalSeconds % 3600) / 60
         
         if hours > 0 {
             let format = NSLocalizedString(

@@ -16,6 +16,7 @@ struct SettingsView: View {
     @State private var showingHistory = false
     @State private var importError: Error?
     @State private var showingImportError = false
+    @State private var isImportingAffirmation = false
     
     init() {
         _preferences = State(initialValue: UserPreferences.load())
@@ -213,39 +214,45 @@ struct SettingsView: View {
             SessionHistoryView()
         }
         .fileImporter(isPresented: $showingAffirmationImporter, allowedContentTypes: [.audio]) { result in
+            // Prevent overlapping import operations.
+            // SwiftUI's fileImporter is a synchronous UI callback on MainActor that cannot
+            // be invoked concurrently. The guard+flag pattern prevents new imports from
+            // starting while an async validation is in progress from a previous import.
+            guard !isImportingAffirmation else { return }
+            isImportingAffirmation = true
+            
             switch result {
             case .success(let url):
                 // Validate that the file is playable before saving (async load for consistency)
                 Task {
+                    defer { isImportingAffirmation = false }
+                    
                     let asset = AVAsset(url: url)
                     do {
                         let isPlayable = try await asset.load(.isPlayable)
                         
-                        await MainActor.run {
-                            if isPlayable {
-                                preferences.selectedAffirmationURL = url
-                                preferences.save()
-                            } else {
-                                importError = NSError(
-                                    domain: ValidationError.domain,
-                                    code: ValidationError.invalidAudioFileCode,
-                                    userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("settings.invalidAudioFile",
-                                                                                           value: "The selected file is not a valid or playable audio file",
-                                                                                           comment: "Error shown when imported audio file cannot be played")]
-                                )
-                                showingImportError = true
-                            }
-                        }
-                    } catch {
-                        await MainActor.run {
-                            importError = error
+                        if isPlayable {
+                            preferences.selectedAffirmationURL = url
+                            preferences.save()
+                        } else {
+                            importError = NSError(
+                                domain: ValidationError.domain,
+                                code: ValidationError.invalidAudioFileCode,
+                                userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("settings.invalidAudioFile",
+                                                                                       value: "The selected file is not a valid or playable audio file",
+                                                                                       comment: "Error shown when imported audio file cannot be played")]
+                            )
                             showingImportError = true
                         }
+                    } catch {
+                        importError = error
+                        showingImportError = true
                     }
                 }
             case .failure(let error):
                 importError = error
                 showingImportError = true
+                isImportingAffirmation = false
             }
         }
         .alert(NSLocalizedString("common.error", comment: ""), isPresented: $showingImportError, presenting: importError) { _ in

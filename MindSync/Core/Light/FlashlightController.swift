@@ -195,6 +195,13 @@ final class FlashlightController: BaseLightController, LightControlling {
     ///   2. When `start()` succeeds (new session begins successfully)
     ///   This ensures that each new session can properly report torch failures, while preventing
     ///   duplicate notifications within a single session.
+    ///
+    /// - Note: Thread Safety
+    ///   This method accesses and modifies `torchFailureNotified` without explicit synchronization.
+    ///   The expected threading model is that all torch operations (`setIntensity`, `start`, `stop`)
+    ///   are called from the main thread via CADisplayLink. If this assumption changes and multiple
+    ///   threads can call torch methods concurrently, consider adding synchronization (e.g., making
+    ///   FlashlightController an actor or using a lock) to prevent race conditions on the flag.
     private func handleTorchSystemShutdown(error: Error?) {
         guard !torchFailureNotified else { return }
         torchFailureNotified = true
