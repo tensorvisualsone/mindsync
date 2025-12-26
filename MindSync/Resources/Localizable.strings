@@ -118,6 +118,7 @@
 "history.allModes" = "Alle Modi";
 "history.sessions" = "Sitzungen";
 "history.totalDuration.format" = "%dh %02dm";
+"history.totalDuration.minutesOnlyFormat" = "%dm";
 
 // MARK: - History Detail
 "history.detail.title" = "Sitzungsdetails";

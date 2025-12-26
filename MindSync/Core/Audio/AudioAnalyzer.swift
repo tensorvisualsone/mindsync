@@ -10,6 +10,16 @@ final class AudioAnalyzer {
     private let tempoEstimator = TempoEstimator()
     private let logger = Logger(subsystem: "com.mindsync", category: "AudioAnalyzer")
     
+    /// Upper bound for a single analysis run.
+    ///
+    /// We intentionally use a fixed timeout instead of scaling directly with track length:
+    /// - The analysis operates on downsampled PCM windows and is dominated by FFTs over
+    ///   fixed-size buffers, so runtime grows sublinearly with the original track duration.
+    /// - For the current pipeline and maximum supported track duration (~30 minutes),
+    ///   18 seconds provides a conservative upper bound on iOS 17+ devices while keeping
+    ///   the user-visible wait time acceptable.
+    /// - If analysis complexity changes (e.g. more passes or higher-resolution windows),
+    ///   revisit this constant and consider a timeout that scales with `MPMediaItem.playbackDuration`.
     private let analysisTimeout: TimeInterval = 18.0
     private let targetSampleRate: Double = 44_100.0
     private let fallbackWindowDuration: Double = 0.35
@@ -21,15 +31,18 @@ final class AudioAnalyzer {
     /// Cache directory for analyzed tracks
     private lazy var cacheDirectory: URL = {
         let paths = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
-        let cacheDir = paths[0].appendingPathComponent("AudioAnalysisCache")
+        let baseCacheDir = paths[0]
+        let cacheDir = baseCacheDir.appendingPathComponent("AudioAnalysisCache")
         do {
             try FileManager.default.createDirectory(at: cacheDir,
                                                     withIntermediateDirectories: true,
                                                     attributes: nil)
+            return cacheDir
         } catch {
             logger.error("Failed to create cache directory at \(cacheDir.path, privacy: .public): \(String(describing: error), privacy: .public)")
+            // Fallback: use the base caches directory to avoid silent cache failures
+            return baseCacheDir
         }
-        return cacheDir
     }()
 
     /// Progress publisher for UI updates

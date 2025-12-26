@@ -116,6 +116,7 @@
 "history.allModes" = "All Modes";
 "history.sessions" = "Sessions";
 "history.totalDuration.format" = "%dh %02dm";
+"history.totalDuration.minutesOnlyFormat" = "%dm";
 
 // MARK: - History Detail
 "history.detail.title" = "Session Details";

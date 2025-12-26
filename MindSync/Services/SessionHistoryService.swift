@@ -40,7 +40,9 @@ final class SessionHistoryService: SessionHistoryServiceProtocol {
     /// - Note: Remember to call `removePersistentDomain(forName:)` or `removeSuite(named:)` 
     ///   in test teardown to clean up the isolated storage.
     static func makeTestInstance(suiteName: String = "SessionHistoryServiceTests") -> SessionHistoryService {
-        let defaults = UserDefaults(suiteName: suiteName) ?? .standard
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            fatalError("Failed to create isolated UserDefaults suite '\(suiteName)' for SessionHistoryService tests. Check the suite name configuration.")
+        }
         return SessionHistoryService(userDefaults: defaults)
     }
     
