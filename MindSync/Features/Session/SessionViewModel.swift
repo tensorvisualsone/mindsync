@@ -327,7 +327,7 @@ final class SessionViewModel: ObservableObject {
     
     private func switchToScreenController(using script: LightScript, session: Session) {
         // Prevent race conditions by checking if a task is already running
-        guard activeTask == nil || activeTask?.isCancelled == true else {
+        guard activeTask?.isCancelled != false else {
             logger.warning("switchToScreenController called while previous task is still running")
             return
         }

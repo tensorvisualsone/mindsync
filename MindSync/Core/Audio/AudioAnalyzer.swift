@@ -274,12 +274,8 @@ final class AudioAnalyzer {
             let relativeDifference = (maxDuration - minDuration) / maxDuration
             
             if relativeDifference > 0.05 {
-                logger.warning(
-                    "Significant duration discrepancy: " +
-                    "metadata=\(metadataDuration, privacy: .public, format: .fixed(precision: 3))s, " +
-                    "waveform=\(waveformDuration, privacy: .public, format: .fixed(precision: 3))s, " +
-                    "difference=\((relativeDifference * 100), privacy: .public, format: .fixed(precision: 2))%%"
-                )
+                let percentDifference = relativeDifference * 100
+                logger.warning("Significant duration discrepancy: metadata=\(metadataDuration, privacy: .public, format: .fixed(precision: 3))s, waveform=\(waveformDuration, privacy: .public, format: .fixed(precision: 3))s, difference=\(percentDifference, privacy: .public, format: .fixed(precision: 2))%")
             }
         }
         
