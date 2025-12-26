@@ -10,6 +10,14 @@ final class SessionHistoryViewModel: ObservableObject {
     private let historyService: SessionHistoryServiceProtocol
     private var cancellables = Set<AnyCancellable>()
     
+    private static let durationFormatter: DateComponentsFormatter = {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.hour, .minute]
+        formatter.unitsStyle = .abbreviated
+        formatter.zeroFormattingBehavior = [.pad]
+        return formatter
+    }()
+    
     init(historyService: SessionHistoryServiceProtocol = ServiceContainer.shared.sessionHistoryService) {
         self.historyService = historyService
         loadSessions()
@@ -23,7 +31,9 @@ final class SessionHistoryViewModel: ObservableObject {
                     return allSessions
                 }
             }
-            .assign(to: \.filteredSessions, on: self)
+            .sink { [weak self] sessions in
+                self?.filteredSessions = sessions
+            }
             .store(in: &cancellables)
     }
     
@@ -58,12 +68,7 @@ final class SessionHistoryViewModel: ObservableObject {
     }
     
     func formattedTotalDuration() -> String {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.hour, .minute]
-        formatter.unitsStyle = .abbreviated
-        formatter.zeroFormattingBehavior = [.pad]
-
-        if let formatted = formatter.string(from: totalDuration) {
+        if let formatted = Self.durationFormatter.string(from: totalDuration) {
             return formatted
         }
 

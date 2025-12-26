@@ -3,6 +3,20 @@ import SwiftUI
 struct SessionDetailView: View {
     let session: Session
     
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }()
+    
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter
+    }()
+    
     var body: some View {
         List {
             Section(header: Text(NSLocalizedString("history.detail.sessionInfo", comment: "Session Info"))) {
@@ -15,7 +29,7 @@ struct SessionDetailView: View {
             
             Section(header: Text(NSLocalizedString("history.detail.audioInfo", comment: "Audio Info"))) {
                 if let title = session.trackTitle {
-                    DetailRow(title: NSLocalizedString("history.detail.title", comment: "Title"), value: title)
+                    DetailRow(title: NSLocalizedString("history.detail.trackTitle", comment: "Title"), value: title)
                 }
                 if let artist = session.trackArtist {
                     DetailRow(title: NSLocalizedString("history.detail.artist", comment: "Artist"), value: artist)
@@ -45,17 +59,11 @@ struct SessionDetailView: View {
     }
     
     private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter.string(from: date)
+        return Self.dateFormatter.string(from: date)
     }
     
     private func formatTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .none
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
+        return Self.timeFormatter.string(from: date)
     }
 }
 

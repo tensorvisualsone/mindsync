@@ -81,6 +81,7 @@ final class SessionViewModel: ObservableObject {
     private var pausedBySilence = false
     private var microphoneSilenceStart: Date?
     private var playbackProgressTimer: Timer?
+    private var activeTask: Task<Void, Never>?
     
     init(historyService: SessionHistoryServiceProtocol = ServiceContainer.shared.sessionHistoryService) {
         self.audioAnalyzer = services.audioAnalyzer
@@ -328,7 +329,8 @@ final class SessionViewModel: ObservableObject {
         lightController?.stop()
         lightController = services.screenController
         
-        Task {
+        activeTask?.cancel()
+        activeTask = Task {
             do {
                 try await lightController?.start()
                 
@@ -376,10 +378,12 @@ final class SessionViewModel: ObservableObject {
         
         updatePlaybackProgress(duration: duration)
         
-        let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
-            self?.updatePlaybackProgress(duration: duration)
+        let timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            Task { @MainActor in
+                self.updatePlaybackProgress(duration: duration)
+            }
         }
-        RunLoop.main.add(timer, forMode: .common)
         playbackProgressTimer = timer
     }
     
@@ -578,6 +582,10 @@ final class SessionViewModel: ObservableObject {
         // Invalidate affirmation timer
         affirmationTimer?.invalidate()
         affirmationTimer = nil
+        
+        // Cancel any active task (e.g. screen switch)
+        activeTask?.cancel()
+        activeTask = nil
         
         // End session and save to history only if it was running or paused
         let shouldSaveSession = state == .running || state == .paused

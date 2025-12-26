@@ -70,4 +70,18 @@ final class SessionHistoryService: SessionHistoryServiceProtocol {
         userDefaults.removeObject(forKey: sessionsKey)
         logger.info("Cleared all \(count) sessions from history")
     }
+    
+    /// Deletes specific sessions
+    func delete(ids: Set<UUID>) {
+        var sessions = loadAll()
+        sessions.removeAll { ids.contains($0.id) }
+        
+        do {
+            let data = try JSONEncoder().encode(sessions)
+            userDefaults.set(data, forKey: sessionsKey)
+            logger.info("Deleted \(ids.count) sessions")
+        } catch {
+            logger.error("Failed to delete sessions: \(error.localizedDescription, privacy: .private)")
+        }
+    }
 }
