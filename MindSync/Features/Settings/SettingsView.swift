@@ -224,7 +224,7 @@ struct SettingsView: View {
             switch result {
             case .success(let url):
                 // Validate that the file is playable before saving (async load for consistency)
-                Task { @MainActor in
+                Task {
                     defer { isImportingAffirmation = false }
                     
                     let asset = AVAsset(url: url)
@@ -250,11 +250,9 @@ struct SettingsView: View {
                     }
                 }
             case .failure(let error):
-                Task { @MainActor in
-                    importError = error
-                    showingImportError = true
-                    isImportingAffirmation = false
-                }
+                importError = error
+                showingImportError = true
+                isImportingAffirmation = false
             }
         }
         .alert(NSLocalizedString("common.error", comment: ""), isPresented: $showingImportError, presenting: importError) { _ in
