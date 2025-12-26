@@ -327,7 +327,8 @@ final class SessionViewModel: ObservableObject {
     
     private func switchToScreenController(using script: LightScript, session: Session) {
         // Prevent race conditions by checking if a task is already running
-        guard activeTask?.isCancelled != false else {
+        // If activeTask is present and NOT cancelled, we should bail out
+        guard activeTask == nil || activeTask?.isCancelled == true else {
             logger.warning("switchToScreenController called while previous task is still running")
             return
         }
@@ -557,6 +558,12 @@ final class SessionViewModel: ObservableObject {
         logger.info("Resuming session")
         audioPlayback.resume()
         lightController?.resumeExecution()
+        
+        // User manually resumed, so clear all auto-pause flags
+        pausedBySystemInterruption = false
+        pausedByRouteChange = false
+        pausedByBackground = false
+        pausedBySilence = false
         
         state = .running
         

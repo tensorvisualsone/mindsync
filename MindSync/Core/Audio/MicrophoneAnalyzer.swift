@@ -329,8 +329,8 @@ final class MicrophoneAnalyzer {
     
     private func calculateRMS(_ frame: [Float]) -> Float {
         var result: Float = 0
-        vDSP_measqv(frame, 1, &result, vDSP_Length(frame.count))
-        return sqrt(result)
+        vDSP_rmsqv(frame, 1, &result, vDSP_Length(frame.count))
+        return result
     }
     
     /// Current estimated BPM

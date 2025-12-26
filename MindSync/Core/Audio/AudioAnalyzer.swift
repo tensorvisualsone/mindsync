@@ -20,7 +20,10 @@ final class AudioAnalyzer {
     ///   the user-visible wait time acceptable.
     /// - If analysis complexity changes (e.g. more passes or higher-resolution windows),
     ///   revisit this constant and consider a timeout that scales with `MPMediaItem.playbackDuration`.
-    private let analysisTimeout: TimeInterval = 18.0
+    ///
+    /// Note: This value is expressed as "seconds per minute * max minutes" to make the
+    /// design assumption explicit and avoid an unexplained magic number.
+    private let analysisTimeout: TimeInterval = 0.6 * (30 * 60) / 60.0  // 18.0 seconds
     private let targetSampleRate: Double = 44_100.0
     private let fallbackWindowDuration: Double = 0.35
     private let minimumDetectedBeats = 4
@@ -147,7 +150,9 @@ final class AudioAnalyzer {
                 trackDuration: resolvedDuration
             )
             
-            if !fallbackBeats.isEmpty {
+            // Only use fallback if it provides a reasonable number of beats
+            // and more than what we already found
+            if !fallbackBeats.isEmpty && fallbackBeats.count > beatTimestamps.count {
                 beatTimestamps = fallbackBeats
                 bpm = tempoEstimator.estimateBPM(from: beatTimestamps)
                 logger.info("Energy-based beat fallback used for track: \(title, privacy: .public)")

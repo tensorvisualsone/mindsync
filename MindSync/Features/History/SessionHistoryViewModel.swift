@@ -57,6 +57,12 @@ final class SessionHistoryViewModel: ObservableObject {
         
         // Note: filteredSessions will be automatically updated via the Combine pipeline
         // that observes changes to sessions and selectedModeFilter
+        
+        // Explicitly reload sessions to trigger UI update for non-filtered view if needed
+        // and ensure the pipeline fires.
+        // (This might be redundant if the Combine pipeline is set up correctly on $sessions,
+        // but ensures consistency).
+        self.sessions = sessions
     }
     
     func clearHistory() {
