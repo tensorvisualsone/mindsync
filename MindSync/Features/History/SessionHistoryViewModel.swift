@@ -7,10 +7,10 @@ final class SessionHistoryViewModel: ObservableObject {
     @Published var filteredSessions: [Session] = []
     @Published var selectedModeFilter: EntrainmentMode?
     
-    private let historyService: SessionHistoryService
+    private let historyService: SessionHistoryServiceProtocol
     private var cancellables = Set<AnyCancellable>()
     
-    init(historyService: SessionHistoryService = ServiceContainer.shared.sessionHistoryService) {
+    init(historyService: SessionHistoryServiceProtocol = ServiceContainer.shared.sessionHistoryService) {
         self.historyService = historyService
         loadSessions()
         

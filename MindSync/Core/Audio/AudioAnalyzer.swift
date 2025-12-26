@@ -17,6 +17,14 @@ final class AudioAnalyzer {
 
     private var cancellables = Set<AnyCancellable>()
     private var isCancelled = false
+    
+    /// Cache directory for analyzed tracks
+    private lazy var cacheDirectory: URL = {
+        let paths = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
+        let cacheDir = paths[0].appendingPathComponent("AudioAnalysisCache")
+        try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        return cacheDir
+    }()
 
     /// Progress publisher for UI updates
     let progressPublisher = PassthroughSubject<AnalysisProgress, Never>()
@@ -29,6 +37,27 @@ final class AudioAnalyzer {
     /// Analyzes a local audio track
     func analyze(url: URL, mediaItem: MPMediaItem) async throws -> AudioTrack {
         isCancelled = false
+        
+        // Check cache first
+        if let cachedTrack = loadFromCache(for: mediaItem) {
+            logger.info("Using cached analysis for track: \(mediaItem.title ?? "Unknown", privacy: .public)")
+            // Return copy with current assetURL as the path might have changed
+            return AudioTrack(
+                id: cachedTrack.id,
+                title: cachedTrack.title,
+                artist: cachedTrack.artist,
+                albumTitle: cachedTrack.albumTitle,
+                duration: cachedTrack.duration,
+                assetURL: url, // Use current URL
+                bpm: cachedTrack.bpm,
+                beatTimestamps: cachedTrack.beatTimestamps,
+                rmsEnvelope: cachedTrack.rmsEnvelope,
+                spectralCentroid: cachedTrack.spectralCentroid,
+                analyzedAt: cachedTrack.analyzedAt,
+                analysisVersion: cachedTrack.analysisVersion
+            )
+        }
+        
         let analysisStart = Date()
         
         let title = mediaItem.title ?? "Unknown"
@@ -133,7 +162,7 @@ final class AudioAnalyzer {
         logger.info("Analysis complete for track: \(title, privacy: .public), BPM: \(bpm, privacy: .public), Beats: \(beatTimestamps.count, privacy: .public)")
 
         // Create AudioTrack
-        return AudioTrack(
+        let track = AudioTrack(
             title: title,
             artist: artist,
             albumTitle: albumTitle,
@@ -142,12 +171,55 @@ final class AudioAnalyzer {
             bpm: bpm,
             beatTimestamps: beatTimestamps
         )
+        
+        // Save to cache
+        saveToCache(track, for: mediaItem)
+        
+        return track
     }
     
     /// Cancels the running analysis
     func cancel() {
         isCancelled = true
         logger.info("Analysis cancellation requested")
+    }
+    
+    // MARK: - Caching
+    
+    private func getCacheURL(for persistentID: MPMediaEntityPersistentID) -> URL {
+        return cacheDirectory.appendingPathComponent("\(persistentID).json")
+    }
+    
+    private func saveToCache(_ track: AudioTrack, for mediaItem: MPMediaItem) {
+        let cacheURL = getCacheURL(for: mediaItem.persistentID)
+        do {
+            let data = try JSONEncoder().encode(track)
+            try data.write(to: cacheURL)
+        } catch {
+            logger.error("Failed to cache audio track: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+    
+    private func loadFromCache(for mediaItem: MPMediaItem) -> AudioTrack? {
+        let cacheURL = getCacheURL(for: mediaItem.persistentID)
+        guard FileManager.default.fileExists(atPath: cacheURL.path) else {
+            return nil
+        }
+        
+        do {
+            let data = try Data(contentsOf: cacheURL)
+            let track = try JSONDecoder().decode(AudioTrack.self, from: data)
+            
+            // Check version if AudioTrack changes in future
+            guard track.analysisVersion == "1.0" else {
+                return nil
+            }
+            
+            return track
+        } catch {
+            logger.error("Failed to load cached track: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
     }
     
     // MARK: - Helpers

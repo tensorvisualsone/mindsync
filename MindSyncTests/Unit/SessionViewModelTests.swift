@@ -6,33 +6,36 @@ import Combine
 @MainActor
 final class SessionViewModelTests: XCTestCase {
     var cancellables: Set<AnyCancellable>!
+    var mockHistoryService: MockSessionHistoryService!
     
     override func setUp() {
         super.setUp()
         cancellables = Set<AnyCancellable>()
+        mockHistoryService = MockSessionHistoryService()
     }
     
     override func tearDown() {
         cancellables = nil
+        mockHistoryService = nil
         super.tearDown()
     }
     
     // MARK: - Initial State Tests
     
     func testInitialState_IsIdle() {
-        let viewModel = SessionViewModel()
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
         XCTAssertEqual(viewModel.state, .idle)
     }
     
     func testInitialThermalWarningLevel_IsNone() {
-        let viewModel = SessionViewModel()
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
         XCTAssertEqual(viewModel.thermalWarningLevel, .none)
     }
     
     // MARK: - Thermal Warning Level Publishing Tests
     
     func testThermalWarningLevel_IsPublished() {
-        let viewModel = SessionViewModel()
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
         var receivedLevels: [ThermalWarningLevel] = []
         let expectation = expectation(description: "Warning level published")
         
@@ -62,16 +65,17 @@ final class SessionViewModelTests: XCTestCase {
     // MARK: - Session State Tests
     
     func testStopSession_FromIdleState_DoesNothing() {
-        let viewModel = SessionViewModel()
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
         XCTAssertEqual(viewModel.state, .idle)
         
         viewModel.stopSession()
         
         XCTAssertEqual(viewModel.state, .idle)
+        XCTAssertFalse(mockHistoryService.saveCalled)
     }
     
     func testReset_ClearsErrorMessage() {
-        let viewModel = SessionViewModel()
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
         
         viewModel.reset()
         
@@ -112,7 +116,7 @@ final class SessionViewModelTests: XCTestCase {
     // MARK: - Pause/Resume Tests
     
     func testPauseSession_FromRunningState_ChangeStateToRunning() {
-        let viewModel = SessionViewModel()
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
         viewModel.state = .running // Simulate running state
         
         viewModel.pauseSession()
@@ -121,7 +125,7 @@ final class SessionViewModelTests: XCTestCase {
     }
     
     func testPauseSession_FromIdleState_DoesNothing() {
-        let viewModel = SessionViewModel()
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
         XCTAssertEqual(viewModel.state, .idle)
         
         viewModel.pauseSession()
@@ -130,7 +134,7 @@ final class SessionViewModelTests: XCTestCase {
     }
     
     func testPauseSession_FromAnalyzingState_DoesNothing() {
-        let viewModel = SessionViewModel()
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
         viewModel.state = .analyzing
         
         viewModel.pauseSession()
@@ -139,7 +143,7 @@ final class SessionViewModelTests: XCTestCase {
     }
     
     func testResumeSession_FromPausedState_ChangesStateToRunning() {
-        let viewModel = SessionViewModel()
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
         viewModel.state = .paused // Simulate paused state
         
         viewModel.resumeSession()
@@ -148,7 +152,7 @@ final class SessionViewModelTests: XCTestCase {
     }
     
     func testResumeSession_FromIdleState_DoesNothing() {
-        let viewModel = SessionViewModel()
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
         XCTAssertEqual(viewModel.state, .idle)
         
         viewModel.resumeSession()
@@ -157,7 +161,7 @@ final class SessionViewModelTests: XCTestCase {
     }
     
     func testResumeSession_FromRunningState_DoesNothing() {
-        let viewModel = SessionViewModel()
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
         viewModel.state = .running
         
         viewModel.resumeSession()
@@ -166,25 +170,47 @@ final class SessionViewModelTests: XCTestCase {
     }
     
     func testStopSession_FromPausedState_ChangesToIdle() {
-        let viewModel = SessionViewModel()
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
         viewModel.state = .paused
+        
+        // Mock a current session
+        viewModel.currentSession = Session(
+            mode: .theta,
+            lightSource: .screen,
+            audioSource: .localFile,
+            trackTitle: "Test",
+            trackArtist: "Test",
+            trackBPM: 120
+        )
         
         viewModel.stopSession()
         
         XCTAssertEqual(viewModel.state, .idle)
+        XCTAssertTrue(mockHistoryService.saveCalled)
     }
     
     func testStopSession_FromRunningState_ChangesToIdle() {
-        let viewModel = SessionViewModel()
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
         viewModel.state = .running
+        
+        // Mock a current session
+        viewModel.currentSession = Session(
+            mode: .theta,
+            lightSource: .screen,
+            audioSource: .localFile,
+            trackTitle: "Test",
+            trackArtist: "Test",
+            trackBPM: 120
+        )
         
         viewModel.stopSession()
         
         XCTAssertEqual(viewModel.state, .idle)
+        XCTAssertTrue(mockHistoryService.saveCalled)
     }
     
     func testPauseResumeTransitions_MaintainCorrectStateFlow() {
-        let viewModel = SessionViewModel()
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
         
         // Start in idle
         XCTAssertEqual(viewModel.state, .idle)
@@ -215,7 +241,7 @@ final class SessionViewModelTests: XCTestCase {
     func testSessionViewModel_InitializesOnMainActor() {
         // Verify that SessionViewModel can be initialized on MainActor
         // This is important for thread-safety since it accesses ServiceContainer
-        let viewModel = SessionViewModel()
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
         
         // Access should not crash
         XCTAssertEqual(viewModel.state, .idle)
@@ -225,7 +251,7 @@ final class SessionViewModelTests: XCTestCase {
     func testSessionViewModel_ServiceContainerAccessIsThreadSafe() {
         // Verify that ServiceContainer access in SessionViewModel is safe
         // Since SessionViewModel is @MainActor, all access should be on main thread
-        let viewModel = SessionViewModel()
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
         
         // These properties internally access ServiceContainer
         // If there were threading issues, this would crash
@@ -238,7 +264,7 @@ final class SessionViewModelTests: XCTestCase {
     
     func testSessionViewModel_CanAccessServicesSafely() {
         // Verify that SessionViewModel can safely access services from ServiceContainer
-        let viewModel = SessionViewModel()
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
         
         // Accessing services through the viewModel should not cause threading issues
         // Since SessionViewModel is @MainActor, all service access is on main thread
