@@ -24,6 +24,7 @@ struct SourceSelectionView: View {
                 
                 // Local music library
                 Button(action: {
+                    HapticFeedback.light()
                     requestMediaLibraryAccess()
                 }) {
                     VStack(spacing: AppConstants.Spacing.md) {
@@ -50,6 +51,7 @@ struct SourceSelectionView: View {
                 
                 // Microphone mode
                 Button(action: {
+                    HapticFeedback.light()
                     requestMicrophoneAccess()
                 }) {
                     VStack(spacing: AppConstants.Spacing.md) {
