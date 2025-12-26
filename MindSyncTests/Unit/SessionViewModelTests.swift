@@ -173,7 +173,9 @@ final class SessionViewModelTests: XCTestCase {
         let viewModel = SessionViewModel(historyService: mockHistoryService)
         viewModel.state = .paused
         
-        // Mock a current session
+        // Mock a current session with proper end time for deterministic duration
+        let startDate = Date()
+        let endDate = startDate.addingTimeInterval(600) // 10 minutes
         viewModel.currentSession = Session(
             mode: .theta,
             lightSource: .screen,
@@ -182,6 +184,9 @@ final class SessionViewModelTests: XCTestCase {
             trackArtist: "Test",
             trackBPM: 120
         )
+        // Set end time to simulate a completed session
+        viewModel.currentSession?.endedAt = endDate
+        viewModel.currentSession?.actualDuration = 600
         
         viewModel.stopSession()
         
@@ -193,7 +198,9 @@ final class SessionViewModelTests: XCTestCase {
         let viewModel = SessionViewModel(historyService: mockHistoryService)
         viewModel.state = .running
         
-        // Mock a current session
+        // Mock a current session with proper end time for deterministic duration
+        let startDate = Date()
+        let endDate = startDate.addingTimeInterval(600) // 10 minutes
         viewModel.currentSession = Session(
             mode: .theta,
             lightSource: .screen,
@@ -202,6 +209,9 @@ final class SessionViewModelTests: XCTestCase {
             trackArtist: "Test",
             trackBPM: 120
         )
+        // Set end time to simulate a completed session
+        viewModel.currentSession?.endedAt = endDate
+        viewModel.currentSession?.actualDuration = 600
         
         viewModel.stopSession()
         
