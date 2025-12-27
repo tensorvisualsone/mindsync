@@ -127,7 +127,18 @@ struct HomeView: View {
                 }
             }
         }
-        .mindSyncBackground()
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(red: 0.02, green: 0.02, blue: 0.08),
+                    Color(red: 0.06, green: 0.02, blue: 0.12),
+                    Color(red: 0.01, green: 0.06, blue: 0.12)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+        )
     }
 }
 
@@ -153,7 +164,15 @@ private struct HomeStatusGrid: View {
                     }
                 }
                 .padding()
-                .mindSyncCardStyle()
+                .background(
+                    RoundedRectangle(cornerRadius: AppConstants.CornerRadius.card, style: .continuous)
+                        .fill(Color(.secondarySystemBackground).opacity(0.7))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppConstants.CornerRadius.card, style: .continuous)
+                                .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                        )
+                        .shadow(color: Color.black.opacity(0.45), radius: 18, x: 0, y: 16)
+                )
             }
             .buttonStyle(.plain)
             .accessibilityElement(children: .combine)
@@ -170,7 +189,15 @@ private struct HomeStatusGrid: View {
                         .foregroundColor(.white)
                 }
                 .padding()
-                .mindSyncCardStyle()
+                .background(
+                    RoundedRectangle(cornerRadius: AppConstants.CornerRadius.card, style: .continuous)
+                        .fill(Color(.secondarySystemBackground).opacity(0.7))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppConstants.CornerRadius.card, style: .continuous)
+                                .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                        )
+                        .shadow(color: Color.black.opacity(0.45), radius: 18, x: 0, y: 16)
+                )
                 
                 Button(action: settingsAction) {
                     VStack(alignment: .leading, spacing: AppConstants.Spacing.xs) {
@@ -182,7 +209,15 @@ private struct HomeStatusGrid: View {
                             .foregroundColor(.white)
                     }
                     .padding()
-                    .mindSyncCardStyle()
+                    .background(
+                        RoundedRectangle(cornerRadius: AppConstants.CornerRadius.card, style: .continuous)
+                            .fill(Color(.secondarySystemBackground).opacity(0.7))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: AppConstants.CornerRadius.card, style: .continuous)
+                                    .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                            )
+                            .shadow(color: Color.black.opacity(0.45), radius: 18, x: 0, y: 16)
+                    )
                 }
                 .buttonStyle(.plain)
             }
