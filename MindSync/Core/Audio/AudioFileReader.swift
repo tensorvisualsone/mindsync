@@ -115,22 +115,35 @@ enum AudioAnalysisError: Error, LocalizedError {
     case analysisFailure(underlying: Error)
     case cancelled
     case fileTooLong(duration: Double)
+    case corruptedData
+    case analysisTimeout
 
     var errorDescription: String? {
         switch self {
         case .fileNotFound:
-            return "Audiodatei wurde nicht gefunden"
+            return NSLocalizedString("error.audio.fileNotFound", comment: "")
         case .drmProtected:
-            return "DRM-geschützte Datei kann nicht analysiert werden"
+            return NSLocalizedString("error.drmProtected", comment: "")
         case .unsupportedFormat:
-            return "Audioformat wird nicht unterstützt"
+            return NSLocalizedString("error.audio.unsupportedFormat", comment: "")
         case .analysisFailure(let e):
-            return "Analyse fehlgeschlagen: \(e.localizedDescription)"
+            return String(format: NSLocalizedString("error.audio.analysisFailure", comment: ""), e.localizedDescription)
         case .cancelled:
-            return "Analyse abgebrochen"
+            return NSLocalizedString("error.audio.cancelled", comment: "")
         case .fileTooLong(let duration):
             let minutes = Int(duration / 60)
-            return "Audiodatei ist zu lang (\(minutes) Minuten). Die maximal unterstützte Länge beträgt 30 Minuten."
+            return String(
+                format: NSLocalizedString(
+                    "error.audio.fileTooLong",
+                    value: "Die Audiodatei ist zu lang (%d Minuten). Bitte wähle eine kürzere Datei.",
+                    comment: "Error when the selected audio file exceeds the maximum supported duration; %d is the file length in minutes."
+                ),
+                minutes
+            )
+        case .corruptedData:
+            return NSLocalizedString("error.audio.corruptedData", comment: "")
+        case .analysisTimeout:
+            return NSLocalizedString("error.audio.timeout", comment: "")
         }
     }
 }

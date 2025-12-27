@@ -38,7 +38,7 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
         // Screen controller uses SwiftUI views for display
     }
 
-    func start() throws {
+    func start() async throws {
         // Screen mode doesn't require hardware setup
         // Just mark as active so views can observe
         isActive = true

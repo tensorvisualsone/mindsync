@@ -10,7 +10,7 @@ protocol LightControlling {
     var audioEnergyTracker: AudioEnergyTracker? { get set }
 
     /// Starts light output
-    func start() throws
+    func start() async throws
 
     /// Stops light output
     func stop()
@@ -48,4 +48,17 @@ enum LightControlError: Error {
     case torchUnavailable
     case configurationFailed
     case thermalShutdown
+}
+
+extension LightControlError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .torchUnavailable:
+            return NSLocalizedString("error.light.torchUnavailable", comment: "")
+        case .configurationFailed:
+            return NSLocalizedString("error.light.configurationFailed", comment: "")
+        case .thermalShutdown:
+            return NSLocalizedString("error.light.thermalShutdown", comment: "")
+        }
+    }
 }

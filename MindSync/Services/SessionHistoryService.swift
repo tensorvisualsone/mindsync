@@ -1,15 +1,59 @@
 import Foundation
 import os.log
 
+protocol SessionHistoryServiceProtocol {
+    func save(session: Session)
+    func loadAll() -> [Session]
+    func clearAll()
+    func delete(ids: Set<UUID>)
+}
+
 /// Service for session history management
+///
+/// This service uses the injected `UserDefaults` instance for all persistence operations,
+/// making it easy to test with isolated storage (via `makeTestInstance()`) while using
+/// `.standard` in production.
+///
 /// - Note: Current implementation loads and saves all sessions to UserDefaults on every save operation,
 ///         which scales poorly with the number of sessions (up to 100). For better performance, consider
 ///         using a more efficient storage approach such as individual keys for recent sessions, a database,
 ///         or incremental updates rather than rewriting the entire array each time.
-final class SessionHistoryService {
-    private let userDefaults = UserDefaults.standard
+final class SessionHistoryService: SessionHistoryServiceProtocol {
+    private let userDefaults: UserDefaults
     private let sessionsKey = "savedSessions"
     private let logger = Logger(subsystem: "com.mindsync", category: "SessionHistory")
+    
+    /// Creates a new `SessionHistoryService`.
+    ///
+    /// - Parameter userDefaults:
+    ///   The `UserDefaults` store used for persistence. In production, the default `.standard`
+    ///   instance is typically sufficient. In tests, you should inject a dedicated instance
+    ///   (for example created via `UserDefaults(suiteName:)` or `SessionHistoryService.makeTestInstance()`)
+    ///   to avoid leaking state between tests.
+    ///
+    /// - Note: The `MockSessionHistoryService` used in unit tests operates in-memory and does not
+    ///   require isolated `UserDefaults`, but when testing the real implementation you should use
+    ///   `makeTestInstance()` or provide an isolated suite.
+    init(userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
+    }
+    
+    /// Convenience factory for creating an instance backed by an isolated `UserDefaults` suite.
+    ///
+    /// This method is useful for testing scenarios where you need an isolated storage environment.
+    ///
+    /// - Parameter suiteName: The suite name to use for the test store. Defaults to
+    ///   `"SessionHistoryServiceTests"`.
+    /// - Returns: A `SessionHistoryService` configured with an isolated `UserDefaults` instance.
+    ///
+    /// - Note: Remember to call `removePersistentDomain(forName:)` or `removeSuite(named:)` 
+    ///   in test teardown to clean up the isolated storage.
+    static func makeTestInstance(suiteName: String = "SessionHistoryServiceTests") -> SessionHistoryService {
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            fatalError("Failed to create isolated UserDefaults suite '\(suiteName)' for SessionHistoryService tests. Check the suite name configuration.")
+        }
+        return SessionHistoryService(userDefaults: defaults)
+    }
     
     /// Saves a session
     /// - Note: This operation loads all existing sessions, appends the new one, and saves the entire array
@@ -58,5 +102,19 @@ final class SessionHistoryService {
         let count = loadAll().count
         userDefaults.removeObject(forKey: sessionsKey)
         logger.info("Cleared all \(count) sessions from history")
+    }
+    
+    /// Deletes specific sessions
+    func delete(ids: Set<UUID>) {
+        var sessions = loadAll()
+        sessions.removeAll { ids.contains($0.id) }
+        
+        do {
+            let data = try JSONEncoder().encode(sessions)
+            userDefaults.set(data, forKey: sessionsKey)
+            logger.info("Deleted \(ids.count) sessions")
+        } catch {
+            logger.error("Failed to delete sessions: \(error.localizedDescription, privacy: .private)")
+        }
     }
 }

@@ -40,8 +40,7 @@ struct SourceSelectionView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(AppConstants.Spacing.md)
-                    .background(Color.mindSyncCardBackground())
-                    .cornerRadius(AppConstants.CornerRadius.card)
+                    .mindSyncCardStyle()
                 }
                 .buttonStyle(.plain)
                 .disabled(authorizationStatus == .denied)
@@ -74,8 +73,7 @@ struct SourceSelectionView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(AppConstants.Spacing.md)
-                    .background(Color.mindSyncCardBackground())
-                    .cornerRadius(AppConstants.CornerRadius.card)
+                    .mindSyncCardStyle()
                 }
                 .buttonStyle(.plain)
                 .disabled(microphoneStatus == .denied || onMicrophoneSelected == nil)
@@ -126,6 +124,7 @@ struct SourceSelectionView: View {
                 microphoneStatus = services.permissionsService.microphoneStatus
             }
         }
+        .mindSyncBackground()
     }
     
     private func requestMediaLibraryAccess() {
@@ -165,14 +164,16 @@ struct SourceSelectionView: View {
         guard let mediaLibraryService = mediaLibraryService else { return }
         
         Task {
-            let canAnalyze = await mediaLibraryService.canAnalyze(item: item)
-            await MainActor.run {
-                if canAnalyze {
+            do {
+                _ = try await mediaLibraryService.assetURLForAnalysis(of: item)
+                await MainActor.run {
                     selectedItem = item
                     onSongSelected(item)
                     showingMediaPicker = false
-                } else {
-                    errorMessage = NSLocalizedString("error.drmProtected", comment: "")
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = error.localizedDescription
                     showingError = true
                 }
             }

@@ -1,5 +1,10 @@
 import Foundation
 import AVFoundation
+import os.log
+
+extension Notification.Name {
+    static let mindSyncTorchFailed = Notification.Name("com.mindsync.notifications.torchFailed")
+}
 
 /// Weak reference wrapper for CADisplayLink target to avoid retain cycles
 private final class WeakDisplayLinkTarget {
@@ -15,6 +20,7 @@ private final class WeakDisplayLinkTarget {
 }
 
 /// Controller for flashlight control
+@MainActor
 final class FlashlightController: BaseLightController, LightControlling {
     var source: LightSource { .flashlight }
 
@@ -26,6 +32,8 @@ final class FlashlightController: BaseLightController, LightControlling {
     private var isLocked = false
     private var displayLinkTarget: WeakDisplayLinkTarget?
     private let thermalManager: ThermalManager
+    private let logger = Logger(subsystem: "com.mindsync", category: "FlashlightController")
+    private var torchFailureNotified = false
 
     init(thermalManager: ThermalManager) {
         self.thermalManager = thermalManager
@@ -33,22 +41,34 @@ final class FlashlightController: BaseLightController, LightControlling {
         // Device is now lazy-initialized when first accessed
     }
 
-    func start() throws {
+    func start() async throws {
         guard let device = device, device.hasTorch else {
             throw LightControlError.torchUnavailable
         }
-
-        var didLockConfiguration = false
-        defer {
-            isLocked = didLockConfiguration
+        
+        let attempts = 3
+        var lastError: Error?
+        
+        for attempt in 1...attempts {
+            do {
+                try device.lockForConfiguration()
+                isLocked = true
+                torchFailureNotified = false
+                return
+            } catch {
+                lastError = error
+                logger.error("Torch lock failed (attempt \(attempt)/\(attempts)): \(error.localizedDescription, privacy: .public)")
+                // Exponential backoff before retrying: 40ms, 80ms, 120ms for attempts 1-3
+                if attempt < attempts {
+                    try? await Task.sleep(nanoseconds: UInt64(0.04 * Double(attempt) * 1_000_000_000))
+                }
+            }
         }
-
-        do {
-            try device.lockForConfiguration()
-            didLockConfiguration = true
-        } catch {
-            throw LightControlError.configurationFailed
+        
+        if let lastError {
+            logger.error("All \(attempts) torch lock attempts failed. Last error: \(lastError.localizedDescription, privacy: .public)")
         }
+        throw LightControlError.configurationFailed
     }
 
     func stop() {
@@ -57,11 +77,17 @@ final class FlashlightController: BaseLightController, LightControlling {
             device.unlockForConfiguration()
             isLocked = false
         }
+        torchFailureNotified = false
         cancelExecution()
     }
 
     func setIntensity(_ intensity: Float) {
         guard let device = device, isLocked else { return }
+        
+        if thermalManager.maxFlashlightIntensity <= 0 {
+            handleTorchSystemShutdown(error: LightControlError.thermalShutdown)
+            return
+        }
         
         // Gamma 2.2 Korrektur für natürliche Wahrnehmung
         // Das menschliche Auge funktioniert logarithmisch, daher wirken 50% LED-Power
@@ -72,7 +98,15 @@ final class FlashlightController: BaseLightController, LightControlling {
         let maxIntensity = thermalManager.maxFlashlightIntensity
         let clampedIntensity = max(0.0, min(maxIntensity, perceptionCorrected))
         
-        try? device.setTorchModeOn(level: clampedIntensity)
+        do {
+            if clampedIntensity <= 0 {
+                device.torchMode = .off
+            } else {
+                try device.setTorchModeOn(level: clampedIntensity)
+            }
+        } catch {
+            handleTorchSystemShutdown(error: error)
+        }
     }
 
     func setColor(_ color: LightEvent.LightColor) {
@@ -146,5 +180,45 @@ final class FlashlightController: BaseLightController, LightControlling {
             // Between events or no active event, turn off
             setIntensity(0.0)
         }
+    }
+    
+    // MARK: - Helpers
+    
+    /// Handles torch system shutdown and notifies observers.
+    ///
+    /// This method is called when the torch fails during operation. The `torchFailureNotified` flag
+    /// prevents duplicate notifications for the same failure event.
+    ///
+    /// - Parameter error: The error that caused the shutdown, if available.
+    ///
+    /// - Note: The `torchFailureNotified` flag is reset in two scenarios:
+    ///   1. When `stop()` is called (user manually stops the session)
+    ///   2. When `start()` succeeds (new session begins successfully)
+    ///   This ensures that each new session can properly report torch failures, while preventing
+    ///   duplicate notifications within a single session.
+    ///
+    /// - Note: Thread Safety
+    ///   This method is isolated to the main actor (as is the entire `FlashlightController` class),
+    ///   ensuring that all torch operations (`setIntensity`, `start`, `stop`) and flag access
+    ///   happen on the main thread. This prevents race conditions on `torchFailureNotified` and
+    ///   ensures safe interaction with CADisplayLink.
+    private func handleTorchSystemShutdown(error: Error?) {
+        guard !torchFailureNotified else { return }
+        torchFailureNotified = true
+        
+        if let error {
+            logger.error("Torch shutdown detected: \(error.localizedDescription, privacy: .public)")
+        } else {
+            logger.error("Torch shutdown detected without explicit error")
+        }
+        
+        if let device = device, isLocked {
+            device.torchMode = .off
+            device.unlockForConfiguration()
+            isLocked = false
+        }
+        
+        cancelExecution()
+        NotificationCenter.default.post(name: .mindSyncTorchFailed, object: error)
     }
 }

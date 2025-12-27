@@ -1,52 +1,50 @@
 /* 
-  Localizable.strings (English)
-  MindSync
-  
-  English localization strings
+ Localizable.strings (English)
+ MindSync
 */
 
 // MARK: - Onboarding
 "onboarding.title" = "Important Safety Information";
-"onboarding.learnMore" = "Learn More";
+"onboarding.learnMore" = "Learn more";
 "onboarding.learnMoreHint" = "Opens detailed safety information";
 "onboarding.accept" = "I understand and accept";
-"onboarding.acceptHint" = "Confirms understanding of safety information and starts the app";
+"onboarding.acceptHint" = "Confirms understanding of the safety warnings and starts the app";
 "onboarding.description" = "This app uses stroboscopic light that can trigger seizures in people with photosensitive epilepsy.";
 
 // MARK: - Epilepsy Warning
-"epilepsyWarning.title" = "Epilepsy and Safety Warning";
-"epilepsyWarning.description" = "This app uses intense, stroboscopic light that can trigger seizures in people with photosensitive epilepsy (PSE).";
+"epilepsyWarning.title" = "Epilepsy & Safety Warning";
+"epilepsyWarning.description" = "This app uses intense stroboscopic light that can trigger seizures in people with photosensitive epilepsy (PSE).";
 "epilepsyWarning.doNotUse" = "Do not use MindSync if:";
-"epilepsyWarning.condition1" = "you have ever been diagnosed with an epileptic seizure";
-"epilepsyWarning.condition2" = "there is a family history of seizures";
-"epilepsyWarning.condition3" = "medical professionals have advised you against stroboscopic light";
-"epilepsyWarning.additionalNotes" = "Additional Notes";
-"epilepsyWarning.note1" = "Use MindSync only in a safe, seated or lying position in a dark room.";
-"epilepsyWarning.note2" = "Remove yourself from hazards (stairs, edges, sharp objects).";
-"epilepsyWarning.note3" = "End the session immediately if you feel unwell, dizzy, or disoriented.";
+"epilepsyWarning.condition1" = "you have ever been diagnosed with seizures";
+"epilepsyWarning.condition2" = "your family has a history of seizures";
+"epilepsyWarning.condition3" = "medical professionals advised you to avoid stroboscopic light";
+"epilepsyWarning.additionalNotes" = "Additional notes";
+"epilepsyWarning.note1" = "Use MindSync only while sitting or lying safely in a dark room.";
+"epilepsyWarning.note2" = "Stay away from hazards (stairs, edges, sharp objects).";
+"epilepsyWarning.note3" = "Stop immediately if you feel unwell, dizzy, or disoriented.";
 "epilepsyWarning.disclaimer" = "MindSync is a wellness and entertainment tool and does not replace medical treatment or advice.";
 "epilepsyWarning.close" = "Close";
 
 // MARK: - Home
 "home.title" = "MindSync";
-"home.subtitle" = "Audio-synchronized strobe for altered states of consciousness.";
+"home.subtitle" = "Audio-synchronized stroboscope for altered states of consciousness.";
 "home.startSession" = "Start Session";
 "home.startSessionHint" = "Opens the audio source selection";
 "home.currentMode" = "Current Mode";
 
 // MARK: - Source Selection
-"sourceSelection.title" = "Select Audio Source";
+"sourceSelection.title" = "Choose Audio Source";
 "sourceSelection.musicLibrary" = "Music Library";
-"sourceSelection.musicLibraryDescription" = "Choose a song from your local music library";
+"sourceSelection.musicLibraryDescription" = "Pick a song from your local library";
 "sourceSelection.musicLibraryButton" = "Select Music Library";
-"sourceSelection.musicLibraryHint" = "Opens the music library to select a song";
+"sourceSelection.musicLibraryHint" = "Opens the music library to choose a song";
 "sourceSelection.microphone" = "Microphone";
 "sourceSelection.microphoneDescription" = "Analyze music from external sources";
 "sourceSelection.microphoneButton" = "Select Microphone Mode";
-"sourceSelection.microphoneHint" = "Analyzes music from external sources via microphone";
-"sourceSelection.microphoneNote" = "Note: Microphone mode is less precise than local analysis (~100ms latency)";
-"sourceSelection.musicLibraryDenied" = "Music library access denied. Please enable in settings.";
-"sourceSelection.microphoneDenied" = "Microphone access denied. Please enable in settings.";
+"sourceSelection.microphoneHint" = "Analyzes external music through the microphone";
+"sourceSelection.microphoneNote" = "Note: Microphone mode is less precise than local analysis (~100 ms latency)";
+"sourceSelection.musicLibraryDenied" = "Access to the music library was denied. Please enable it in Settings.";
+"sourceSelection.microphoneDenied" = "Microphone access was denied. Please enable it in Settings.";
 
 // MARK: - Session
 "session.pause" = "Pause";
@@ -54,12 +52,20 @@
 "session.stop" = "Stop";
 "session.paused" = "Paused";
 "session.unableToStart" = "Unable to start session";
-"session.noMediaItem" = "No media item was selected. Please dismiss and try starting a new session.";
-"session.dismiss" = "Dismiss";
+"session.noMediaItem" = "No media item selected. Please close and start a new session.";
+"session.dismiss" = "Close";
 "session.back" = "Back";
-"session.fallDetected" = "Fall detected. Session has been ended for safety reasons.";
+"session.fallDetected" = "Fall detected. Session stopped for safety.";
 "session.liveAudio" = "Live Audio";
 "session.microphone" = "Microphone";
+"session.controls.hint" = "Double-tap or swipe down to stop immediately. Swipe up for a quick pause.";
+"session.microphone.noSignal" = "No audio detected. Session ended automatically.";
+"session.screenController.error" = "Failed to switch to screen-based light controller";
+"session.affirmation.waiting" = "Affirmation scheduled – will play after 5 minutes in Theta mode.";
+"session.affirmation.playing" = "Affirmation playing – relax and listen.";
+"session.pauseAccessibility" = "Pause session";
+"session.resumeAccessibility" = "Resume session";
+"session.stopAccessibility" = "Stop session";
 
 // MARK: - Analysis Progress
 "analysis.loading" = "Loading audio...";
@@ -67,7 +73,7 @@
 "analysis.analyzing" = "Analyzing frequencies...";
 "analysis.detecting" = "Detecting beats...";
 "analysis.mapping" = "Creating LightScript...";
-"analysis.complete" = "Complete!";
+"analysis.complete" = "Analysis complete!";
 
 // MARK: - Settings
 "settings.title" = "Settings";
@@ -75,7 +81,7 @@
 "settings.lightSource" = "Light Source";
 "settings.lightSourceDescription" = "Choose between flashlight (brighter) or screen (with colors).";
 "settings.entrainmentMode" = "Entrainment Mode";
-"settings.entrainmentModeDescription" = "Alpha: Relaxation, Theta: Trip, Gamma: Focus, Cinematic: Flow State";
+"settings.entrainmentModeDescription" = "Alpha: calm, Theta: trip, Gamma: focus, Cinematic: flow state";
 "settings.mode" = "Mode";
 "settings.safetyAndFeedback" = "Safety & Feedback";
 "settings.fallDetection" = "Fall Detection";
@@ -83,47 +89,106 @@
 "settings.hapticFeedback" = "Haptic Feedback";
 "settings.intensity" = "Intensity";
 "settings.defaultIntensity" = "Default Intensity";
-"settings.intensityDescription" = "Default brightness for strobe light (flashlight only).";
+"settings.intensityDescription" = "Default brightness for the strobe (flashlight only).";
+"settings.affirmations" = "Affirmations";
+"settings.affirmationsDescription" = "MindSync can play a personal voice memo after 5 minutes in Theta mode.";
+"settings.affirmationSelect" = "Choose affirmation";
+"settings.affirmationRemove" = "Remove affirmation";
+"settings.affirmationNone" = "No affirmation selected.";
+"settings.session" = "Session Duration";
+"settings.sessionDescription" = "Limits maximum flashlight session duration to avoid overheating.";
+"settings.maxDuration" = "Maximum duration";
+"settings.duration.unlimited" = "No limit";
+"settings.history" = "Session History";
+"settings.invalidAudioFile" = "The selected file is not a valid or playable audio file";
+"settings.importError" = "Import error";
+
+// MARK: - History
+"history.title" = "History";
+"history.clear" = "Clear";
+"history.empty.title" = "No sessions yet";
+"history.empty.description" = "Your completed sessions will appear here.";
+"history.overview" = "Overview";
+"history.totalSessions" = "Total Sessions";
+"history.totalTime" = "Total Time";
+"history.filter" = "Filter";
+"history.mode" = "Mode";
+"history.allModes" = "All Modes";
+"history.sessions" = "Sessions";
+"history.totalDuration.format" = "%dh %02dm";
+"history.totalDuration.minutesOnlyFormat" = "%dm";
+
+// MARK: - History Detail
+"history.detail.title" = "Session Details";
+"history.detail.sessionInfo" = "Session Info";
+"history.detail.date" = "Date";
+"history.detail.time" = "Time";
+"history.detail.duration" = "Duration";
+"history.detail.mode" = "Mode";
+"history.detail.lightSource" = "Light Source";
+"history.detail.audioInfo" = "Audio Info";
+"history.detail.trackTitle" = "Title";
+"history.detail.artist" = "Artist";
+"history.detail.bpm" = "BPM";
+"history.detail.source" = "Source";
+"history.detail.localFile" = "Local File";
+"history.detail.status" = "Status";
+"history.detail.endReason" = "End Reason";
+"history.detail.thermalWarning" = "Thermal Warning";
 
 // MARK: - Mode Selection
-"modeSelection.title" = "Select Entrainment Mode";
-"modeSelection.description" = "Choose a mode based on your desired state of consciousness.";
+"modeSelection.title" = "Choose Entrainment Mode";
+"modeSelection.description" = "Select a mode based on your desired state of mind.";
 
 // MARK: - Entrainment Modes
 "mode.alpha.displayName" = "Relaxation";
 "mode.alpha.description" = "Relaxed wakefulness, light meditation, stress relief";
 "mode.theta.displayName" = "Trip";
-"mode.theta.description" = "Deep meditation, creativity, dream-like states";
+"mode.theta.description" = "Deep meditation, creativity, dreamlike states";
 "mode.gamma.displayName" = "Focus";
-"mode.gamma.description" = "High concentration, cognitive clarity, insight";
+"mode.gamma.description" = "High concentration, mental clarity, insight";
 "mode.cinematic.displayName" = "Cinematic";
-"mode.cinematic.description" = "Flow State Sync - Dynamic & Reactive";
+"mode.cinematic.description" = "Flow State Sync – dynamic & reactive";
 
 // MARK: - Safety Banner
 "safety.thermalReduced" = "Intensity reduced due to device heat";
 "safety.thermalCritical" = "Flashlight disabled – too hot";
 
 // MARK: - Errors
-"error.drmProtected" = "This track is DRM-protected and cannot be analyzed. Please use microphone mode or choose another track.";
+"error.drmProtected" = "This song is DRM-protected and cannot be analyzed. Please use microphone mode or pick another song.";
 "error.microphoneUnavailable" = "Microphone analysis is not available";
-"error.microphonePermissionDenied" = "Microphone access was denied. Please enable in settings.";
-"error.musicLibraryDenied" = "Music library access was denied. Please enable in settings.";
+"error.microphonePermissionDenied" = "Microphone access was denied. Please enable it in Settings.";
+"error.musicLibraryDenied" = "Access to the music library was denied. Please enable it in Settings.";
 "error.microphone.permissionDenied" = "Microphone permission was denied";
 "error.microphone.unsupportedFormat" = "Audio format is not supported";
 "error.microphone.engineStartFailed" = "Audio engine could not be started";
+"error.light.torchUnavailable" = "This device has no flashlight. Please select the screen as light source.";
+"error.light.configurationFailed" = "Flashlight could not be initialized. Please try again or switch to screen.";
+"error.light.thermalShutdown" = "iOS disabled the flashlight to protect the device. MindSync switches to the screen automatically.";
+"error.media.cloudItem" = "This song is not stored locally. Please download it first or use microphone mode.";
+"error.media.unreadable" = "This song is currently unavailable. Please try again later.";
+"error.media.unknown" = "The song could not be validated (%@). Please try again or choose another track.";
+"error.audio.fileNotFound" = "Audio file not found.";
+"error.audio.unsupportedFormat" = "Audio format is not supported.";
+"error.audio.analysisFailure" = "Analysis failed: %@";
+"error.audio.cancelled" = "Analysis cancelled.";
+"error.audio.fileTooLong" = "Audio file is too long (%d minutes). Maximum supported length is 30 minutes.";
+"error.audio.corruptedData" = "Audio data appears to be corrupted or empty. Please choose another track.";
+"error.audio.timeout" = "Audio analysis took too long and was stopped. Please choose a shorter track or try again.";
 
 // MARK: - Frequency Validation
 "frequency.tooLow" = "Frequency too low (minimum: %d Hz)";
 "frequency.tooHigh" = "Frequency too high (maximum: %d Hz)";
-"frequency.pseWarning" = "Frequency is in PSE danger zone (%d-%d Hz). People with photosensitive epilepsy should be cautious.";
+"frequency.pseWarning" = "Frequency lies in the PSE risk area (%d-%d Hz). People with photosensitive epilepsy should be careful.";
 
 // MARK: - Common UI
 "common.ok" = "OK";
 "common.cancel" = "Cancel";
 "common.close" = "Close";
-"common.dismiss" = "Dismiss";
+"common.dismiss" = "Close";
 "common.back" = "Back";
 "common.home" = "Home";
+"common.open" = "Open";
 "common.error" = "Error";
 
 // MARK: - Light Source Picker
@@ -132,15 +197,22 @@
 "lightSource.screen" = "Screen";
 "lightSource.screenColor" = "Screen Color";
 "lightSource.screenColorDescription" = "Choose the color for the strobe light";
-"lightSource.customColor" = "Choose Custom Color";
-"lightSource.selectFlashlight" = "Select Flashlight";
-"lightSource.selectScreen" = "Select Screen";
+"lightSource.customColor" = "Choose custom color";
+"lightSource.selectFlashlight" = "Select flashlight";
+"lightSource.selectScreen" = "Select screen";
 "lightSource.selectColor" = "Select color: %@";
-"lightSource.selectCustomColor" = "Select color: Custom Color";
+"lightSource.selectCustomColor" = "Select color: Custom";
+
+// MARK: - Session End Reasons
+"session.endReason.userStopped" = "User Stopped";
+"session.endReason.trackEnded" = "Track Ended";
+"session.endReason.thermalShutdown" = "Thermal Shutdown";
+"session.endReason.fallDetected" = "Fall Detected";
+"session.endReason.phoneCall" = "Phone Call";
+"session.endReason.appBackgrounded" = "App Backgrounded";
 
 // MARK: - Mode Selection
-"modeSelection.selectedMode" = "Selected Mode";
-"modeSelection.selectMode" = "Select Mode";
+"modeSelection.selectedMode" = "Selected mode";
+"modeSelection.selectMode" = "Select mode";
 "modeSelection.changeMode" = "Tap to change mode";
-"modeSelection.currentMode" = "Current Mode: %@";
-
+"modeSelection.currentMode" = "Current mode: %@";
