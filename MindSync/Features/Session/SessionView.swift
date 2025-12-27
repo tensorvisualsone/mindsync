@@ -271,7 +271,7 @@ private struct SessionTrackInfoView: View {
                     color: session.mode.themeColor
                 )
                 
-                if let script = script, let bpm = track?.bpm {
+                if let script = script {
                     // Defensive check: currentFrequency should be > 0. Fall back to targetFrequency and assert in debug if invalid.
                     let validatedFrequency: Double = {
                         if let frequency = currentFrequency, frequency > 0 {
@@ -283,7 +283,16 @@ private struct SessionTrackInfoView: View {
                             return script.targetFrequency
                         }
                     }()
-                    let frequencyText = String(format: NSLocalizedString("session.frequencyBpm", comment: ""), Int(validatedFrequency), Int(bpm))
+                    
+                    // Build frequency text with optional BPM
+                    let frequencyText: String
+                    if let bpm = track?.bpm {
+                        frequencyText = String(format: NSLocalizedString("session.frequencyBpm", comment: ""), Int(validatedFrequency), Int(bpm))
+                    } else {
+                        // Fallback: Show only frequency if BPM is not available (shouldn't happen in practice)
+                        frequencyText = "\(Int(validatedFrequency)) Hz"
+                    }
+                    
                     ModeChip(
                         icon: "metronome.fill",
                         text: frequencyText,
