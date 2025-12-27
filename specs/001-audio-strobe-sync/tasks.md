@@ -175,18 +175,9 @@
 
 **Independent Test**: Bei externer Musikquelle synchronisiert die App das Licht wahrnehmbar zum Beat.
 
-### Tests für User Story 4
+### User Story 4: Mikrofon-Modus
 
-- [ ] T059 [P] [US4] Erstelle Unit Tests für Live-Beat-Erkennung im Mikrofon-Modus in `MindSyncTests/Unit/MicrophoneAnalyzerTests.swift`
-
-### Implementation für User Story 4
-
-- [ ] T060 [P] [US4] Implementiere `PermissionsService` zur Abfrage von Mikrofon-Berechtigungen in `MindSync/Services/PermissionsService.swift`
-- [ ] T061 [P] [US4] Implementiere `MicrophoneAnalyzer` mit `AVAudioEngine` und `installTap` in `MindSync/Core/Audio/MicrophoneAnalyzer.swift`
-- [ ] T062 [US4] Erweitere `SourceSelectionView` um Mikrofon-Modus-Auswahl in `MindSync/Features/Home/SourceSelectionView.swift`
-- [ ] T063 [US4] Implementiere Flow in `SessionViewModel` für Mikrofon-basierte Sessions (ohne `AudioTrack`, aber mit Live-Beat-Events) in `MindSync/Features/Session/SessionViewModel.swift`
-- [ ] T064 [US4] Implementiere sanfte Pausierung der Lichtausgabe bei ausbleibendem Audio-Signal in `MindSync/Core/Entrainment/WaveformGenerator.swift`
-- [ ] T065 [US4] Füge Info-Hinweis im UI hinzu, dass Mikrofon-Modus weniger präzise als lokale Analyse ist in `MindSync/Features/Home/SourceSelectionView.swift`
+**Status: Entfernt** - Der Mikrofon-Modus wurde aus dem Projekt entfernt, um den Fokus auf die Kernfunktionalität zu legen.
 
 **Checkpoint**: User Story 4 ist funktionsfähig – Sessions funktionieren mit externer Streaming-Musik.
 

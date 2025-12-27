@@ -70,26 +70,6 @@ final class FeatureVerificationTests: XCTestCase {
     
     // MARK: - Microphone Mode Verification
     
-    func testMicrophoneMode_MicrophoneAnalyzerInServiceContainer() {
-        // Verify MicrophoneAnalyzer property exists in ServiceContainer
-        let container = ServiceContainer.shared
-        // Note: microphoneAnalyzer can be nil if FFT setup fails, so we just check the property exists
-        // The actual nil check is done in SessionViewModel.startMicrophoneSession()
-        // This is expected behavior - microphone mode gracefully handles unavailable analyzer
-    }
-    
-    func testMicrophoneMode_MicrophoneAnalyzerHasRequiredMethods() {
-        // Verify MicrophoneAnalyzer has required methods if available
-        let container = ServiceContainer.shared
-        if let analyzer = container.microphoneAnalyzer {
-            // Verify publishers exist
-            XCTAssertNotNil(analyzer.beatEventPublisher)
-            XCTAssertNotNil(analyzer.bpmPublisher)
-        } else {
-            // If nil, that's okay - FFT setup may have failed
-            // This is handled gracefully in SessionViewModel
-        }
-    }
     
     func testMicrophoneMode_SessionViewModelHasStartMethod() {
         // Verify SessionViewModel has startMicrophoneSession method

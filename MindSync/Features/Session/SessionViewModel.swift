@@ -532,9 +532,11 @@ final class SessionViewModel: ObservableObject {
             }
             
             // Apply audio latency offset from user preferences for Bluetooth compensation
-            lightController?.audioLatencyOffset = cachedPreferences.audioLatencyOffset
-            // Set audio playback reference for precise audio-thread timing
-            lightController?.audioPlayback = audioPlayback
+            if let baseController = lightController as? BaseLightController {
+                baseController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+                // Set audio playback reference for precise audio-thread timing
+                baseController.audioPlayback = audioPlayback
+            }
             
             // Start playback and light (this sets the startTime)
             let startTime = Date()
@@ -676,9 +678,11 @@ final class SessionViewModel: ObservableObject {
             }
             
             // Apply audio latency offset from user preferences for Bluetooth compensation
-            lightController?.audioLatencyOffset = cachedPreferences.audioLatencyOffset
-            // Set audio playback reference for precise audio-thread timing
-            lightController?.audioPlayback = audioPlayback
+            if let baseController = lightController as? BaseLightController {
+                baseController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+                // Set audio playback reference for precise audio-thread timing
+                baseController.audioPlayback = audioPlayback
+            }
             
             // Start playback and light (this sets the startTime)
             let startTime = Date()

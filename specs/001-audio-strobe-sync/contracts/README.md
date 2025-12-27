@@ -263,7 +263,6 @@ final class ServiceContainer: ObservableObject {
     static let shared = ServiceContainer()
     
     lazy var audioAnalyzer: AudioAnalyzing = AudioAnalyzer()
-    lazy var microphoneAnalyzer: MicrophoneAnalyzing = MicrophoneAnalyzer()
     lazy var entrainmentEngine: EntrainmentCalculating = EntrainmentEngine()
     lazy var thermalMonitor: ThermalMonitoring = ThermalManager()
     lazy var fallDetector: FallDetecting = FallDetector()

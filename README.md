@@ -199,8 +199,7 @@ mindsync/
 │   │   │   ├── AudioAnalyzer.swift
 │   │   │   ├── AudioPlaybackService.swift
 │   │   │   ├── BeatDetector.swift
-│   │   │   ├── TempoEstimator.swift
-│   │   │   └── MicrophoneAnalyzer.swift
+│   │   │   └── TempoEstimator.swift
 │   │   │
 │   │   ├── Light/                   # Licht-Steuerung
 │   │   │   ├── BaseLightController.swift

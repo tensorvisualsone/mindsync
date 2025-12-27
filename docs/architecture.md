@@ -64,16 +64,6 @@ BPM-Schätzung aus Beat-Timestamps:
 - Tempo-Folding (60-200 BPM Range)
 - Histogram-basierte Dominanz-Erkennung
 
-#### MicrophoneAnalyzer
-**Datei**: `MindSync/Core/Audio/MicrophoneAnalyzer.swift`
-
-Echtzeit-Mikrofon-Analyse:
-- `AVAudioEngine` mit Input-Node
-- Streaming FFT-Analyse (ähnlich BeatDetector)
-- Live Beat-Events via Publisher
-- BPM-Updates basierend auf letzten 20 Beats
-- ~100ms Latenz (Hardware-bedingt)
-
 ### Core Entrainment
 
 #### EntrainmentEngine
@@ -385,7 +375,6 @@ final class ServiceContainer: ObservableObject {
     static let shared = ServiceContainer()
     
     let audioAnalyzer: AudioAnalyzer
-    let microphoneAnalyzer: MicrophoneAnalyzer?
     let flashlightController: FlashlightController
     // ... weitere Services
 }
