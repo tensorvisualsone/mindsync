@@ -164,9 +164,14 @@ final class VibrationController: NSObject {
             return
         }
         
-        if let event = result.event {
+        if let event = result.event, let script = currentScript {
             // Calculate intensity based on waveform and elapsed time within event
-            let intensity = calculateIntensity(for: event, elapsed: result.elapsed)
+            // Use target frequency for frequency-based timing (same as FlashlightController)
+            let intensity = calculateIntensity(
+                for: event,
+                elapsed: result.elapsed,
+                targetFrequency: script.targetFrequency
+            )
             setIntensity(intensity)
         } else {
             // Between events, turn off vibration
@@ -176,11 +181,10 @@ final class VibrationController: NSObject {
     
     // MARK: - Intensity Calculation
     
-    private func calculateIntensity(for event: VibrationEvent, elapsed: TimeInterval) -> Float {
+    private func calculateIntensity(for event: VibrationEvent, elapsed: TimeInterval, targetFrequency: Double) -> Float {
         let eventElapsed = elapsed - event.timestamp
-        let normalizedTime = eventElapsed / event.duration
         
-        guard normalizedTime >= 0 && normalizedTime <= 1.0 else {
+        guard eventElapsed >= 0 && eventElapsed <= event.duration else {
             return 0.0
         }
         
@@ -192,18 +196,25 @@ final class VibrationController: NSObject {
             return baseIntensity
             
         case .sine:
-            // Smooth sine wave
-            let sineValue = sin(normalizedTime * .pi)
-            return baseIntensity * Float(sineValue)
+            // Smooth sine wave with frequency-based timing (same as FlashlightController)
+            // Use the script's target frequency so pulsation rate is independent of event duration
+            guard targetFrequency > 0 else {
+                // Fallback: constant intensity if frequency is not valid
+                return baseIntensity
+            }
+            let sineValue = sin(eventElapsed * 2.0 * .pi * targetFrequency)
+            // Map sine value from [-1, 1] to [0, 1], then scale by intensity
+            let normalizedSine = (sineValue + 1.0) / 2.0
+            return baseIntensity * Float(normalizedSine)
             
         case .triangle:
-            // Linear ramp up and down
-            let triangleValue: Float
-            if normalizedTime < 0.5 {
-                triangleValue = Float(normalizedTime * 2.0)
-            } else {
-                triangleValue = Float(2.0 - (normalizedTime * 2.0))
-            }
+            // Triangle wave based on absolute elapsed time, independent of event duration
+            // One full cycle (0 -> 1 -> 0) per period based on target frequency for consistent timing
+            let period: TimeInterval = 1.0 / targetFrequency
+            let phase = (eventElapsed.truncatingRemainder(dividingBy: period)) / period  // [0, 1)
+            let triangleValue = phase < 0.5
+                ? Float(phase * 2.0)              // 0 to 1
+                : Float(2.0 - (phase * 2.0))      // 1 to 0
             return baseIntensity * triangleValue
         }
     }

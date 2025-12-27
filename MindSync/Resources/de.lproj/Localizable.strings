@@ -109,6 +109,10 @@
 "settings.sessionDescription" = "Begrenzt die maximale Dauer von Taschenlampen-Sessions, um Überhitzung zu vermeiden.";
 "settings.maxDuration" = "Maximale Dauer";
 "settings.duration.unlimited" = "Kein Limit";
+"settings.duration.5min" = "5 Min";
+"settings.duration.10min" = "10 Min";
+"settings.duration.15min" = "15 Min";
+"session.frequencyBpm" = "%d Hz • %d BPM";
 "settings.history" = "Sitzungshistorie";
 "settings.invalidAudioFile" = "Die ausgewählte Datei ist keine gültige oder abspielbare Audiodatei";
 "settings.importError" = "Fehler beim Importieren der Datei";

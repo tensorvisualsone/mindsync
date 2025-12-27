@@ -41,6 +41,7 @@ final class SessionViewModel: ObservableObject {
     @Published var playbackProgress: Double = 0.0
     @Published var playbackTimeLabel: String = "0:00 / 0:00"
     @Published var affirmationStatus: String?
+    @Published var currentFrequency: Double = 0.0
     
     // Screen controller for UI binding (only published when screen mode is active)
     var screenController: ScreenController? {
@@ -420,11 +421,13 @@ final class SessionViewModel: ObservableObject {
         }
         
         updatePlaybackProgress(duration: duration)
+        updateCurrentFrequency()
         
         let timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             Task { @MainActor in
                 self.updatePlaybackProgress(duration: duration)
+                self.updateCurrentFrequency()
             }
         }
         playbackProgressTimer = timer
@@ -444,6 +447,31 @@ final class SessionViewModel: ObservableObject {
         let clampedDuration = max(duration, 0.1)
         playbackProgress = min(1.0, max(0.0, current / clampedDuration))
         playbackTimeLabel = "\(formatTime(current)) / \(formatTime(duration))"
+    }
+    
+    /// Calculates and updates the current frequency based on ramping
+    private func updateCurrentFrequency() {
+        guard let script = currentScript,
+              let session = currentSession,
+              let startTime = sessionStartTime else {
+            currentFrequency = 0.0
+            return
+        }
+        
+        let elapsed = Date().timeIntervalSince(startTime)
+        let mode = session.mode
+        
+        // Calculate ramping progress
+        let rampTime = mode.rampDuration
+        let progress = rampTime > 0 ? min(elapsed / rampTime, 1.0) : 1.0
+        
+        // Smoothstep interpolation (same as in EntrainmentEngine)
+        let smooth = progress * progress * (3.0 - 2.0 * progress)
+        
+        // Interpolate from startFrequency to targetFrequency
+        let startFreq = mode.startFrequency
+        let targetFreq = script.targetFrequency
+        currentFrequency = startFreq + (targetFreq - startFreq) * smooth
     }
     
     private func formatTime(_ value: TimeInterval) -> String {

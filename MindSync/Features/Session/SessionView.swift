@@ -74,7 +74,8 @@ struct SessionView: View {
                 SessionTrackInfoView(
                     track: viewModel.currentTrack,
                     script: viewModel.currentScript,
-                    session: session
+                    session: session,
+                    currentFrequency: viewModel.currentFrequency
                 )
                 .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
             }
@@ -205,6 +206,7 @@ private struct SessionTrackInfoView: View {
     let track: AudioTrack?
     let script: LightScript?
     let session: Session
+    let currentFrequency: Double
     
     var body: some View {
         VStack(spacing: AppConstants.Spacing.sm) {
@@ -241,9 +243,11 @@ private struct SessionTrackInfoView: View {
                 )
                 
                 if let script = script, let bpm = track?.bpm {
+                    let frequency = currentFrequency > 0 ? currentFrequency : script.targetFrequency
+                    let frequencyText = String(format: NSLocalizedString("session.frequencyBpm", comment: ""), Int(frequency), Int(bpm))
                     ModeChip(
                         icon: "metronome.fill",
-                        text: "\(Int(script.targetFrequency)) Hz • \(Int(bpm)) BPM",
+                        text: frequencyText,
                         color: .mint.opacity(0.8)
                     )
                 }

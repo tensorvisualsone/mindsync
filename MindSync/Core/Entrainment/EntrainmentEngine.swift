@@ -162,7 +162,12 @@ final class EntrainmentEngine {
             }()
             
             // Duration: half period for square, full period for sine
+            // For cinematic mode, use longer duration to ensure continuous coverage
             let duration: TimeInterval = {
+                if mode == .cinematic {
+                    // Use 1.5x period for cinematic to ensure events overlap and create continuous wave
+                    return period * 1.5
+                }
                 switch waveform {
                 case .square: return period / 2.0  // Short for hard blink
                 case .sine: return period         // Longer for soft pulse
@@ -331,16 +336,19 @@ final class EntrainmentEngine {
             }()
             
             // Apply user preference intensity, scaled by mode
+            // Increased multipliers to ensure vibration is strong enough even at lower user settings
             let modeIntensityMultiplier: Float = {
                 switch mode {
-                case .alpha: return 0.8  // Slightly softer for relaxation
-                case .theta: return 0.6  // Softer for trip
+                case .alpha: return 1.0  // Full intensity for relaxation
+                case .theta: return 0.9  // Slightly softer for trip (was 0.6)
                 case .gamma: return 1.0  // Full intensity for focus
-                case .cinematic: return 0.9  // Slightly softer for cinematic
+                case .cinematic: return 1.0  // Full intensity for cinematic (was 0.9)
                 }
             }()
             
-            let eventIntensity = intensity * modeIntensityMultiplier
+            // Ensure minimum intensity for vibration to be noticeable
+            // User preference (0.1-1.0) * mode multiplier, with minimum of 0.3 for strong vibration
+            let eventIntensity = max(0.3, intensity * modeIntensityMultiplier)
             
             // Duration: half period for square, full period for sine
             let duration: TimeInterval = {
@@ -374,16 +382,18 @@ final class EntrainmentEngine {
         var events: [VibrationEvent] = []
 
         // Determine intensity and waveform for fallback based on mode
+        // Increased multipliers to ensure vibration is strong enough even at lower user settings
         let modeIntensityMultiplier: Float = {
             switch mode {
-            case .alpha: return 0.8
-            case .theta: return 0.6
-            case .gamma: return 1.0
-            case .cinematic: return 0.9
+            case .alpha: return 1.0  // Full intensity (was 0.8)
+            case .theta: return 0.9  // Slightly softer (was 0.6)
+            case .gamma: return 1.0  // Full intensity
+            case .cinematic: return 1.0  // Full intensity (was 0.9)
             }
         }()
         
-        let fallbackIntensity = intensity * modeIntensityMultiplier
+        // Ensure minimum intensity for vibration to be noticeable
+        let fallbackIntensity = max(0.3, intensity * modeIntensityMultiplier)
 
         let fallbackWaveform: VibrationEvent.Waveform = {
             switch mode {

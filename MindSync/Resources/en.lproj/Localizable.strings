@@ -107,6 +107,10 @@
 "settings.sessionDescription" = "Limits maximum flashlight session duration to avoid overheating.";
 "settings.maxDuration" = "Maximum duration";
 "settings.duration.unlimited" = "No limit";
+"settings.duration.5min" = "5 min";
+"settings.duration.10min" = "10 min";
+"settings.duration.15min" = "15 min";
+"session.frequencyBpm" = "%d Hz • %d BPM";
 "settings.history" = "Session History";
 "settings.invalidAudioFile" = "The selected file is not a valid or playable audio file";
 "settings.importError" = "Import error";

@@ -255,9 +255,12 @@ struct SettingsView: View {
                     )) {
                         Text(NSLocalizedString("settings.duration.unlimited", comment: ""))
                             .tag(TimeInterval?.none)
-                        Text("5 min").tag(TimeInterval?(300))
-                        Text("10 min").tag(TimeInterval?(600))
-                        Text("15 min").tag(TimeInterval?(900))
+                        Text(NSLocalizedString("settings.duration.5min", comment: ""))
+                            .tag(TimeInterval?(300))
+                        Text(NSLocalizedString("settings.duration.10min", comment: ""))
+                            .tag(TimeInterval?(600))
+                        Text(NSLocalizedString("settings.duration.15min", comment: ""))
+                            .tag(TimeInterval?(900))
                     }
                     .pickerStyle(.menu)
                 } header: {
