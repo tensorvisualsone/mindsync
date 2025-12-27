@@ -11,7 +11,6 @@ struct SourceSelectionView: View {
     @State private var selectedItem: MPMediaItem?
     @State private var showingError = false
     @State private var errorMessage = ""
-    @State private var isLoadingSong = false
     
     let onSongSelected: (MPMediaItem) -> Void
     let onMicrophoneSelected: (() -> Void)?
@@ -124,30 +123,6 @@ struct SourceSelectionView: View {
                 authorizationStatus = services.mediaLibraryService.authorizationStatus
                 microphoneStatus = services.permissionsService.microphoneStatus
             }
-            .overlay {
-                if isLoadingSong {
-                    ZStack {
-                        Color.black.opacity(0.6)
-                            .ignoresSafeArea()
-                        
-                        VStack(spacing: AppConstants.Spacing.md) {
-                            ProgressView()
-                                .scaleEffect(1.5)
-                                .tint(.white)
-                            
-                            Text(NSLocalizedString("analysis.loading", comment: ""))
-                                .font(AppConstants.Typography.subheadline)
-                                .foregroundColor(.white)
-                        }
-                        .padding(AppConstants.Spacing.xl)
-                        .mindSyncCardStyle()
-                        .accessibilityElement(children: .combine)
-                        .accessibilityLabel(NSLocalizedString("analysis.loading", comment: ""))
-                    }
-                    .transition(.opacity)
-                }
-            }
-            .animation(.easeInOut(duration: 0.2), value: isLoadingSong)
         }
         .mindSyncBackground()
     }
@@ -189,21 +164,24 @@ struct SourceSelectionView: View {
         guard let mediaLibraryService = mediaLibraryService else { return }
         
         Task {
-            await MainActor.run {
-                isLoadingSong = true
-            }
             do {
                 _ = try await mediaLibraryService.assetURLForAnalysis(of: item)
                 await MainActor.run {
-                    isLoadingSong = false
                     selectedItem = item
                     onSongSelected(item)
                     showingMediaPicker = false
                 }
             } catch {
                 await MainActor.run {
-                    isLoadingSong = false
-                    errorMessage = error.localizedDescription
+                    // MediaLibraryValidationError implements LocalizedError with proper localization
+                    // Use errorDescription directly for MediaLibraryValidationError to ensure proper formatting
+                    if let mediaError = error as? MediaLibraryValidationError,
+                       let description = mediaError.errorDescription {
+                        errorMessage = description
+                    } else {
+                        // Fallback for other error types
+                        errorMessage = error.localizedDescription
+                    }
                     showingError = true
                 }
             }

@@ -15,7 +15,6 @@ struct SessionHistoryView: View {
                         filterSection
                         sessionsList
                     }
-                    .scrollContentBackground(.hidden)
                 }
             }
             .navigationTitle(NSLocalizedString("history.title", comment: "History"))
@@ -23,14 +22,12 @@ struct SessionHistoryView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if !viewModel.sessions.isEmpty {
                         Button(NSLocalizedString("history.clear", comment: "Clear")) {
-                            HapticFeedback.light()
                             viewModel.clearHistory()
                         }
                     }
                 }
             }
         }
-        .mindSyncBackground()
     }
     
     private var emptyStateView: some View {
