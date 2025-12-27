@@ -263,36 +263,14 @@ private struct SessionTrackInfoView: View {
                     color: session.mode.themeColor
                 )
                 
-                if let script = script {
-                    // Defensive check: currentFrequency should be > 0. Fall back to targetFrequency and assert in debug if invalid.
-                    let validatedFrequency: Double = {
-                        if let frequency = currentFrequency, frequency > 0 {
-                            return frequency
-                        } else {
-                            if let frequency = currentFrequency {
-                                assertionFailure("SessionTrackInfoView received invalid currentFrequency: \(frequency). Expected > 0 Hz.")
-                            } else {
-                                // Assert on nil in debug to catch issues where frequency calculation might be failing
-                                assertionFailure("SessionTrackInfoView received nil currentFrequency. Expected valid frequency.")
-                            }
-                            return script.targetFrequency
-                        }
-                    }()
-                    
-                    // Build frequency text with optional BPM
-                    let frequencyText: String = {
-                        if let bpm = track?.bpm {
-                            return String(format: NSLocalizedString("session.frequencyBpm", comment: ""), Int(validatedFrequency), Int(bpm))
-                        } else {
-                            // Fallback: Show only frequency if BPM is not available (shouldn't happen in practice)
-                            return "\(Int(validatedFrequency)) Hz"
-                        }
-                    }()
-                    
+                // Show frequency indicator only if it provides useful information
+                if let script = script, let currentFrequency = currentFrequency, currentFrequency > 0,
+                   let bpm = track?.bpm, abs(Int(bpm) - Int(currentFrequency)) >= 2 {
+                    // Only show frequency if it differs significantly from BPM (indicating ramping)
                     ModeChip(
-                        icon: "metronome.fill",
-                        text: frequencyText,
-                        color: .mint.opacity(0.8)
+                        icon: "waveform",
+                        text: "\(Int(currentFrequency)) Hz",
+                        color: .mint.opacity(0.6)
                     )
                 }
                 

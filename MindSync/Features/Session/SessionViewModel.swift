@@ -543,6 +543,7 @@ final class SessionViewModel: ObservableObject {
             sessionStartTime = startTime
             // Update frequency now that sessionStartTime is set (timer will continue updating)
             updateCurrentFrequency()
+            startFrequencyUpdates()
             try await startPlaybackAndLight(url: assetURL, script: script, startTime: startTime)
             
             // Start vibration if enabled (using same startTime for synchronization)
@@ -689,6 +690,7 @@ final class SessionViewModel: ObservableObject {
             sessionStartTime = startTime
             // Update frequency now that sessionStartTime is set (timer will continue updating)
             updateCurrentFrequency()
+            startFrequencyUpdates()
             try await startPlaybackAndLight(url: audioFileURL, script: script, startTime: startTime)
             
             // Start vibration if enabled (using same startTime for synchronization)

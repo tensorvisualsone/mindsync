@@ -75,10 +75,17 @@ final class VibrationController: NSObject {
     // MARK: - Haptic Engine Management
     
     func start() async throws {
+        logger.info("VibrationController.start() called")
         // Check if device supports haptics
-        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else {
+        let capabilities = CHHapticEngine.capabilitiesForHardware()
+        logger.info("Haptic capabilities: supportsHaptics=\(capabilities.supportsHaptics), supportsAudio=\(capabilities.supportsAudio)")
+
+        guard capabilities.supportsHaptics else {
+            logger.error("Device does not support haptics")
             throw VibrationError.hapticsUnavailable
         }
+
+        logger.info("Device supports haptics, proceeding with engine creation")
         
         // Create and configure haptic engine
         do {
@@ -243,8 +250,13 @@ final class VibrationController: NSObject {
     }
     
     private func createContinuousPattern(intensity: Float) {
-        guard let engine = hapticEngine else { return }
-        
+        guard let engine = hapticEngine else {
+            self.logger.warning("Cannot create haptic pattern: engine is nil")
+            return
+        }
+
+        logger.debug("Creating haptic pattern with intensity: \(intensity)")
+
         // Create a continuous haptic event with the specified intensity
         // Use longer duration (1.0s) with loopEnabled = true so the pattern continues
         // between display-link updates, preventing gaps if updates are delayed
@@ -257,13 +269,14 @@ final class VibrationController: NSObject {
             relativeTime: 0,
             duration: 1.0 // Longer duration with loop enabled prevents gaps
         )
-        
+
         do {
             let pattern = try CHHapticPattern(events: [hapticEvent], parameters: [])
             let player = try engine.makeAdvancedPlayer(with: pattern)
             player.loopEnabled = true // Enable looping so pattern continues between updates
             try player.start(atTime: 0)
             hapticPlayer = player
+            logger.debug("Haptic pattern started successfully")
         } catch {
             logger.error("Failed to create haptic pattern: \(error.localizedDescription, privacy: .public)")
         }
