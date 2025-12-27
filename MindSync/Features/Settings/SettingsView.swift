@@ -305,7 +305,7 @@ struct SettingsView: View {
                             importError = NSError(
                                 domain: ValidationError.domain,
                                 code: ValidationError.invalidAudioFileCode,
-                                userInfo: [NSLocalizedDescriptionKey: "Datei konnte nicht gespeichert werden. Bitte stelle sicher, dass du Zugriff auf die Datei hast."]
+                                userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("error.file.saveFailed", comment: "")]
                             )
                             showingImportError = true
                         }

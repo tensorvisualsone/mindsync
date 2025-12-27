@@ -45,6 +45,10 @@
 "sourceSelection.microphoneNote" = "Note: Microphone mode is less precise than local analysis (~100 ms latency)";
 "sourceSelection.musicLibraryDenied" = "Access to the music library was denied. Please enable it in Settings.";
 "sourceSelection.microphoneDenied" = "Microphone access was denied. Please enable it in Settings.";
+"sourceSelection.filePicker.title" = "Select File";
+"sourceSelection.filePicker.description" = "Choose MP3/M4A from Files (recommended)";
+"sourceSelection.filePicker.advantage" = "✓ Works with all local audio files";
+"sourceSelection.musicLibrary.drmWarning" = "⚠️ Apple Music songs are DRM-protected";
 
 // MARK: - Session
 "session.pause" = "Pause";
@@ -176,6 +180,11 @@
 "error.audio.fileTooLong" = "Audio file is too long (%d minutes). Maximum supported length is 30 minutes.";
 "error.audio.corruptedData" = "Audio data appears to be corrupted or empty. Please choose another track.";
 "error.audio.timeout" = "Audio analysis took too long and was stopped. Please choose a shorter track or try again.";
+"error.file.copyFailed" = "File could not be copied. Please try again.";
+"error.file.invalidAudio" = "The file is not a valid audio file.";
+"error.file.validationFailed" = "Error validating audio file: %@";
+"error.file.selectionFailed" = "Error selecting file: %@";
+"error.file.saveFailed" = "File could not be saved. Please make sure you have access to the file.";
 
 // MARK: - Frequency Validation
 "frequency.tooLow" = "Frequency too low (minimum: %d Hz)";

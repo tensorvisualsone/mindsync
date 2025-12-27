@@ -35,14 +35,14 @@ struct SourceSelectionView: View {
                         Image(systemName: "folder.fill")
                             .font(.system(size: AppConstants.IconSize.extraLarge))
                             .foregroundColor(.mindSyncSuccess)
-                        Text("Datei auswählen")
+                        Text(NSLocalizedString("sourceSelection.filePicker.title", comment: ""))
                             .font(AppConstants.Typography.headline)
-                        Text("MP3/M4A aus Dateien wählen (empfohlen)")
+                        Text(NSLocalizedString("sourceSelection.filePicker.description", comment: ""))
                             .font(AppConstants.Typography.caption)
                             .foregroundColor(.mindSyncSecondaryText)
                             .multilineTextAlignment(.center)
                         
-                        Text("✓ Funktioniert mit allen lokalen Audiodateien")
+                        Text(NSLocalizedString("sourceSelection.filePicker.advantage", comment: ""))
                             .font(AppConstants.Typography.caption2)
                             .foregroundColor(.mindSyncSuccess)
                             .multilineTextAlignment(.center)
@@ -72,7 +72,7 @@ struct SourceSelectionView: View {
                             .multilineTextAlignment(.center)
                         
                         // Warning about DRM
-                        Text("⚠️ Apple Music Songs sind DRM-geschützt")
+                        Text(NSLocalizedString("sourceSelection.musicLibrary.drmWarning", comment: ""))
                             .font(AppConstants.Typography.caption2)
                             .foregroundColor(.mindSyncWarning)
                             .multilineTextAlignment(.center)
@@ -254,7 +254,7 @@ struct SourceSelectionView: View {
                 guard let copiedURL = copyAudioToDocuments(from: url) else {
                     print("ERROR: Failed to copy file to documents")
                     await MainActor.run {
-                        errorMessage = "Datei konnte nicht kopiert werden. Bitte versuche es erneut."
+                        errorMessage = NSLocalizedString("error.file.copyFailed", comment: "")
                         showingError = true
                     }
                     return
@@ -276,21 +276,21 @@ struct SourceSelectionView: View {
                     } else {
                         try? FileManager.default.removeItem(at: copiedURL)
                         await MainActor.run {
-                            errorMessage = "Die Datei ist keine gültige Audiodatei."
+                            errorMessage = NSLocalizedString("error.file.invalidAudio", comment: "")
                             showingError = true
                         }
                     }
                 } catch {
                     try? FileManager.default.removeItem(at: copiedURL)
                     await MainActor.run {
-                        errorMessage = "Fehler beim Prüfen der Audiodatei: \(error.localizedDescription)"
+                        errorMessage = String(format: NSLocalizedString("error.file.validationFailed", comment: ""), error.localizedDescription)
                         showingError = true
                     }
                 }
             }
             
         case .failure(let error):
-            errorMessage = "Fehler beim Auswählen der Datei: \(error.localizedDescription)"
+            errorMessage = String(format: NSLocalizedString("error.file.selectionFailed", comment: ""), error.localizedDescription)
             showingError = true
         }
     }
