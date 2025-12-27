@@ -252,6 +252,8 @@ final class EntrainmentEngine {
     }
     
     /// Generates light events from beat timestamps
+    /// Events are created at each beat position, with duration extending until the next beat
+    /// to ensure continuous light pulsation without gaps.
     private func generateLightEvents(
         beatTimestamps: [TimeInterval],
         targetFrequency: Double,
@@ -294,36 +296,52 @@ final class EntrainmentEngine {
             }
         }
         
-        // Duration multiplier for cinematic mode and sine waveform
-        let durationMultiplier: (EntrainmentMode, LightEvent.Waveform, TimeInterval) -> TimeInterval = { mode, waveform, period in
-            if mode == .cinematic {
-                // Use 1.5x period for cinematic to ensure events overlap and create continuous wave
-                return period * 1.5
+        var events: [LightEvent] = []
+        let waveform = waveformSelector(mode)
+        let baseIntensity = intensitySelector(mode)
+        
+        // Ramping parameters
+        let startFreq = mode.startFrequency
+        let rampTime = mode.rampDuration
+        
+        for (index, timestamp) in beatTimestamps.enumerated() {
+            // Calculate current frequency based on ramping
+            let progress = rampTime > 0 ? min(timestamp / rampTime, 1.0) : 1.0
+            let smooth = MathHelpers.smoothstep(progress)
+            let currentFreq = startFreq + (targetFrequency - startFreq) * smooth
+            let period = 1.0 / max(0.0001, currentFreq)
+            
+            // Calculate event duration:
+            // - For square wave: half period (hard on/off)
+            // - For sine/triangle: extend to next beat or end of track to prevent gaps
+            let eventDuration: TimeInterval
+            if waveform == .square {
+                eventDuration = period / 2.0
+            } else {
+                // Duration extends to next beat timestamp (or end of track)
+                // This ensures continuous pulsation without gaps
+                let nextTimestamp: TimeInterval
+                if index + 1 < beatTimestamps.count {
+                    nextTimestamp = beatTimestamps[index + 1]
+                } else {
+                    // Last beat: extend to end of track
+                    nextTimestamp = trackDuration
+                }
+                // Duration = time until next beat, but at least one period
+                eventDuration = max(period, nextTimestamp - timestamp)
             }
-            switch waveform {
-            case .square: return period / 2.0  // Short for hard blink
-            case .sine: return period * 1.5   // Overlap events to prevent gaps when beats are far apart
-            case .triangle: return period * 1.5  // Overlap events for smooth transitions
-            }
+            
+            let event = LightEvent(
+                timestamp: timestamp,
+                intensity: baseIntensity,
+                duration: eventDuration,
+                waveform: waveform,
+                color: eventColor
+            )
+            events.append(event)
         }
         
-        return generateEvents(
-            timestamps: beatTimestamps,
-            targetFrequency: targetFrequency,
-            mode: mode,
-            baseIntensity: intensitySelector(mode),
-            waveformSelector: waveformSelector,
-            durationMultiplier: durationMultiplier,
-            eventFactory: { timestamp, intensity, duration, waveform in
-                LightEvent(
-                    timestamp: timestamp,
-                    intensity: intensity,
-                    duration: duration,
-                    waveform: waveform,
-                    color: eventColor
-                )
-            }
-        )
+        return events
     }
     
     /// Fallback: Generates uniform pulsation if no beats were detected
@@ -427,6 +445,8 @@ final class EntrainmentEngine {
     }
     
     /// Generates vibration events from beat timestamps
+    /// Events are created at each beat position, with duration extending until the next beat
+    /// to ensure continuous vibration pulsation synchronized with light.
     private func generateVibrationEvents(
         beatTimestamps: [TimeInterval],
         targetFrequency: Double,
@@ -454,32 +474,50 @@ final class EntrainmentEngine {
             }
         }
         
-        // Intensity: apply user preference intensity directly.
-        // Mode-specific intensity differences are handled by base event intensity values,
-        // so user preference acts as a global scale factor.
-        
         // Ensure minimum intensity for vibration to be noticeable
-        // User preference (0.1-1.0), clamped to minVibrationIntensity
         let baseIntensity = max(Self.minVibrationIntensity, intensity)
         
-        // Duration multiplier: half period for square, full period for sine
-        let durationMultiplier: (EntrainmentMode, VibrationEvent.Waveform, TimeInterval) -> TimeInterval = { _, waveform, period in
-            switch waveform {
-            case .square: return period / 2.0  // Short for hard vibration
-            case .sine: return period         // Longer for soft pulse
-            case .triangle: return period
+        var events: [VibrationEvent] = []
+        let waveform = waveformSelector(mode)
+        
+        // Ramping parameters
+        let startFreq = mode.startFrequency
+        let rampTime = mode.rampDuration
+        
+        for (index, timestamp) in beatTimestamps.enumerated() {
+            // Calculate current frequency based on ramping
+            let progress = rampTime > 0 ? min(timestamp / rampTime, 1.0) : 1.0
+            let smooth = MathHelpers.smoothstep(progress)
+            let currentFreq = startFreq + (targetFrequency - startFreq) * smooth
+            let period = 1.0 / max(0.0001, currentFreq)
+            
+            // Calculate event duration:
+            // - For square wave: half period (hard on/off)
+            // - For sine/triangle: extend to next beat or end of track to prevent gaps
+            let eventDuration: TimeInterval
+            if waveform == .square {
+                eventDuration = period / 2.0
+            } else {
+                // Duration extends to next beat timestamp (or end of track)
+                let nextTimestamp: TimeInterval
+                if index + 1 < beatTimestamps.count {
+                    nextTimestamp = beatTimestamps[index + 1]
+                } else {
+                    nextTimestamp = trackDuration
+                }
+                eventDuration = max(period, nextTimestamp - timestamp)
             }
+            
+            let event = try VibrationEvent(
+                timestamp: timestamp,
+                intensity: baseIntensity,
+                duration: eventDuration,
+                waveform: waveform
+            )
+            events.append(event)
         }
         
-        // Use throwing version of generateEvents for VibrationEvent
-        return try generateVibrationEventsWithValidation(
-            timestamps: beatTimestamps,
-            targetFrequency: targetFrequency,
-            mode: mode,
-            baseIntensity: baseIntensity,
-            waveformSelector: waveformSelector,
-            durationMultiplier: durationMultiplier
-        )
+        return events
     }
     
     /// Helper for generating VibrationEvents with validation (throws on invalid values)

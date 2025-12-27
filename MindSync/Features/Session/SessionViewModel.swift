@@ -429,13 +429,15 @@ final class SessionViewModel: ObservableObject {
         // Note: updateCurrentFrequency() is called in the timer below, not here,
         // because sessionStartTime may not be set yet when this method is called
         
-        let timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        // Create timer and add to main RunLoop to ensure it fires even during UI interactions
+        let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             Task { @MainActor in
                 self.updatePlaybackProgress(duration: duration)
                 self.updateCurrentFrequency()  // Will update once sessionStartTime is set
             }
         }
+        RunLoop.main.add(timer, forMode: .common)
         playbackProgressTimer = timer
     }
     
@@ -456,13 +458,14 @@ final class SessionViewModel: ObservableObject {
         // Initial update
         updateCurrentFrequency()
         
-        // Start timer for regular updates
-        let timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        // Create timer and add to main RunLoop to ensure it fires even during UI interactions
+        let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             Task { @MainActor in
                 self.updateCurrentFrequency()
             }
         }
+        RunLoop.main.add(timer, forMode: .common)
         playbackProgressTimer = timer
     }
     

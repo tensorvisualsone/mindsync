@@ -23,10 +23,10 @@ final class MicrophoneAnalyzerTests: XCTestCase {
     // MARK: - Initialization Tests
     
     func testInitialization_WithValidFFTSetup_Succeeds() {
-        // When: Creating analyzer
-        let analyzer = MicrophoneAnalyzer()
-        
+        // Given: The analyzer created in setUp()
         // Then: Should not be nil (FFT setup succeeded)
+        // Note: We use the shared analyzer from setUp() instead of creating a new one
+        // to avoid conflicts with AVAudioEngine and potential double-free issues
         XCTAssertNotNil(analyzer, "Analyzer should initialize successfully")
     }
     
