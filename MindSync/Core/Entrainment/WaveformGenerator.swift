@@ -8,12 +8,14 @@ enum WaveformGenerator {
     ///   - time: Time within the waveform cycle (0.0 to 1.0, where 1.0 is one full period)
     ///   - frequency: Target frequency in Hz
     ///   - baseIntensity: Base intensity value (0.0 to 1.0)
+    ///   - dutyCycle: Optional duty cycle for square wave (0.0 to 1.0). Default: 0.5 (50% on, 50% off)
     /// - Returns: Intensity value (0.0 to 1.0)
     static func calculateIntensity(
         waveform: LightEvent.Waveform,
         time: TimeInterval,
         frequency: Double,
-        baseIntensity: Float
+        baseIntensity: Float,
+        dutyCycle: Double = 0.5
     ) -> Float {
         guard frequency > 0 else {
             return baseIntensity
@@ -25,8 +27,10 @@ enum WaveformGenerator {
         let intensity: Float
         switch waveform {
         case .square:
-            // Hard on/off: full intensity for first half, off for second half
-            intensity = phase < 0.5 ? baseIntensity : 0.0
+            // Hard on/off with configurable duty cycle
+            // For FlashlightController: frequency-dependent duty cycle (20% for >20Hz, 35% for >10Hz, 50% default)
+            // For other controllers: standard 50% duty cycle
+            intensity = phase < dutyCycle ? baseIntensity : 0.0
             
         case .sine:
             // Smooth sine wave pulsation
@@ -49,6 +53,40 @@ enum WaveformGenerator {
         }
         
         return max(0.0, min(1.0, intensity)) // Clamp to valid range
+    }
+    
+    /// Calculates intensity for vibration waveform (delegates to calculateIntensity with mapping)
+    /// - Parameters:
+    ///   - waveform: The vibration waveform type
+    ///   - time: Time within the waveform cycle
+    ///   - frequency: Target frequency in Hz
+    ///   - baseIntensity: Base intensity value (0.0 to 1.0)
+    /// - Returns: Intensity value (0.0 to 1.0)
+    static func calculateVibrationIntensity(
+        waveform: VibrationEvent.Waveform,
+        time: TimeInterval,
+        frequency: Double,
+        baseIntensity: Float
+    ) -> Float {
+        // Map vibration waveform to light waveform to reuse the core implementation
+        let lightWaveform: LightEvent.Waveform
+        switch waveform {
+        case .square:
+            lightWaveform = .square
+        case .sine:
+            lightWaveform = .sine
+        case .triangle:
+            lightWaveform = .triangle
+        }
+        
+        // Use a fixed 50% duty cycle to match the original vibration behavior
+        return calculateIntensity(
+            waveform: lightWaveform,
+            time: time,
+            frequency: frequency,
+            baseIntensity: baseIntensity,
+            dutyCycle: 0.5
+        )
     }
     
     /// Calculates intensity with smooth fade-out for signal pausing (microphone mode)

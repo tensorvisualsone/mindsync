@@ -3,14 +3,11 @@ import MediaPlayer
 
 /// Represents the type of session to start
 enum SessionType: Identifiable {
-    case microphone
     case mediaItem(MPMediaItem)
     case audioFile(URL)
     
     var id: String {
         switch self {
-        case .microphone:
-            return "microphone"
         case .mediaItem(let item):
             return "media-\(item.persistentID)"
         case .audioFile(let url):
@@ -98,12 +95,6 @@ struct HomeView: View {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                             sessionToStart = .audioFile(url)
                         }
-                    },
-                    onMicrophoneSelected: {
-                        showingSourceSelection = false
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            sessionToStart = .microphone
-                        }
                     }
                 )
             }
@@ -131,12 +122,10 @@ struct HomeView: View {
             }
             .fullScreenCover(item: $sessionToStart) { session in
                 switch session {
-                case .microphone:
-                    SessionView(song: nil, isMicrophoneMode: true)
                 case .mediaItem(let item):
-                    SessionView(song: item, isMicrophoneMode: false)
+                    SessionView(song: item)
                 case .audioFile(let url):
-                    SessionView(audioFileURL: url, isMicrophoneMode: false)
+                    SessionView(audioFileURL: url)
                 }
             }
         }

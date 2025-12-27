@@ -43,6 +43,15 @@ final class VibrationController: NSObject {
     private var displayLinkTarget: WeakVibrationDisplayLinkTarget?
     private let logger = Logger(subsystem: "com.mindsync", category: "VibrationController")
     
+    /// Audio latency offset from user preferences (in seconds)
+    /// This value compensates for Bluetooth audio delay by delaying vibration output
+    /// to ensure audio and vibration arrive at the user simultaneously
+    var audioLatencyOffset: TimeInterval = 0.0
+    
+    /// AudioPlaybackService reference for precise audio-thread timing (optional)
+    /// When set, findCurrentEvent() uses preciseAudioTime instead of Date() for synchronization
+    weak var audioPlayback: AudioPlaybackService?
+    
     /// Optional callback invoked when engine restart fails after a reset
     var onRestartFailure: ((Error) -> Void)?
     
@@ -201,40 +210,13 @@ final class VibrationController: NSObject {
             return 0.0
         }
         
-        let baseIntensity = event.intensity
-        
-        switch event.waveform {
-        case .square:
-            // Hard on/off
-            return baseIntensity
-            
-        case .sine:
-            // Smooth sine wave with frequency-based timing (same as FlashlightController)
-            // Use the script's target frequency so pulsation rate is independent of event duration
-            guard targetFrequency > 0 else {
-                // Fallback: constant intensity if frequency is not valid
-                return baseIntensity
-            }
-            let sineValue = sin(eventElapsed * 2.0 * .pi * targetFrequency)
-            // Map sine value from [-1, 1] to [0, 1], then scale by intensity
-            let normalizedSine = (sineValue + 1.0) / 2.0
-            return baseIntensity * Float(normalizedSine)
-            
-        case .triangle:
-            // Triangle wave based on absolute elapsed time, independent of event duration
-            // One full cycle (0 -> 1 -> 0) per period based on target frequency for consistent timing
-            guard targetFrequency > 0 else {
-                // Fallback: constant intensity if frequency is not valid (to avoid division-by-zero)
-                logger.warning("Invalid targetFrequency for triangle wave: \(targetFrequency). Using base intensity fallback.")
-                return baseIntensity
-            }
-            let period: TimeInterval = 1.0 / targetFrequency
-            let phase = (eventElapsed.truncatingRemainder(dividingBy: period)) / period  // [0, 1)
-            let triangleValue = phase < 0.5
-                ? Float(phase * 2.0)              // 0 to 1
-                : Float(2.0 - (phase * 2.0))      // 1 to 0
-            return baseIntensity * triangleValue
-        }
+        // Use centralized WaveformGenerator for consistency
+        return WaveformGenerator.calculateVibrationIntensity(
+            waveform: event.waveform,
+            time: eventElapsed,
+            frequency: targetFrequency,
+            baseIntensity: event.intensity
+        )
     }
     
     // MARK: - Haptic Pattern Generation
@@ -323,12 +305,31 @@ final class VibrationController: NSObject {
             return CurrentVibrationEventResult(event: nil, elapsed: 0, isComplete: false)
         }
         
-        // Calculate elapsed time accounting for pauses
-        let realElapsed = Date().timeIntervalSince(startTime) - totalPauseDuration
+        // Use precise audio time if available (audio-thread accurate), otherwise fall back to Date()
+        // This eliminates drift between audio and display threads
+        let currentTime: TimeInterval
+        if let audioPlayback = audioPlayback, audioPlayback.isPlaying {
+            // Use audio-thread precise timing
+            currentTime = audioPlayback.preciseAudioTime
+        } else {
+            // Fallback to Date() timing (e.g., during pause or before audio starts)
+            currentTime = Date().timeIntervalSince(startTime) - totalPauseDuration
+        }
         
-        // Check if script is finished
-        if realElapsed >= script.duration {
-            return CurrentVibrationEventResult(event: nil, elapsed: realElapsed, isComplete: true)
+        // Apply audio latency compensation: Delay vibration to match audio arrival time
+        // Formula: adjustedTime = currentTime - audioLatencyOffset
+        // Example: If audio has 200ms delay and player is at 10.2s,
+        //          the user hears 10.0s, so we trigger vibration for 10.0s
+        let adjustedElapsed = currentTime - audioLatencyOffset
+        
+        // Safety: Don't go negative (at start of session before latency compensation kicks in)
+        guard adjustedElapsed >= 0 else {
+            return CurrentVibrationEventResult(event: nil, elapsed: 0, isComplete: false)
+        }
+        
+        // Check if script is finished (use adjusted time)
+        if adjustedElapsed >= script.duration {
+            return CurrentVibrationEventResult(event: nil, elapsed: adjustedElapsed, isComplete: true)
         }
         
         // Skip past events to find current event using index tracking
@@ -337,14 +338,14 @@ final class VibrationController: NSObject {
             let event = script.events[foundEventIndex]
             let eventEnd = event.timestamp + event.duration
             
-            if realElapsed < eventEnd {
-                if realElapsed >= event.timestamp {
+            if adjustedElapsed < eventEnd {
+                if adjustedElapsed >= event.timestamp {
                     // Current event is active
                     currentEventIndex = foundEventIndex
-                    return CurrentVibrationEventResult(event: event, elapsed: realElapsed, isComplete: false)
+                    return CurrentVibrationEventResult(event: event, elapsed: adjustedElapsed, isComplete: false)
                 } else {
                     // Between events
-                    return CurrentVibrationEventResult(event: nil, elapsed: realElapsed, isComplete: false)
+                    return CurrentVibrationEventResult(event: nil, elapsed: adjustedElapsed, isComplete: false)
                 }
             } else {
                 // Move to next event
@@ -353,7 +354,7 @@ final class VibrationController: NSObject {
         }
         
         // Passed all events
-        return CurrentVibrationEventResult(event: nil, elapsed: realElapsed, isComplete: true)
+        return CurrentVibrationEventResult(event: nil, elapsed: adjustedElapsed, isComplete: true)
     }
 }
 

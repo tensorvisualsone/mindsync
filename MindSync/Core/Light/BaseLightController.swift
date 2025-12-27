@@ -24,6 +24,15 @@ class BaseLightController: NSObject {
     /// AudioEnergyTracker for cinematic mode dynamic intensity modulation (optional)
     weak var audioEnergyTracker: AudioEnergyTracker?
     
+    /// Audio latency offset from user preferences (in seconds)
+    /// This value compensates for Bluetooth audio delay by delaying light output
+    /// to ensure audio and light arrive at the user simultaneously
+    var audioLatencyOffset: TimeInterval = 0.0
+    
+    /// AudioPlaybackService reference for precise audio-thread timing (optional)
+    /// When set, findCurrentEvent() uses preciseAudioTime instead of Date() for synchronization
+    weak var audioPlayback: AudioPlaybackService?
+    
     // MARK: - Display Link Management
     
     /// Sets up the display link with a weak target wrapper
@@ -99,12 +108,31 @@ class BaseLightController: NSObject {
             return CurrentEventResult(event: nil, elapsed: 0, isComplete: false)
         }
         
-        // Calculate elapsed time accounting for pauses
-        let realElapsed = Date().timeIntervalSince(startTime) - totalPauseDuration
+        // Use precise audio time if available (audio-thread accurate), otherwise fall back to Date()
+        // This eliminates drift between audio and display threads
+        let currentTime: TimeInterval
+        if let audioPlayback = audioPlayback, audioPlayback.isPlaying {
+            // Use audio-thread precise timing while audio is actually playing
+            currentTime = audioPlayback.preciseAudioTime
+        } else {
+            // Fallback to Date() timing (e.g., during pause or before audio starts)
+            currentTime = Date().timeIntervalSince(startTime) - totalPauseDuration
+        }
         
-        // Check if script is finished
-        if realElapsed >= script.duration {
-            return CurrentEventResult(event: nil, elapsed: realElapsed, isComplete: true)
+        // Apply audio latency compensation: Delay light to match audio arrival time
+        // Formula: adjustedTime = currentTime - audioLatencyOffset
+        // Example: If audio has 200ms delay and player is at 10.2s,
+        //          the user hears 10.0s, so we show light for 10.0s
+        let adjustedElapsed = currentTime - audioLatencyOffset
+        
+        // Safety: Don't go negative (at start of track before latency compensation kicks in)
+        guard adjustedElapsed >= 0 else {
+            return CurrentEventResult(event: nil, elapsed: 0, isComplete: false)
+        }
+        
+        // Check if script is finished (use adjusted time)
+        if adjustedElapsed >= script.duration {
+            return CurrentEventResult(event: nil, elapsed: adjustedElapsed, isComplete: true)
         }
         
         // Skip past events to find current event using index tracking
@@ -113,14 +141,14 @@ class BaseLightController: NSObject {
             let event = script.events[foundEventIndex]
             let eventEnd = event.timestamp + event.duration
             
-            if realElapsed < eventEnd {
-                if realElapsed >= event.timestamp {
+            if adjustedElapsed < eventEnd {
+                if adjustedElapsed >= event.timestamp {
                     // Current event is active
                     currentEventIndex = foundEventIndex
-                    return CurrentEventResult(event: event, elapsed: realElapsed, isComplete: false)
+                    return CurrentEventResult(event: event, elapsed: adjustedElapsed, isComplete: false)
                 } else {
                     // Between events
-                    return CurrentEventResult(event: nil, elapsed: realElapsed, isComplete: false)
+                    return CurrentEventResult(event: nil, elapsed: adjustedElapsed, isComplete: false)
                 }
             } else {
                 // Move to next event
@@ -129,6 +157,6 @@ class BaseLightController: NSObject {
         }
         
         // Passed all events
-        return CurrentEventResult(event: nil, elapsed: realElapsed, isComplete: true)
+        return CurrentEventResult(event: nil, elapsed: adjustedElapsed, isComplete: true)
     }
 }

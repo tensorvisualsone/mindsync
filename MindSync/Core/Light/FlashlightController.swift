@@ -194,43 +194,41 @@ final class FlashlightController: BaseLightController, LightControlling {
     }
     
     /// Calculates intensity based on waveform and time within event
-    /// Similar to ScreenController.calculateOpacity but returns Float intensity
+    /// Uses WaveformGenerator for consistency, with frequency-dependent duty cycle for square wave
     private func calculateIntensity(
         event: LightEvent,
         timeWithinEvent: TimeInterval,
         targetFrequency: Double
     ) -> Float {
-        switch event.waveform {
-        case .square:
-            // Hard on/off based on intensity
-            return event.intensity
-            
-        case .sine:
-            // Smooth sine wave pulsation with time-based frequency
-            // Use the script's target frequency so pulsation rate is independent of event duration
-            guard targetFrequency > 0 else {
-                // Fallback: constant intensity if frequency is not valid
-                return event.intensity
-            }
-            let sineValue = sin(timeWithinEvent * 2.0 * .pi * targetFrequency)
-            // Map sine value from [-1, 1] to [0, 1], then scale by intensity
-            let normalizedSine = (sineValue + 1.0) / 2.0
-            return event.intensity * Float(normalizedSine)
-            
-        case .triangle:
-            // Triangle wave based on absolute elapsed time, independent of event duration
-            // One full cycle (0 -> 1 -> 0) per period based on target frequency for consistent strobe timing
-            guard targetFrequency > 0 else {
-                // Fallback: constant intensity if frequency is not valid (to avoid division by zero)
-                return event.intensity
-            }
-            let period: TimeInterval = 1.0 / targetFrequency
-            let phase = (timeWithinEvent.truncatingRemainder(dividingBy: period)) / period  // [0, 1)
-            let triangleValue = phase < 0.5
-                ? Float(phase * 2.0)              // 0 to 1
-                : Float(2.0 - (phase * 2.0))      // 1 to 0
-            return event.intensity * triangleValue
+        // Calculate frequency-dependent duty cycle for square wave (FlashlightController-specific)
+        let dutyCycle = calculateDutyCycle(for: targetFrequency)
+        
+        // Use centralized WaveformGenerator for consistency
+        return WaveformGenerator.calculateIntensity(
+            waveform: event.waveform,
+            time: timeWithinEvent,
+            frequency: targetFrequency,
+            baseIntensity: event.intensity,
+            dutyCycle: dutyCycle
+        )
+    }
+    
+    /// Calculates optimal duty cycle based on frequency to compensate for LED rise/fall times
+    /// At high frequencies, the LED doesn't fully turn off between pulses, causing blur
+    /// Reducing duty cycle creates sharper, more distinct flashes for better cortical evoked potentials
+    private func calculateDutyCycle(for frequency: Double) -> Double {
+        // High frequency (Gamma): Very short pulses for maximum crispness
+        // The LED barely turns on, but the brain detects the rapid transitions
+        if frequency > 20.0 {
+            return 0.20  // 20% on, 80% off - sharp gamma flashes
         }
+        // Medium frequency (Alpha): Moderate pulse width
+        else if frequency > 10.0 {
+            return 0.35  // 35% on, 65% off - balanced alpha waves
+        }
+        // Low frequency (Theta): Standard pulse width
+        // LED has time to fully turn on/off, no compensation needed
+        return 0.50  // 50% on, 50% off - standard square wave
     }
     
     // MARK: - Helpers

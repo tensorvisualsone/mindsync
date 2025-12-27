@@ -279,6 +279,33 @@ struct SettingsView: View {
                 }
                 
                 Section {
+                    NavigationLink {
+                        LatencyCalibrationView()
+                    } label: {
+                        HStack {
+                            Label {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(NSLocalizedString("settings.latencyCalibration", comment: ""))
+                                        .font(AppConstants.Typography.body)
+                                    
+                                    Text(String(format: NSLocalizedString("settings.latencyCalibration.current", comment: ""), Int(preferences.audioLatencyOffset * 1000)))
+                                        .font(.caption)
+                                        .foregroundColor(.mindSyncSecondaryText)
+                                }
+                            } icon: {
+                                Image(systemName: "waveform.circle")
+                            }
+                            
+                            Spacer()
+                        }
+                    }
+                } header: {
+                    Text(NSLocalizedString("settings.audio", comment: ""))
+                } footer: {
+                    Text(NSLocalizedString("settings.audioDescription", comment: ""))
+                }
+                
+                Section {
                     Button {
                         showingHistory = true
                     } label: {

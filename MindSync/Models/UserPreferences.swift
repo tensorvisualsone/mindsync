@@ -61,6 +61,13 @@ struct UserPreferences: Codable {
     
     // Audio Analysis
     var quickAnalysisEnabled: Bool // Schnellanalyse mit reduzierter Genauigkeit
+    
+    // Audio Latency Compensation
+    /// Latenz-Offset für Bluetooth-Audio-Geräte (in Sekunden)
+    /// Positive Werte bedeuten: Das Audio verzögert sich (typisch für Bluetooth)
+    /// Das Licht wird entsprechend verzögert, damit Audio und Licht synchron beim User ankommen
+    /// Typische Werte: 0.0 (kabelgebunden), 0.15-0.25 (AirPods), 0.2-0.3 (andere Bluetooth)
+    var audioLatencyOffset: TimeInterval // 0.0 - 0.5 Sekunden
 
     // MARK: - Initializers
     
@@ -79,7 +86,8 @@ struct UserPreferences: Codable {
         vibrationEnabled: Bool,
         vibrationIntensity: Float,
         selectedAffirmationURL: URL?,
-        quickAnalysisEnabled: Bool
+        quickAnalysisEnabled: Bool,
+        audioLatencyOffset: TimeInterval
     ) {
         self.epilepsyDisclaimerAccepted = epilepsyDisclaimerAccepted
         self.epilepsyDisclaimerAcceptedAt = epilepsyDisclaimerAcceptedAt
@@ -96,6 +104,7 @@ struct UserPreferences: Codable {
         self._vibrationIntensity = Self.validateVibrationIntensity(vibrationIntensity)
         self.selectedAffirmationURL = selectedAffirmationURL
         self.quickAnalysisEnabled = quickAnalysisEnabled
+        self.audioLatencyOffset = max(0.0, min(0.5, audioLatencyOffset)) // Clamp to [0.0, 0.5]
     }
 
     static var `default`: UserPreferences {
@@ -114,7 +123,8 @@ struct UserPreferences: Codable {
             vibrationEnabled: false,
             vibrationIntensity: 0.5,
             selectedAffirmationURL: nil,
-            quickAnalysisEnabled: false
+            quickAnalysisEnabled: false,
+            audioLatencyOffset: 0.0
         )
     }
     
@@ -136,6 +146,7 @@ struct UserPreferences: Codable {
         case _vibrationIntensity = "vibrationIntensity"  // Map private property to JSON key "vibrationIntensity"
         case selectedAffirmationURL
         case quickAnalysisEnabled
+        case audioLatencyOffset
     }
     
     init(from decoder: Decoder) throws {
@@ -156,6 +167,10 @@ struct UserPreferences: Codable {
         _vibrationIntensity = max(0.1, min(1.0, decodedIntensity))  // Clamp during decoding
         selectedAffirmationURL = try container.decodeIfPresent(URL.self, forKey: .selectedAffirmationURL)
         quickAnalysisEnabled = try container.decodeIfPresent(Bool.self, forKey: .quickAnalysisEnabled) ?? false
+        
+        // Decode audioLatencyOffset with validation and default
+        let decodedOffset = try container.decodeIfPresent(TimeInterval.self, forKey: .audioLatencyOffset) ?? 0.0
+        audioLatencyOffset = max(0.0, min(0.5, decodedOffset))  // Clamp to [0.0, 0.5]
     }
     
     func encode(to encoder: Encoder) throws {
@@ -175,6 +190,7 @@ struct UserPreferences: Codable {
         try container.encode(_vibrationIntensity, forKey: ._vibrationIntensity)
         try container.encodeIfPresent(selectedAffirmationURL, forKey: .selectedAffirmationURL)
         try container.encode(quickAnalysisEnabled, forKey: .quickAnalysisEnabled)
+        try container.encode(audioLatencyOffset, forKey: .audioLatencyOffset)
     }
     
     // MARK: - Persistence

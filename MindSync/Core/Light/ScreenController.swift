@@ -160,33 +160,15 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
     }
     
     /// Calculates opacity based on waveform and time within event
+    /// Uses WaveformGenerator for consistency with other controllers
     private func calculateOpacity(event: LightEvent, elapsed: TimeInterval, targetFrequency: Double) -> Double {
-        switch event.waveform {
-        case .square:
-            // Hard on/off based on intensity
-            return Double(event.intensity)
-            
-        case .sine:
-            // Smooth sine wave pulsation with time-based frequency
-            // Use the script's target frequency so pulsation rate is independent of event duration
-            guard targetFrequency > 0 else {
-                // Fallback: constant intensity if frequency is not valid
-                return Double(event.intensity)
-            }
-            let sineValue = sin(elapsed * 2.0 * .pi * targetFrequency)
-            // Map sine value from [-1, 1] to [0, 1], then scale by intensity
-            let normalizedSine = (sineValue + 1.0) / 2.0
-            return Double(event.intensity) * normalizedSine
-            
-        case .triangle:
-            // Triangle wave based on absolute elapsed time, independent of event duration
-            // One full cycle (0 -> 1 -> 0) per period based on target frequency for consistent strobe timing
-            let period: TimeInterval = 1.0 / targetFrequency
-            let phase = (elapsed.truncatingRemainder(dividingBy: period)) / period  // [0, 1)
-            let triangleValue = phase < 0.5
-                ? phase * 2.0              // 0 to 1
-                : 2.0 - (phase * 2.0)      // 1 to 0
-            return Double(event.intensity) * triangleValue
-        }
+        // Use centralized WaveformGenerator (standard 50% duty cycle for square wave)
+        return Double(WaveformGenerator.calculateIntensity(
+            waveform: event.waveform,
+            time: elapsed,
+            frequency: targetFrequency,
+            baseIntensity: event.intensity,
+            dutyCycle: 0.5 // Standard duty cycle for screen
+        ))
     }
 }

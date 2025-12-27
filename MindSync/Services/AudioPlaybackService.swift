@@ -2,7 +2,7 @@ import Foundation
 import AVFoundation
 import os.log
 
-/// Service for audio playback using AVAudioEngine
+@MainActor
 final class AudioPlaybackService: NSObject {
     private let logger = Logger(subsystem: "com.mindsync", category: "AudioPlaybackService")
     
@@ -131,6 +131,7 @@ final class AudioPlaybackService: NSObject {
         
         // Calculate paused position
         let pausedPosition = currentTime
+        segmentStartTime = pausedPosition
         
         // If we were paused, we need to reschedule from the paused position
         if let lastPause = lastPauseTime {
@@ -174,7 +175,7 @@ final class AudioPlaybackService: NSObject {
         logger.info("Audio playback resumed from position: \(pausedPosition, privacy: .public) seconds")
     }
 
-    /// Current playback time in seconds
+    /// Current playback time in seconds (based on Date() timing)
     var currentTime: TimeInterval {
         guard let startTime = playbackStartTime else { return 0 }
         
@@ -195,14 +196,45 @@ final class AudioPlaybackService: NSObject {
         return max(0, totalElapsed)
     }
     
+    /// Precise audio time in seconds (derived from AVAudioPlayerNode's render time)
+    /// This provides audio-thread accurate timing, eliminating drift between audio and display threads
+    /// Accounts for accumulated pause duration to maintain synchronization after pause/resume cycles
+    var preciseAudioTime: TimeInterval {
+        guard let node = playerNode,
+              let nodeTime = node.lastRenderTime,
+              let playerTime = node.playerTime(forNodeTime: nodeTime) else {
+            // Fallback to currentTime if render time is not available
+            return currentTime
+        }
+        
+        // Time elapsed in current segment
+        let segmentElapsed = Double(playerTime.sampleTime) / playerTime.sampleRate
+        
+        // Total time in file (segmentStartTime is the file position where we started the current segment)
+        let totalTime = segmentStartTime + segmentElapsed
+        
+        // Subtract accumulated pause time to maintain synchronization
+        // This ensures pause handling is consistent with the currentTime fallback path
+        let adjustedTime = totalTime - accumulatedPauseTime
+        
+        // Clamp to file duration if available
+        if fileDuration > 0 {
+            return min(max(0, adjustedTime), fileDuration)
+        }
+        
+        return max(0, adjustedTime)
+    }
+    
     private var playbackStartTime: Date?
     private var accumulatedPauseTime: TimeInterval = 0
     private var lastPauseTime: Date?
     private var fileDuration: TimeInterval = 0
+    private var segmentStartTime: TimeInterval = 0
     
     private func startPlaybackTimer() {
         // Track playback start time and file duration
         playbackStartTime = Date()
+        segmentStartTime = 0
         
         // Get file duration
         if let file = audioFile {

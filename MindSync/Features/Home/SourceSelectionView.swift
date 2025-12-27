@@ -8,7 +8,6 @@ struct SourceSelectionView: View {
     @State private var mediaLibraryService: MediaLibraryService?
     @State private var permissionsService: PermissionsService?
     @State private var authorizationStatus: MPMediaLibraryAuthorizationStatus = .notDetermined
-    @State private var microphoneStatus: MicrophonePermissionStatus = .undetermined
     @State private var showingMediaPicker = false
     @State private var showingFilePicker = false
     @State private var selectedItem: MPMediaItem?
@@ -17,7 +16,6 @@ struct SourceSelectionView: View {
     
     let onSongSelected: (MPMediaItem) -> Void
     let onFileSelected: (URL) -> Void
-    let onMicrophoneSelected: (() -> Void)?
     
     var body: some View {
         NavigationStack {
@@ -88,49 +86,8 @@ struct SourceSelectionView: View {
                 .accessibilityLabel(NSLocalizedString("sourceSelection.musicLibraryButton", comment: ""))
                 .accessibilityHint(NSLocalizedString("sourceSelection.musicLibraryHint", comment: ""))
                 
-                // Microphone mode
-                Button(action: {
-                    HapticFeedback.light()
-                    requestMicrophoneAccess()
-                }) {
-                    VStack(spacing: AppConstants.Spacing.md) {
-                        Image(systemName: "mic.fill")
-                            .font(.system(size: AppConstants.IconSize.extraLarge))
-                            .foregroundColor(.mindSyncInfo)
-                        Text(NSLocalizedString("sourceSelection.microphone", comment: ""))
-                            .font(AppConstants.Typography.headline)
-                        Text(NSLocalizedString("sourceSelection.microphoneDescription", comment: ""))
-                            .font(AppConstants.Typography.caption)
-                            .foregroundColor(.mindSyncSecondaryText)
-                            .multilineTextAlignment(.center)
-                        
-                        // Info about latency
-                        Text(NSLocalizedString("sourceSelection.microphoneNote", comment: ""))
-                            .font(AppConstants.Typography.caption2)
-                            .foregroundColor(.mindSyncWarning)
-                            .multilineTextAlignment(.center)
-                            .padding(.top, AppConstants.Spacing.xs)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(AppConstants.Spacing.md)
-                    .mindSyncCardStyle()
-                }
-                .buttonStyle(.plain)
-                .disabled(microphoneStatus == .denied || onMicrophoneSelected == nil)
-                .accessibilityIdentifier("sourceSelection.microphoneButton")
-                .accessibilityLabel(NSLocalizedString("sourceSelection.microphoneButton", comment: ""))
-                .accessibilityHint(NSLocalizedString("sourceSelection.microphoneHint", comment: ""))
-                
                 if authorizationStatus == .denied {
                     Text(NSLocalizedString("sourceSelection.musicLibraryDenied", comment: "Message shown when music library access is denied"))
-                        .font(AppConstants.Typography.caption)
-                        .foregroundColor(.mindSyncError)
-                        .multilineTextAlignment(.center)
-                        .padding(AppConstants.Spacing.md)
-                }
-                
-                if microphoneStatus == .denied {
-                    Text(NSLocalizedString("sourceSelection.microphoneDenied", comment: "Message shown when microphone access is denied"))
                         .font(AppConstants.Typography.caption)
                         .foregroundColor(.mindSyncError)
                         .multilineTextAlignment(.center)
@@ -164,7 +121,6 @@ struct SourceSelectionView: View {
                 mediaLibraryService = services.mediaLibraryService
                 permissionsService = services.permissionsService
                 authorizationStatus = services.mediaLibraryService.authorizationStatus
-                microphoneStatus = services.permissionsService.microphoneStatus
             }
         }
         .mindSyncBackground()
@@ -180,22 +136,6 @@ struct SourceSelectionView: View {
                     showingMediaPicker = true
                 } else if status == .denied {
                     errorMessage = NSLocalizedString("error.musicLibraryDenied", comment: "")
-                    showingError = true
-                }
-            }
-        }
-    }
-    
-    private func requestMicrophoneAccess() {
-        guard let permissionsService = permissionsService else { return }
-        Task {
-            let granted = await permissionsService.requestMicrophoneAccess()
-            await MainActor.run {
-                microphoneStatus = permissionsService.microphoneStatus
-                if granted {
-                    onMicrophoneSelected?()
-                } else {
-                    errorMessage = NSLocalizedString("error.microphonePermissionDenied", comment: "")
                     showingError = true
                 }
             }
@@ -406,9 +346,6 @@ struct MediaPickerView: UIViewControllerRepresentable {
         },
         onFileSelected: { url in
             print("File selected: \(url.lastPathComponent)")
-        },
-        onMicrophoneSelected: {
-            print("Microphone selected")
         }
     )
 }
