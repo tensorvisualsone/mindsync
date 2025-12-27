@@ -110,7 +110,7 @@
 "settings.affirmationRemove" = "Remove affirmation";
 "settings.affirmationNone" = "No affirmation selected.";
 "settings.session" = "Session & Analysis";
-"settings.sessionDescription" = "Limits maximum flashlight session duration to avoid overheating. Quick analysis reduces analysis time for audio tracks (tracks over 10 minutes automatically use quick analysis).";
+"settings.sessionDescription" = "Limits maximum flashlight session duration to prevent overheating. Quick Analysis processes long audio tracks faster, and tracks over 10 minutes are analyzed with Quick Analysis automatically.";
 "settings.quickAnalysis" = "Quick Analysis";
 "settings.quickAnalysisDescription" = "Reduces analysis time for audio tracks with faster beat detection. Tracks over 10 minutes automatically use quick analysis.";
 "settings.maxDuration" = "Maximum duration";

@@ -165,6 +165,44 @@ final class EntrainmentEngine {
         return events
     }
     
+    /// Generic helper for generating events with shared logic (ramping, smoothstep, frequency interpolation, etc.)
+    /// Supports throwing event factories for validation.
+    private func generateEvents<Event, Waveform>(
+        timestamps: [TimeInterval],
+        targetFrequency: Double,
+        mode: EntrainmentMode,
+        baseIntensity: Float,
+        waveformSelector: (EntrainmentMode) -> Waveform,
+        durationMultiplier: (EntrainmentMode, Waveform, TimeInterval) -> TimeInterval,
+        eventFactory: (TimeInterval, Float, TimeInterval, Waveform) throws -> Event
+    ) throws -> [Event] {
+        var events: [Event] = []
+        
+        // Ramping: start from mode.startFrequency and interpolate to targetFrequency over mode.rampDuration
+        let startFreq = mode.startFrequency
+        let rampTime = mode.rampDuration
+        
+        for timestamp in timestamps {
+            // Calculate progress for ramp at this timestamp
+            let progress = rampTime > 0 ? min(timestamp / rampTime, 1.0) : 1.0
+            let smooth = MathHelpers.smoothstep(progress)
+            let currentFreq = startFreq + (targetFrequency - startFreq) * smooth
+            let period = 1.0 / max(0.0001, currentFreq) // avoid div by zero
+            
+            // Select waveform based on mode
+            let waveform = waveformSelector(mode)
+            
+            // Calculate duration based on waveform and mode
+            let eventDuration = durationMultiplier(mode, waveform, period)
+            
+            // Create event (propagate throws)
+            let event = try eventFactory(timestamp, baseIntensity, eventDuration, waveform)
+            events.append(event)
+        }
+        
+        return events
+    }
+    
     /// Generic helper for generating uniform events (fallback when no beats detected) with shared logic:
     /// ramping, frequency interpolation, period calculation, waveform selection, and intensity handling.
     /// - Parameters:
@@ -458,36 +496,22 @@ final class EntrainmentEngine {
         waveformSelector: (EntrainmentMode) -> VibrationEvent.Waveform,
         durationMultiplier: (EntrainmentMode, VibrationEvent.Waveform, TimeInterval) -> TimeInterval
     ) throws -> [VibrationEvent] {
-        var events: [VibrationEvent] = []
-        
-        // Ramping: start from mode.startFrequency and interpolate to targetFrequency over mode.rampDuration
-        let startFreq = mode.startFrequency
-        let rampTime = mode.rampDuration
-        
-        for timestamp in timestamps {
-            // Calculate progress for ramp at this timestamp
-            let progress = rampTime > 0 ? min(timestamp / rampTime, 1.0) : 1.0
-            let smooth = MathHelpers.smoothstep(progress)
-            let currentFreq = startFreq + (targetFrequency - startFreq) * smooth
-            let period = 1.0 / max(0.0001, currentFreq) // avoid div by zero
-            
-            // Select waveform based on mode
-            let waveform = waveformSelector(mode)
-            
-            // Calculate duration based on waveform and mode
-            let eventDuration = durationMultiplier(mode, waveform, period)
-            
-            // Create event with validation (throws on invalid values)
-            let event = try VibrationEvent(
-                timestamp: timestamp,
-                intensity: baseIntensity,
-                duration: eventDuration,
-                waveform: waveform
-            )
-            events.append(event)
-        }
-        
-        return events
+        return try generateEvents(
+            timestamps: timestamps,
+            targetFrequency: targetFrequency,
+            mode: mode,
+            baseIntensity: baseIntensity,
+            waveformSelector: waveformSelector,
+            durationMultiplier: durationMultiplier,
+            eventFactory: { timestamp, intensity, duration, waveform in
+                try VibrationEvent(
+                    timestamp: timestamp,
+                    intensity: intensity,
+                    duration: duration,
+                    waveform: waveform
+                )
+            }
+        )
     }
     
     /// Fallback: Generates uniform pulsation if no beats were detected

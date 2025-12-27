@@ -183,207 +183,165 @@ final class VibrationScriptTests: XCTestCase {
     // MARK: - Mode Coverage Tests
     
     func testVibrationScript_ValidParameters_OtherModes_Succeeds() throws {
-        let (trackId, events) = makeTestParameters()
+        struct TestCase {
+            let mode: EntrainmentMode
+            let targetFrequency: Double
+            let multiplier: Int
+        }
         
-        // Test theta mode
-        let thetaScript = try VibrationScript(
-            trackId: trackId,
-            mode: .theta,
-            targetFrequency: 6.0,
-            multiplier: 2,
-            events: events
-        )
-        XCTAssertEqual(thetaScript.mode, .theta)
-        XCTAssertEqual(thetaScript.targetFrequency, 6.0)
-        XCTAssertEqual(thetaScript.multiplier, 2)
+        let testCases: [TestCase] = [
+            TestCase(mode: .theta, targetFrequency: 6.0, multiplier: 2),
+            TestCase(mode: .gamma, targetFrequency: 35.0, multiplier: 3),
+            TestCase(mode: .cinematic, targetFrequency: 6.5, multiplier: 1)
+        ]
         
-        // Test gamma mode
-        let gammaScript = try VibrationScript(
-            trackId: trackId,
-            mode: .gamma,
-            targetFrequency: 35.0,
-            multiplier: 3,
-            events: events
-        )
-        XCTAssertEqual(gammaScript.mode, .gamma)
-        XCTAssertEqual(gammaScript.targetFrequency, 35.0)
-        XCTAssertEqual(gammaScript.multiplier, 3)
-        
-        // Test cinematic mode
-        let cinematicScript = try VibrationScript(
-            trackId: trackId,
-            mode: .cinematic,
-            targetFrequency: 6.5,
-            multiplier: 1,
-            events: events
-        )
-        XCTAssertEqual(cinematicScript.mode, .cinematic)
-        XCTAssertEqual(cinematicScript.targetFrequency, 6.5)
-        XCTAssertEqual(cinematicScript.multiplier, 1)
+        for testCase in testCases {
+            try XCTContext.runActivity(named: "Testing \(testCase.mode) mode") { _ in
+                let (trackId, events) = makeTestParameters()
+                
+                let script = try VibrationScript(
+                    trackId: trackId,
+                    mode: testCase.mode,
+                    targetFrequency: testCase.targetFrequency,
+                    multiplier: testCase.multiplier,
+                    events: events
+                )
+                
+                XCTAssertEqual(script.mode, testCase.mode)
+                XCTAssertEqual(script.targetFrequency, testCase.targetFrequency)
+                XCTAssertEqual(script.multiplier, testCase.multiplier)
+            }
+        }
     }
     
     func testVibrationScript_InvalidTargetFrequency_Zero_OtherModes_Throws() {
-        let (trackId, events) = makeTestParameters()
-        
-        // Test that invalid targetFrequency throws for theta mode
-        XCTAssertThrowsError(try VibrationScript(
-            trackId: trackId,
-            mode: .theta,
-            targetFrequency: 0.0,
-            multiplier: 2,
-            events: events
-        )) { error in
-            if case VibrationScriptError.invalidTargetFrequency(let frequency) = error {
-                XCTAssertEqual(frequency, 0.0)
-            } else {
-                XCTFail("Expected invalidTargetFrequency error for theta mode")
-            }
+        struct TestCase {
+            let mode: EntrainmentMode
+            let targetFrequency: Double
+            let multiplier: Int
+            let description: String
         }
         
-        // Test that invalid targetFrequency throws for gamma mode
-        XCTAssertThrowsError(try VibrationScript(
-            trackId: trackId,
-            mode: .gamma,
-            targetFrequency: 0.0,
-            multiplier: 2,
-            events: events
-        )) { error in
-            if case VibrationScriptError.invalidTargetFrequency(let frequency) = error {
-                XCTAssertEqual(frequency, 0.0)
-            } else {
-                XCTFail("Expected invalidTargetFrequency error for gamma mode")
-            }
-        }
+        let testCases: [TestCase] = [
+            TestCase(mode: .theta, targetFrequency: 0.0, multiplier: 2, description: "theta mode"),
+            TestCase(mode: .gamma, targetFrequency: 0.0, multiplier: 2, description: "gamma mode"),
+            TestCase(mode: .cinematic, targetFrequency: 0.0, multiplier: 2, description: "cinematic mode")
+        ]
         
-        // Test that invalid targetFrequency throws for cinematic mode
-        XCTAssertThrowsError(try VibrationScript(
-            trackId: trackId,
-            mode: .cinematic,
-            targetFrequency: 0.0,
-            multiplier: 2,
-            events: events
-        )) { error in
-            if case VibrationScriptError.invalidTargetFrequency(let frequency) = error {
-                XCTAssertEqual(frequency, 0.0)
-            } else {
-                XCTFail("Expected invalidTargetFrequency error for cinematic mode")
+        for testCase in testCases {
+            let (trackId, events) = makeTestParameters()
+            
+            XCTAssertThrowsError(try VibrationScript(
+                trackId: trackId,
+                mode: testCase.mode,
+                targetFrequency: testCase.targetFrequency,
+                multiplier: testCase.multiplier,
+                events: events
+            ), "Expected invalidTargetFrequency error for \(testCase.description)") { error in
+                if case VibrationScriptError.invalidTargetFrequency(let frequency) = error {
+                    XCTAssertEqual(frequency, testCase.targetFrequency, "Frequency should match for \(testCase.description)")
+                } else {
+                    XCTFail("Expected invalidTargetFrequency error for \(testCase.description), got \(error)")
+                }
             }
         }
     }
     
     func testVibrationScript_InvalidTargetFrequency_Negative_OtherModes_Throws() {
-        let (trackId, events) = makeTestParameters()
-        
-        // Test that invalid targetFrequency throws for theta mode
-        XCTAssertThrowsError(try VibrationScript(
-            trackId: trackId,
-            mode: .theta,
-            targetFrequency: -5.0,
-            multiplier: 2,
-            events: events
-        )) { error in
-            if case VibrationScriptError.invalidTargetFrequency(let frequency) = error {
-                XCTAssertEqual(frequency, -5.0)
-            } else {
-                XCTFail("Expected invalidTargetFrequency error for theta mode")
-            }
+        struct TestCase {
+            let mode: EntrainmentMode
+            let targetFrequency: Double
+            let multiplier: Int
+            let description: String
         }
         
-        // Test that invalid targetFrequency throws for gamma mode
-        XCTAssertThrowsError(try VibrationScript(
-            trackId: trackId,
-            mode: .gamma,
-            targetFrequency: -10.0,
-            multiplier: 3,
-            events: events
-        )) { error in
-            if case VibrationScriptError.invalidTargetFrequency(let frequency) = error {
-                XCTAssertEqual(frequency, -10.0)
-            } else {
-                XCTFail("Expected invalidTargetFrequency error for gamma mode")
+        let testCases: [TestCase] = [
+            TestCase(mode: .theta, targetFrequency: -5.0, multiplier: 2, description: "theta mode"),
+            TestCase(mode: .gamma, targetFrequency: -10.0, multiplier: 3, description: "gamma mode"),
+            TestCase(mode: .cinematic, targetFrequency: -7.0, multiplier: 4, description: "cinematic mode")
+        ]
+        
+        for testCase in testCases {
+            let (trackId, events) = makeTestParameters()
+            
+            XCTAssertThrowsError(try VibrationScript(
+                trackId: trackId,
+                mode: testCase.mode,
+                targetFrequency: testCase.targetFrequency,
+                multiplier: testCase.multiplier,
+                events: events
+            ), "Expected invalidTargetFrequency error for \(testCase.description)") { error in
+                if case VibrationScriptError.invalidTargetFrequency(let frequency) = error {
+                    XCTAssertEqual(frequency, testCase.targetFrequency, "Frequency should match for \(testCase.description)")
+                } else {
+                    XCTFail("Expected invalidTargetFrequency error for \(testCase.description), got \(error)")
+                }
             }
         }
     }
     
     func testVibrationScript_InvalidMultiplier_Zero_OtherModes_Throws() {
-        let (trackId, events) = makeTestParameters()
-        
-        // Test that invalid multiplier throws for theta mode
-        XCTAssertThrowsError(try VibrationScript(
-            trackId: trackId,
-            mode: .theta,
-            targetFrequency: 6.0,
-            multiplier: 0,
-            events: events
-        )) { error in
-            if case VibrationScriptError.invalidMultiplier(let multiplier) = error {
-                XCTAssertEqual(multiplier, 0)
-            } else {
-                XCTFail("Expected invalidMultiplier error for theta mode")
-            }
+        struct TestCase {
+            let mode: EntrainmentMode
+            let targetFrequency: Double
+            let multiplier: Int
+            let description: String
         }
         
-        // Test that invalid multiplier throws for gamma mode
-        XCTAssertThrowsError(try VibrationScript(
-            trackId: trackId,
-            mode: .gamma,
-            targetFrequency: 35.0,
-            multiplier: 0,
-            events: events
-        )) { error in
-            if case VibrationScriptError.invalidMultiplier(let multiplier) = error {
-                XCTAssertEqual(multiplier, 0)
-            } else {
-                XCTFail("Expected invalidMultiplier error for gamma mode")
-            }
-        }
+        let testCases: [TestCase] = [
+            TestCase(mode: .theta, targetFrequency: 6.0, multiplier: 0, description: "theta mode"),
+            TestCase(mode: .gamma, targetFrequency: 35.0, multiplier: 0, description: "gamma mode"),
+            TestCase(mode: .cinematic, targetFrequency: 6.5, multiplier: 0, description: "cinematic mode")
+        ]
         
-        // Test that invalid multiplier throws for cinematic mode
-        XCTAssertThrowsError(try VibrationScript(
-            trackId: trackId,
-            mode: .cinematic,
-            targetFrequency: 6.5,
-            multiplier: 0,
-            events: events
-        )) { error in
-            if case VibrationScriptError.invalidMultiplier(let multiplier) = error {
-                XCTAssertEqual(multiplier, 0)
-            } else {
-                XCTFail("Expected invalidMultiplier error for cinematic mode")
+        for testCase in testCases {
+            let (trackId, events) = makeTestParameters()
+            
+            XCTAssertThrowsError(try VibrationScript(
+                trackId: trackId,
+                mode: testCase.mode,
+                targetFrequency: testCase.targetFrequency,
+                multiplier: testCase.multiplier,
+                events: events
+            ), "Expected invalidMultiplier error for \(testCase.description)") { error in
+                if case VibrationScriptError.invalidMultiplier(let multiplier) = error {
+                    XCTAssertEqual(multiplier, testCase.multiplier, "Multiplier should match for \(testCase.description)")
+                } else {
+                    XCTFail("Expected invalidMultiplier error for \(testCase.description), got \(error)")
+                }
             }
         }
     }
     
     func testVibrationScript_InvalidMultiplier_Negative_OtherModes_Throws() {
-        let (trackId, events) = makeTestParameters()
-        
-        // Test that invalid multiplier throws for theta mode
-        XCTAssertThrowsError(try VibrationScript(
-            trackId: trackId,
-            mode: .theta,
-            targetFrequency: 6.0,
-            multiplier: -1,
-            events: events
-        )) { error in
-            if case VibrationScriptError.invalidMultiplier(let multiplier) = error {
-                XCTAssertEqual(multiplier, -1)
-            } else {
-                XCTFail("Expected invalidMultiplier error for theta mode")
-            }
+        struct TestCase {
+            let mode: EntrainmentMode
+            let targetFrequency: Double
+            let multiplier: Int
+            let description: String
         }
         
-        // Test that invalid multiplier throws for gamma mode
-        XCTAssertThrowsError(try VibrationScript(
-            trackId: trackId,
-            mode: .gamma,
-            targetFrequency: 35.0,
-            multiplier: -2,
-            events: events
-        )) { error in
-            if case VibrationScriptError.invalidMultiplier(let multiplier) = error {
-                XCTAssertEqual(multiplier, -2)
-            } else {
-                XCTFail("Expected invalidMultiplier error for gamma mode")
+        let testCases: [TestCase] = [
+            TestCase(mode: .theta, targetFrequency: 6.0, multiplier: -1, description: "theta mode"),
+            TestCase(mode: .gamma, targetFrequency: 35.0, multiplier: -2, description: "gamma mode"),
+            TestCase(mode: .cinematic, targetFrequency: 6.5, multiplier: -3, description: "cinematic mode")
+        ]
+        
+        for testCase in testCases {
+            let (trackId, events) = makeTestParameters()
+            
+            XCTAssertThrowsError(try VibrationScript(
+                trackId: trackId,
+                mode: testCase.mode,
+                targetFrequency: testCase.targetFrequency,
+                multiplier: testCase.multiplier,
+                events: events
+            ), "Expected invalidMultiplier error for \(testCase.description)") { error in
+                if case VibrationScriptError.invalidMultiplier(let multiplier) = error {
+                    XCTAssertEqual(multiplier, testCase.multiplier, "Multiplier should match for \(testCase.description)")
+                } else {
+                    XCTFail("Expected invalidMultiplier error for \(testCase.description), got \(error)")
+                }
             }
         }
     }

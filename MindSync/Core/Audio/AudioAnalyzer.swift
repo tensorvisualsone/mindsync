@@ -16,8 +16,10 @@ final class AudioAnalyzer {
     /// Set to 18 seconds per minute to provide buffer for slower devices.
     private let timeoutPerMinute: TimeInterval = 18.0
     
-    /// Maximum timeout cap to prevent excessive wait times even for very long tracks.
-    /// Long tracks (>10 min) use quick analysis mode for faster results.
+    /// Maximum timeout cap applied unconditionally to all tracks regardless of analysis mode.
+    /// This hard limit prevents excessive wait times even for very long tracks.
+    /// Note: Quick analysis mode for tracks >10 minutes is a separate, independent feature
+    /// that reduces analysis time but does not affect the timeout calculation.
     private let maxTimeout: TimeInterval = 60.0
     
     /// Minimum timeout to ensure short tracks have reasonable analysis time.
@@ -37,11 +39,9 @@ final class AudioAnalyzer {
         var warning50Shown: Bool = false
         var warning75Shown: Bool = false
         let quickAnalysisMode: Bool
-        let isCancelled: Bool
         
-        init(quickAnalysisMode: Bool, isCancelled: Bool = false) {
+        init(quickAnalysisMode: Bool) {
             self.quickAnalysisMode = quickAnalysisMode
-            self.isCancelled = isCancelled
         }
     }
     private let targetSampleRate: Double = 44_100.0
@@ -97,10 +97,6 @@ final class AudioAnalyzer {
         // Reset cancellation flag for this analysis
         isCancelled = false
         
-        // Create analysis context with local state to ensure thread-safety
-        // Each analyze() call has its own context, preventing race conditions
-        var context = AnalysisContext(quickAnalysisMode: quickMode)
-        
         // Check cache first
         if let cachedTrack = loadFromCache(for: mediaItem) {
             logger.info("Using cached analysis for track: \(mediaItem.title ?? "Unknown", privacy: .public)")
@@ -132,7 +128,10 @@ final class AudioAnalyzer {
         
         // Auto-enable quick analysis for long tracks if not explicitly disabled
         let effectiveQuickMode = quickMode || shouldUseAutoQuickAnalysis(for: duration)
-        context = AnalysisContext(quickAnalysisMode: effectiveQuickMode)
+        
+        // Create analysis context with local state to ensure thread-safety
+        // Each analyze() call has its own context, preventing race conditions
+        var context = AnalysisContext(quickAnalysisMode: effectiveQuickMode)
         
         if effectiveQuickMode && !quickMode {
             logger.info("Auto-enabling quick analysis for long track: \(title, privacy: .public) (duration: \(duration / 60.0, privacy: .public) minutes)")
@@ -290,9 +289,6 @@ final class AudioAnalyzer {
         // Reset cancellation flag for this analysis
         isCancelled = false
         
-        // Create analysis context with local state to ensure thread-safety
-        var context = AnalysisContext(quickAnalysisMode: quickMode)
-        
         let analysisStart = Date()
         
         let resolvedTitle = title ?? url.deletingPathExtension().lastPathComponent
@@ -319,7 +315,10 @@ final class AudioAnalyzer {
         
         // Auto-enable quick analysis for long tracks if not explicitly disabled
         let effectiveQuickMode = quickMode || shouldUseAutoQuickAnalysis(for: duration)
-        context = AnalysisContext(quickAnalysisMode: effectiveQuickMode)
+        
+        // Create analysis context with local state to ensure thread-safety
+        // Each analyze() call has its own context, preventing race conditions
+        var context = AnalysisContext(quickAnalysisMode: effectiveQuickMode)
         
         if effectiveQuickMode && !quickMode {
             logger.info("Auto-enabling quick analysis for long file: \(resolvedTitle, privacy: .public) (duration: \(duration / 60.0, privacy: .public) minutes)")

@@ -9,6 +9,9 @@ struct SessionView: View {
     let audioFileURL: URL?
     let isMicrophoneMode: Bool
     
+    /// Height of the status banner including padding (used for offset calculations)
+    private static let statusBannerHeight: CGFloat = 56
+    
     init(song: MPMediaItem? = nil, audioFileURL: URL? = nil, isMicrophoneMode: Bool = false) {
         self.mediaItem = song
         self.audioFileURL = audioFileURL
@@ -63,7 +66,7 @@ struct SessionView: View {
             VStack {
                 SafetyBanner(warningLevel: viewModel.thermalWarningLevel)
                     .padding(.horizontal)
-                    .padding(.top, viewModel.statusMessage != nil ? 56 : 8)  // Offset if status banner is shown
+                    .padding(.top, viewModel.statusMessage != nil ? Self.statusBannerHeight : 8)
                 
                 Spacer()
             }
@@ -258,13 +261,9 @@ private struct SessionTrackInfoView: View {
                 )
                 
                 if let script = script, let bpm = track?.bpm {
-                    // Use currentFrequency only if it's non-nil AND > 0, otherwise fall back to script.targetFrequency
-                    let validatedFrequency: Double
-                    if let freq = currentFrequency, freq > 0 {
-                        validatedFrequency = freq
-                    } else {
-                        validatedFrequency = script.targetFrequency
-                    }
+                    // TODO: Investigate why currentFrequency can be zero/negative upstream
+                    // Use currentFrequency only if it's positive, otherwise fall back to script.targetFrequency
+                    let validatedFrequency = currentFrequency.flatMap { $0 > 0 ? $0 : nil } ?? script.targetFrequency
                     let frequencyText = String(format: NSLocalizedString("session.frequencyBpm", comment: ""), Int(validatedFrequency), Int(bpm))
                     ModeChip(
                         icon: "metronome.fill",
@@ -322,10 +321,10 @@ private struct StatusBanner: View {
     let message: String
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: AppConstants.Spacing.md) {
             // Info icon (non-error)
             Image(systemName: "info.circle.fill")
-                .font(.system(size: 20, weight: .semibold))
+                .font(.system(size: AppConstants.IconSize.medium, weight: .semibold))
                 .foregroundStyle(.mindSyncInfo)
                 .accessibilityHidden(true)
             
@@ -337,14 +336,14 @@ private struct StatusBanner: View {
             
             Spacer()
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color.mindSyncInfo.opacity(0.2))
+        .padding(.horizontal, AppConstants.Spacing.md)
+        .padding(.vertical, AppConstants.Spacing.sm + AppConstants.Spacing.xs)
+        .background(Color.mindSyncInfo.opacity(AppConstants.Opacity.bannerBackground))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.mindSyncInfo.opacity(0.3), lineWidth: 1)
+            RoundedRectangle(cornerRadius: AppConstants.CornerRadius.medium)
+                .stroke(Color.mindSyncInfo.opacity(AppConstants.Opacity.bannerBorder), lineWidth: AppConstants.Border.standard)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: AppConstants.CornerRadius.medium))
     }
 }
 

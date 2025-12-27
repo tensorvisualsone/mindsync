@@ -111,7 +111,7 @@
 "settings.affirmationRemove" = "Affirmation entfernen";
 "settings.affirmationNone" = "Keine Affirmation hinterlegt.";
 "settings.session" = "Sitzung & Analyse";
-"settings.sessionDescription" = "Begrenzt die maximale Dauer von Taschenlampen-Sessions, um Überhitzung zu vermeiden. Schnellanalyse reduziert die Analysezeit für Audio-Tracks (Tracks über 10 Minuten verwenden automatisch Schnellanalyse).";
+"settings.sessionDescription" = "Begrenzt die maximale Dauer von Taschenlampen-Sessions, um Überhitzung zu vermeiden.";
 "settings.quickAnalysis" = "Schnellanalyse";
 "settings.quickAnalysisDescription" = "Reduziert die Analysezeit für Audio-Tracks durch schnellere Beat-Erkennung. Tracks über 10 Minuten verwenden automatisch Schnellanalyse.";
 "settings.maxDuration" = "Maximale Dauer";

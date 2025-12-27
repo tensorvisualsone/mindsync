@@ -16,37 +16,30 @@ struct VibrationEvent: Codable {
         var localizedDescription: String {
             switch self {
             case .invalidTimestamp(let value):
-                return "Invalid timestamp: \(value). Timestamp must be >= 0.0 (seconds since session start)."
+                return "Invalid timestamp: \(value). Timestamp must be finite and >= 0.0 (seconds since session start)."
             case .invalidIntensity(let value):
                 return "Invalid intensity: \(value). Intensity must be in range [0.0, 1.0]."
             case .invalidDuration(let value):
-                return "Invalid duration: \(value). Duration must be >= 0.0 (seconds)."
+                return "Invalid duration: \(value). Duration must be finite and >= 0.0 (seconds)."
             }
         }
     }
     
     /// Initializes a vibration event with input value validation.
     /// - Parameters:
-    ///   - timestamp: Seconds since session start (must be >= 0.0)
+    ///   - timestamp: Seconds since session start (must be finite and >= 0.0)
     ///   - intensity: Intensity between 0.0 and 1.0 (must be in this range)
-    ///   - duration: Duration of vibration in seconds (must be >= 0.0)
+    ///   - duration: Duration of vibration in seconds (must be finite and >= 0.0)
     ///   - waveform: Waveform of the vibration signal
     /// - Throws: `ValidationError` when values are outside expected bounds
     /// 
     /// **Validation behavior:**
-    /// - `timestamp`: Must be >= 0.0 (negative values are invalid)
+    /// - `timestamp`: Must be finite and >= 0.0 (negative values, infinity, and NaN are invalid)
     /// - `intensity`: Must be in range [0.0, 1.0]
-    /// - `duration`: Must be >= 0.0 (negative duration is physically meaningless)
+    /// - `duration`: Must be finite and >= 0.0 (negative duration, infinity, and NaN are physically meaningless)
     init(timestamp: TimeInterval, intensity: Float, duration: TimeInterval, waveform: Waveform) throws {
-        // Debug assertions to catch issues during development
-        #if DEBUG
-        assert(timestamp >= 0.0, "VibrationEvent: timestamp must be >= 0.0, got \(timestamp)")
-        assert(intensity >= 0.0 && intensity <= 1.0, "VibrationEvent: intensity must be in [0.0, 1.0], got \(intensity)")
-        assert(duration >= 0.0, "VibrationEvent: duration must be >= 0.0, got \(duration)")
-        #endif
-        
-        // Validate timestamp: must be non-negative
-        guard timestamp >= 0.0 else {
+        // Validate timestamp: must be finite and non-negative
+        guard timestamp.isFinite && timestamp >= 0.0 else {
             throw ValidationError.invalidTimestamp(timestamp)
         }
         
@@ -55,8 +48,8 @@ struct VibrationEvent: Codable {
             throw ValidationError.invalidIntensity(intensity)
         }
         
-        // Validate duration: must be non-negative
-        guard duration >= 0.0 else {
+        // Validate duration: must be finite and non-negative
+        guard duration.isFinite && duration >= 0.0 else {
             throw ValidationError.invalidDuration(duration)
         }
         
