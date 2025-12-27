@@ -57,6 +57,42 @@ struct UserPreferences: Codable {
     // Audio Analysis
     var quickAnalysisEnabled: Bool // Schnellanalyse mit reduzierter Genauigkeit
 
+    // MARK: - Initializers
+    
+    init(
+        epilepsyDisclaimerAccepted: Bool,
+        epilepsyDisclaimerAcceptedAt: Date?,
+        preferredMode: EntrainmentMode,
+        preferredLightSource: LightSource,
+        defaultIntensity: Float,
+        screenColor: LightEvent.LightColor,
+        customColorRGB: CustomColorRGB?,
+        fallDetectionEnabled: Bool,
+        thermalProtectionEnabled: Bool,
+        maxSessionDuration: TimeInterval?,
+        hapticFeedbackEnabled: Bool,
+        vibrationEnabled: Bool,
+        vibrationIntensity: Float,
+        selectedAffirmationURL: URL?,
+        quickAnalysisEnabled: Bool
+    ) {
+        self.epilepsyDisclaimerAccepted = epilepsyDisclaimerAccepted
+        self.epilepsyDisclaimerAcceptedAt = epilepsyDisclaimerAcceptedAt
+        self.preferredMode = preferredMode
+        self.preferredLightSource = preferredLightSource
+        self.defaultIntensity = defaultIntensity
+        self.screenColor = screenColor
+        self.customColorRGB = customColorRGB
+        self.fallDetectionEnabled = fallDetectionEnabled
+        self.thermalProtectionEnabled = thermalProtectionEnabled
+        self.maxSessionDuration = maxSessionDuration
+        self.hapticFeedbackEnabled = hapticFeedbackEnabled
+        self.vibrationEnabled = vibrationEnabled
+        self._vibrationIntensity = max(0.1, min(1.0, vibrationIntensity))
+        self.selectedAffirmationURL = selectedAffirmationURL
+        self.quickAnalysisEnabled = quickAnalysisEnabled
+    }
+
     static var `default`: UserPreferences {
         UserPreferences(
             epilepsyDisclaimerAccepted: false,
@@ -71,7 +107,7 @@ struct UserPreferences: Codable {
             maxSessionDuration: nil,
             hapticFeedbackEnabled: true,
             vibrationEnabled: false,
-            _vibrationIntensity: 0.5,
+            vibrationIntensity: 0.5,
             selectedAffirmationURL: nil,
             quickAnalysisEnabled: false
         )

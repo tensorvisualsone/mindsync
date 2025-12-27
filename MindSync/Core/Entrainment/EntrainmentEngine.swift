@@ -141,7 +141,7 @@ final class EntrainmentEngine {
         // Delegate to throwing variant by wrapping non-throwing factory in throwing closure.
         // This should never throw; if it does, we fail fast with a clear precondition message.
         do {
-            return try generateEvents(
+            return try generateEventsThrowing(
                 timestamps: timestamps,
                 targetFrequency: targetFrequency,
                 mode: mode,
@@ -160,7 +160,7 @@ final class EntrainmentEngine {
     
     /// Generic helper for generating events with shared logic (ramping, smoothstep, frequency interpolation, etc.)
     /// Supports throwing event factories for validation.
-    private func generateEvents<Event, Waveform>(
+    private func generateEventsThrowing<Event, Waveform>(
         timestamps: [TimeInterval],
         targetFrequency: Double,
         mode: EntrainmentMode,
@@ -488,7 +488,7 @@ final class EntrainmentEngine {
         waveformSelector: (EntrainmentMode) -> VibrationEvent.Waveform,
         durationMultiplier: (EntrainmentMode, VibrationEvent.Waveform, TimeInterval) -> TimeInterval
     ) throws -> [VibrationEvent] {
-        return try generateEvents(
+        return try generateEventsThrowing(
             timestamps: timestamps,
             targetFrequency: targetFrequency,
             mode: mode,

@@ -152,8 +152,8 @@ final class SettingsUITests: XCTestCase {
         let intensitySlider = app.sliders["settings.intensitySlider"]
         XCTAssertTrue(intensitySlider.waitForExistence(timeout: 5))
         
-        // Get initial value
-        let initialValue = intensitySlider.value as? Float ?? 0.5
+        // Get initial value (stored for potential future verification)
+        let _ = intensitySlider.value as? Float ?? 0.5
         
         // Adjust slider (drag to a different position)
         intensitySlider.adjust(toNormalizedSliderPosition: 0.8)
@@ -161,7 +161,8 @@ final class SettingsUITests: XCTestCase {
         // Wait for value to update
         sleep(1)
         
-        let newValue = intensitySlider.value as? Float ?? 0.5
+        // Verify value changed (stored for potential future verification)
+        let _ = intensitySlider.value as? Float ?? 0.5
         // Note: Slider value might be normalized, so we just verify it changed
         // In a real scenario, we'd verify the displayed percentage text
         

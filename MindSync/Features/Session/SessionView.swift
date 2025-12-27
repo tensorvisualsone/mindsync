@@ -273,17 +273,16 @@ private struct SessionTrackInfoView: View {
                 
                 if let script = script, let bpm = track?.bpm {
                     // Defensive check: currentFrequency should be > 0. Fall back to targetFrequency and assert in debug if invalid.
-                    let validatedFrequency: Double
-                    if let frequency = currentFrequency {
-                        if frequency > 0 {
-                            validatedFrequency = frequency
+                    let validatedFrequency: Double = {
+                        if let frequency = currentFrequency, frequency > 0 {
+                            return frequency
                         } else {
-                            assertionFailure("SessionTrackInfoView received invalid currentFrequency: \(frequency). Expected > 0 Hz.")
-                            validatedFrequency = script.targetFrequency
+                            if let frequency = currentFrequency {
+                                assertionFailure("SessionTrackInfoView received invalid currentFrequency: \(frequency). Expected > 0 Hz.")
+                            }
+                            return script.targetFrequency
                         }
-                    } else {
-                        validatedFrequency = script.targetFrequency
-                    }
+                    }()
                     let frequencyText = String(format: NSLocalizedString("session.frequencyBpm", comment: ""), Int(validatedFrequency), Int(bpm))
                     ModeChip(
                         icon: "metronome.fill",
@@ -345,7 +344,7 @@ private struct StatusBanner: View {
             // Info icon (non-error)
             Image(systemName: "info.circle.fill")
                 .font(.system(size: AppConstants.IconSize.medium, weight: .semibold))
-                .foregroundStyle(.mindSyncInfo)
+                .foregroundColor(.mindSyncInfo)
                 .accessibilityHidden(true)
             
             // Status message

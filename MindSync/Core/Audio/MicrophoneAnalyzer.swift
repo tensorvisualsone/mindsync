@@ -14,7 +14,7 @@ final class MicrophoneAnalyzer {
     private let hopSize: Int = 512
     
     // FFT setup for real-time analysis
-    private let fftSetup: FFTSetup
+    private var fftSetup: FFTSetup?
     private let log2n: vDSP_Length
     
     // Beat detection state
@@ -65,7 +65,11 @@ final class MicrophoneAnalyzer {
     
     deinit {
         stop()
-        vDSP_destroy_fftsetup(fftSetup)
+        // Safely destroy FFT setup - prevent double deallocation
+        if let setup = fftSetup {
+            vDSP_destroy_fftsetup(setup)
+            fftSetup = nil
+        }
     }
     
     /// Starts microphone analysis
@@ -301,6 +305,12 @@ final class MicrophoneAnalyzer {
     
     /// Performs FFT on a frame
     private func performFFT(on frame: [Float]) -> [Float] {
+        // Guard against nil fftSetup
+        guard let setup = fftSetup else {
+            logger.error("FFT setup is nil during FFT operation")
+            return [Float](repeating: 0, count: fftSize / 2)
+        }
+        
         // Apply Hann window
         var windowed = frame
         var window = [Float](repeating: 0, count: fftSize)
@@ -332,7 +342,7 @@ final class MicrophoneAnalyzer {
                 }
                 
                 // Perform FFT
-                vDSP_fft_zrip(fftSetup, &splitComplex, 1, log2n, FFTDirection(FFT_FORWARD))
+                vDSP_fft_zrip(setup, &splitComplex, 1, log2n, FFTDirection(FFT_FORWARD))
                 
                 // Calculate magnitude
                 vDSP_zvabs(&splitComplex, 1, &magnitude, 1, vDSP_Length(fftSize / 2))

@@ -48,6 +48,7 @@ final class ThermalManagerTests: XCTestCase {
         XCTAssertNotNil(receivedLevel)
     }
     
+    @MainActor
     func testWarningLevel_MatchesThermalState() {
         // When
         let state = thermalManager.thermalState
