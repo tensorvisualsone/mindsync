@@ -56,8 +56,7 @@ final class MediaLibraryService {
                 switch nsError.code {
                 case AVError.contentIsProtected.rawValue:
                     throw MediaLibraryValidationError.drmProtected
-                case AVError.fileFormatNotRecognized.rawValue,
-                     AVError.decodingFailed.rawValue:
+                case AVError.fileFormatNotRecognized.rawValue:
                     throw MediaLibraryValidationError.unreadable
                 default:
                     break
