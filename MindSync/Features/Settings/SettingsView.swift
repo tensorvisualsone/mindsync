@@ -21,6 +21,45 @@ struct SettingsView: View {
         _preferences = State(initialValue: UserPreferences.load())
     }
     
+    // MARK: - Helper Methods
+    
+    /// Copies the affirmation file to the app's documents directory
+    /// - Parameter sourceURL: The source URL from the file picker
+    /// - Returns: The URL in the documents directory, or nil if copy failed
+    private func copyAffirmationToDocuments(from sourceURL: URL) -> URL? {
+        let fileManager = FileManager.default
+        
+        // Get documents directory
+        guard let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        
+        // Create affirmations subdirectory if needed
+        let affirmationsDir = documentsURL.appendingPathComponent("Affirmations", isDirectory: true)
+        try? fileManager.createDirectory(at: affirmationsDir, withIntermediateDirectories: true)
+        
+        // Remove old affirmation file if exists
+        if let oldURL = preferences.selectedAffirmationURL {
+            try? fileManager.removeItem(at: oldURL)
+        }
+        
+        // Generate unique filename
+        let fileName = "affirmation.\(sourceURL.pathExtension)"
+        let destinationURL = affirmationsDir.appendingPathComponent(fileName)
+        
+        // Remove existing file if present (redundant but safe)
+        try? fileManager.removeItem(at: destinationURL)
+        
+        // Copy file
+        do {
+            try fileManager.copyItem(at: sourceURL, to: destinationURL)
+            return destinationURL
+        } catch {
+            print("Error copying affirmation file: \(error)")
+            return nil
+        }
+    }
+    
     var body: some View {
         NavigationStack {
             Form {
@@ -131,6 +170,10 @@ struct SettingsView: View {
                     
                     if preferences.selectedAffirmationURL != nil {
                         Button(NSLocalizedString("settings.affirmationRemove", comment: ""), role: .destructive) {
+                            // Remove the file from documents directory
+                            if let url = preferences.selectedAffirmationURL {
+                                try? FileManager.default.removeItem(at: url)
+                            }
                             preferences.selectedAffirmationURL = nil
                             preferences.save()
                         }
@@ -218,6 +261,19 @@ struct SettingsView: View {
             
             switch result {
             case .success(let url):
+                // Start accessing the security-scoped resource
+                guard url.startAccessingSecurityScopedResource() else {
+                    importError = NSError(
+                        domain: ValidationError.domain,
+                        code: ValidationError.invalidAudioFileCode,
+                        userInfo: [NSLocalizedDescriptionKey: "Zugriff auf Datei nicht möglich"]
+                    )
+                    showingImportError = true
+                    return
+                }
+                
+                defer { url.stopAccessingSecurityScopedResource() }
+                
                 // Validate that the file is playable before saving (async load for consistency)
                 Task {
                     let asset = AVURLAsset(url: url)
@@ -225,8 +281,18 @@ struct SettingsView: View {
                         let isPlayable = try await asset.load(.isPlayable)
                         
                         if isPlayable {
-                            preferences.selectedAffirmationURL = url
-                            preferences.save()
+                            // Copy file to app's documents directory for persistent access
+                            if let copiedURL = copyAffirmationToDocuments(from: url) {
+                                preferences.selectedAffirmationURL = copiedURL
+                                preferences.save()
+                            } else {
+                                importError = NSError(
+                                    domain: ValidationError.domain,
+                                    code: ValidationError.invalidAudioFileCode,
+                                    userInfo: [NSLocalizedDescriptionKey: "Datei konnte nicht gespeichert werden"]
+                                )
+                                showingImportError = true
+                            }
                         } else {
                             importError = NSError(
                                 domain: ValidationError.domain,
