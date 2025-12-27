@@ -73,24 +73,16 @@ struct HomeView: View {
                     onSongSelected: { item in
                         selectedMediaItem = item
                         isMicrophoneSession = false
-                        showingSourceSelection = false
                         showingSession = true
+                        showingSourceSelection = false
                     },
                     onMicrophoneSelected: {
                         selectedMediaItem = nil
                         isMicrophoneSession = true
-                        showingSourceSelection = false
                         showingSession = true
+                        showingSourceSelection = false
                     }
                 )
-                .onDisappear {
-                    // Reset selectedMediaItem if source selection was dismissed without selection
-                    // This prevents showing "noMediaItem" error if user cancels or dismisses
-                    if !showingSession {
-                        selectedMediaItem = nil
-                        isMicrophoneSession = false
-                    }
-                }
             }
             .sheet(isPresented: $showingModeSelection) {
                 ModeSelectionView(
