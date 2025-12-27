@@ -20,6 +20,7 @@ private final class WeakDisplayLinkTarget {
 }
 
 /// Controller for flashlight control
+@MainActor
 final class FlashlightController: BaseLightController, LightControlling {
     var source: LightSource { .flashlight }
 
@@ -197,11 +198,10 @@ final class FlashlightController: BaseLightController, LightControlling {
     ///   duplicate notifications within a single session.
     ///
     /// - Note: Thread Safety
-    ///   This method accesses and modifies `torchFailureNotified` without explicit synchronization.
-    ///   The expected threading model is that all torch operations (`setIntensity`, `start`, `stop`)
-    ///   are called from the main thread via CADisplayLink. If this assumption changes and multiple
-    ///   threads can call torch methods concurrently, consider adding synchronization (e.g., making
-    ///   FlashlightController an actor or using a lock) to prevent race conditions on the flag.
+    ///   This method is isolated to the main actor (as is the entire `FlashlightController` class),
+    ///   ensuring that all torch operations (`setIntensity`, `start`, `stop`) and flag access
+    ///   happen on the main thread. This prevents race conditions on `torchFailureNotified` and
+    ///   ensures safe interaction with CADisplayLink.
     private func handleTorchSystemShutdown(error: Error?) {
         guard !torchFailureNotified else { return }
         torchFailureNotified = true

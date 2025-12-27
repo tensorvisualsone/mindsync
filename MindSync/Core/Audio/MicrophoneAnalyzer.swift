@@ -215,13 +215,26 @@ final class MicrophoneAnalyzer {
             
             noiseFloor = (noiseFloor * (1.0 - noiseFloorSmoothing)) + (frameRMS * noiseFloorSmoothing)
             // NOTE: The noise floor smoothing factor (α = 0.005) results in an adaptation time of ~2.3 seconds
-            // to reach 63% of a new noise level (at 44.1kHz with 512-sample hop, ~86 frames/sec).
+            // to reach 63% of a new noise level.
+            //
+            // Calculation assumptions:
+            // - Sample rate: 44.1 kHz
+            // - Hop size: 512 samples
+            // - Resulting frame rate: 44100 / 512 ≈ 86.1 frames/sec
+            //
             // For an exponential moving average updated once per frame, the time constant in frames is
             //   τ_frames ≈ 1 / α = 1 / 0.005 = 200 frames
-            // Converting to seconds using the frame rate (~86 frames/sec) gives
-            //   τ_seconds ≈ τ_frames / frameRate ≈ 200 / 86 ≈ 2.33 s.
-            // This slow adaptation helps distinguish between brief spikes and sustained environmental changes,
-            // but may cause delays when transitioning between very different audio environments.
+            // Converting to seconds using the frame rate gives
+            //   τ_seconds ≈ τ_frames / frameRate ≈ 200 / 86.1 ≈ 2.32 s
+            //
+            // IMPORTANT: This calculation assumes a consistent frame processing rate of ~86 frames/sec.
+            // Under heavy load or with different audio configurations, the actual frame rate may vary,
+            // which will affect the adaptation time. The smoothing factor provides good balance for
+            // typical real-time scenarios, but the actual time constant may differ from 2.3s in
+            // non-ideal conditions.
+            //
+            // This slow adaptation helps distinguish between brief spikes and sustained environmental
+            // changes, but may cause delays when transitioning between very different audio environments.
             
             // Calculate spectral flux
             var spectralFlux: Float = 0

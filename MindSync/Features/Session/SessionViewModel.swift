@@ -69,10 +69,24 @@ final class SessionViewModel: ObservableObject {
     // Flag to prevent re-entrancy in fall detection handling
     private var isHandlingFall = false
     
-    // Microphone signal monitoring constants
-    private let silenceThreshold: Float = 0.02
-    private let autoPauseDelay: TimeInterval = 2.0
-    private let autoStopDelay: TimeInterval = 12.0
+    // Microphone signal monitoring configuration keys
+    private enum MicrophoneConfigKeys {
+        static let silenceThreshold = "microphone_silenceThreshold"
+        static let autoPauseDelay = "microphone_autoPauseDelay"
+        static let autoStopDelay = "microphone_autoStopDelay"
+    }
+    
+    // Microphone signal monitoring configuration
+    // These values can be overridden via UserDefaults to adapt to different environments
+    // and microphone sensitivities. Values are cached on initialization for performance.
+    //
+    // Default values:
+    // - silenceThreshold: 0.02 (2% of normalized signal level)
+    // - autoPauseDelay: 2.0 seconds of silence before pausing
+    // - autoStopDelay: 12.0 seconds of silence before stopping
+    private let silenceThreshold: Float
+    private let autoPauseDelay: TimeInterval
+    private let autoStopDelay: TimeInterval
     
     // Lifecycle pause flags
     private var pausedBySystemInterruption = false
@@ -88,6 +102,21 @@ final class SessionViewModel: ObservableObject {
         self.audioPlayback = services.audioPlayback
         self.cachedPreferences = UserPreferences.load()
         self.historyService = historyService
+        
+        // Load microphone monitoring configuration from UserDefaults
+        // Note: We validate that values are positive (> 0) to ensure sensible behavior.
+        // A silenceThreshold of 0 would never detect silence, and delays of 0 would
+        // cause immediate pause/stop. If the key doesn't exist or has an invalid value,
+        // we fall back to the documented defaults.
+        let defaults = UserDefaults.standard
+        let thresholdValue = defaults.float(forKey: MicrophoneConfigKeys.silenceThreshold)
+        self.silenceThreshold = thresholdValue > 0 ? thresholdValue : 0.02
+        
+        let pauseDelayValue = defaults.double(forKey: MicrophoneConfigKeys.autoPauseDelay)
+        self.autoPauseDelay = pauseDelayValue > 0 ? pauseDelayValue : 2.0
+        
+        let stopDelayValue = defaults.double(forKey: MicrophoneConfigKeys.autoStopDelay)
+        self.autoStopDelay = stopDelayValue > 0 ? stopDelayValue : 12.0
         
         // EntrainmentEngine from ServiceContainer
         self.entrainmentEngine = services.entrainmentEngine

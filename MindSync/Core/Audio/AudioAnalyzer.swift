@@ -379,6 +379,12 @@ final class AudioAnalyzer {
     private func generateUniformBeats(duration: TimeInterval, bpm: Double) -> [TimeInterval] {
         guard duration > 0 else { return [] }
         
+        // Check for fundamentally invalid BPM (NaN, infinite, zero, or negative)
+        guard bpm.isFinite && bpm > 0 else {
+            logger.error("Cannot generate uniform beats: BPM is invalid (NaN, infinite, or non-positive): \(bpm, privacy: .public)")
+            return []
+        }
+        
         let sanitizedBPM = max(30, min(200, bpm))
         
         // Log when BPM is clamped, as this indicates the tempo estimate may be unreliable
