@@ -31,7 +31,9 @@ echo "✓ Logs gelöscht"
 echo ""
 
 echo "4️⃣ Setze Lockdown zurück..."
-rm ~/Library/Lockdown/*.plist 2>/dev/null
+if [ -d "$HOME/Library/Lockdown" ]; then
+    find "$HOME/Library/Lockdown" -name "*.plist" -type f -delete 2>/dev/null
+fi
 echo "✓ Lockdown zurückgesetzt"
 echo ""
 
