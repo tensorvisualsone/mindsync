@@ -175,7 +175,8 @@
 "error.light.torchUnavailable" = "Dieses Gerät besitzt keine Taschenlampe. Bitte wähle den Bildschirm als Lichtquelle.";
 "error.light.configurationFailed" = "Die Taschenlampe konnte nicht initialisiert werden. Bitte versuche es erneut oder wechsle zur Bildschirm-Option.";
 "error.light.thermalShutdown" = "iOS hat die Taschenlampe deaktiviert, um das Gerät zu schützen. MindSync wechselt automatisch auf den Bildschirm.";
-"error.media.cloudItem" = "Dieser Titel ist nicht lokal gespeichert. Bitte lade ihn zuerst herunter oder nutze den Mikrofon-Modus.";
+"error.media.cloudItem" = "Dieser Titel ist ein Apple Music Cloud-Item und kann nicht analysiert werden. Apple Music Songs sind DRM-geschützt, auch nach dem Download. Bitte nutze den Mikrofonmodus oder wähle einen selbst importierten/gekauften Titel.";
+"error.media.missingAsset" = "Auf diesen Titel kann nicht zugegriffen werden. Bitte nutze den Mikrofonmodus oder wähle einen anderen Titel.";
 "error.media.unreadable" = "Auf diesen Titel kann aktuell nicht zugegriffen werden. Bitte versuche es später erneut.";
 "error.media.unknown" = "Der Titel konnte nicht geprüft werden (%@). Bitte versuche es erneut oder wähle einen anderen Song.";
 "error.audio.fileNotFound" = "Audiodatei wurde nicht gefunden.";
