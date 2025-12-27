@@ -468,13 +468,7 @@ final class SessionViewModel: ObservableObject {
         RunLoop.main.add(timer, forMode: .common)
         playbackProgressTimer = timer
     }
-    
-    /// Stops frequency updates (called from stopSession to ensure cleanup)
-    private func stopFrequencyUpdates() {
-        playbackProgressTimer?.invalidate()
-        playbackProgressTimer = nil
-    }
-    
+
     private func updatePlaybackProgress(duration: TimeInterval) {
         let current = audioPlayback.currentTime
         let clampedDuration = max(duration, 0.1)

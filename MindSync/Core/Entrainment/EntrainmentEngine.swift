@@ -372,11 +372,11 @@ final class EntrainmentEngine {
             }
         }
         
-        // Duration calculator: half period for square, 1.5x period for sine/triangle to ensure overlap
+        // Duration calculator: half period for square, 2x period for sine/triangle to match beat-based logic
         let durationCalculator: (LightEvent.Waveform, TimeInterval) -> TimeInterval = { waveform, period in
             switch waveform {
             case .square: return period / 2.0  // Short for hard blink
-            case .sine, .triangle: return period * 1.5  // Overlap events to prevent gaps
+            case .sine, .triangle: return period * 2.0  // Extend to match beat-based generation (next beat)
             }
         }
         

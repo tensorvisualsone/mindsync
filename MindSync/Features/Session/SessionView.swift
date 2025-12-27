@@ -177,7 +177,7 @@ struct SessionView: View {
         VStack(spacing: AppConstants.Spacing.sectionSpacing) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: AppConstants.IconSize.extraLarge))
-                .foregroundColor(.mindSyncWarning)
+                .foregroundStyle(Color.mindSyncWarning)
             
             if let error = viewModel.errorMessage {
                 Text(error)
@@ -242,7 +242,7 @@ private struct SessionTrackInfoView: View {
             HStack(spacing: AppConstants.Spacing.sm) {
                 Image(systemName: session.audioSource == .microphone ? "waveform" : "music.note")
                     .font(.system(size: AppConstants.IconSize.medium, weight: .semibold))
-                    .foregroundColor(session.audioSource == .microphone ? .mindSyncWarning : .mindSyncAccent)
+                    .foregroundStyle(session.audioSource == .microphone ? Color.mindSyncWarning : Color.mindSyncAccent)
                 
                 VStack(alignment: .leading, spacing: AppConstants.Spacing.xs) {
                     Text(track?.title ?? NSLocalizedString("session.liveAudio", comment: ""))
@@ -323,7 +323,7 @@ private struct ModeChip: View {
         .padding(.vertical, AppConstants.Spacing.xs)
         .padding(.horizontal, AppConstants.Spacing.sm)
         .background(color.opacity(0.15))
-        .foregroundColor(color)
+        .foregroundStyle(color)
         .clipShape(RoundedRectangle(cornerRadius: AppConstants.CornerRadius.small, style: .continuous))
     }
 }
@@ -334,7 +334,7 @@ private struct AffirmationStatusView: View {
     var body: some View {
         HStack(spacing: AppConstants.Spacing.sm) {
             Image(systemName: "waveform.and.mic")
-                .foregroundColor(.mindSyncInfo)
+                .foregroundStyle(Color.mindSyncInfo)
             Text(status)
                 .font(AppConstants.Typography.caption)
                 .foregroundStyle(.white)
@@ -353,7 +353,7 @@ private struct StatusBanner: View {
             // Info icon (non-error)
             Image(systemName: "info.circle.fill")
                 .font(.system(size: AppConstants.IconSize.medium, weight: .semibold))
-                .foregroundColor(.mindSyncInfo)
+                .foregroundStyle(Color.mindSyncInfo)
                 .accessibilityHidden(true)
             
             // Status message
