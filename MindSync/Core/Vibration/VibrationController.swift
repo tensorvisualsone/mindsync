@@ -86,7 +86,7 @@ final class VibrationController: NSObject {
             }
             
             // Start the engine
-            try engine.start()
+            try await engine.start()
             self.hapticEngine = engine
         } catch {
             logger.error("Failed to create haptic engine: \(error.localizedDescription, privacy: .public)")
@@ -103,7 +103,7 @@ final class VibrationController: NSObject {
     
     private func restartEngine() async throws {
         guard let engine = hapticEngine else { return }
-        try engine.start()
+        try await engine.start()
     }
     
     // MARK: - Script Execution
@@ -211,7 +211,7 @@ final class VibrationController: NSObject {
     // MARK: - Haptic Pattern Generation
     
     private func setIntensity(_ intensity: Float) {
-        guard let engine = hapticEngine else { return }
+        guard hapticEngine != nil else { return }
         
         let clampedIntensity = max(0.0, min(1.0, intensity))
         
