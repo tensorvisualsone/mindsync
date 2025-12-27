@@ -4,6 +4,15 @@ echo "🔧 iPhone Verbindung - Erweiterte Reparatur"
 echo "=========================================="
 echo ""
 
+# Prüfen auf root oder sudo
+if [ "$EUID" -ne 0 ]; then
+    echo "ℹ️  Prüfe sudo-Berechtigungen..."
+    if ! sudo -v; then
+        echo "❌ Fehler: Root-Rechte erforderlich. Bitte führen Sie 'sudo -v' aus oder starten Sie das Skript mit sudo."
+        exit 1
+    fi
+fi
+
 echo "⚠️  ACHTUNG: Dies beendet Xcode und alle iOS-Dienste!"
 echo "Drücken Sie Ctrl+C zum Abbrechen oder warten Sie 5 Sekunden..."
 sleep 5
