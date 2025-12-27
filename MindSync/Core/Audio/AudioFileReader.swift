@@ -10,7 +10,7 @@ final class AudioFileReader {
     /// - Throws: AudioAnalysisError
     /// - Note: This method loads the entire audio file into memory as a single array of Float samples.
     ///         For very long audio files, this may cause memory pressure or crashes on devices with
-    ///         limited RAM. Files longer than 30 minutes will throw an error to prevent memory issues.
+    ///         limited RAM. Files longer than 120 minutes will throw an error to prevent memory issues.
     func readPCM(from url: URL) async throws -> [Float] {
         let asset = AVURLAsset(url: url)
 
@@ -23,7 +23,7 @@ final class AudioFileReader {
         // Check duration to prevent memory issues with very long files
         let duration = try await asset.load(.duration)
         let durationInSeconds = CMTimeGetSeconds(duration)
-        let maxDurationInSeconds: Double = 30 * 60 // 30 minutes
+        let maxDurationInSeconds: Double = 120 * 60 // 120 minutes
         
         if durationInSeconds > maxDurationInSeconds {
             throw AudioAnalysisError.fileTooLong(duration: durationInSeconds)

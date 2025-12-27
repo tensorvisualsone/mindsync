@@ -3,6 +3,12 @@ import SwiftUI
 /// View for displaying analysis progress
 struct AnalysisProgressView: View {
     let progress: AnalysisProgress
+    let onCancel: (() -> Void)?
+    
+    init(progress: AnalysisProgress, onCancel: (() -> Void)? = nil) {
+        self.progress = progress
+        self.onCancel = onCancel
+    }
     
     var body: some View {
         VStack(spacing: AppConstants.Spacing.sectionSpacing) {
@@ -22,6 +28,18 @@ struct AnalysisProgressView: View {
                 .font(AppConstants.Typography.title2)
                 .foregroundColor(.mindSyncPrimaryText)
                 .accessibilityIdentifier("session.analysisProgress")
+            
+            // Cancel button
+            if let onCancel = onCancel {
+                Button(action: onCancel) {
+                    Text(NSLocalizedString("analysis.cancel", comment: ""))
+                        .font(AppConstants.Typography.body)
+                        .foregroundColor(.mindSyncWarning)
+                }
+                .padding(.top, AppConstants.Spacing.md)
+                .accessibilityHint(NSLocalizedString("analysis.cancelHint", comment: ""))
+                .accessibilityIdentifier("analysis.cancelButton")
+            }
         }
         .padding(AppConstants.Spacing.md)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

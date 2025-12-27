@@ -113,52 +113,48 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
             return
         }
         
-        if let event = result.event, let script = currentScript {
-            // Get color from event or use default
-            let lightColor = event.color ?? defaultColor
-            let baseColor = lightColor.swiftUIColor(customRGB: customColorRGB?.tuple)
-            
+        if let script = currentScript {
             // Check if cinematic mode - apply dynamic intensity modulation
-            let baseIntensity: Float
             if script.mode == .cinematic {
-                // Get audio energy and calculate dynamic intensity
+                // For cinematic mode, use continuous wave regardless of events
+                // This ensures smooth synchronization even if beat detection is imperfect
                 let audioEnergy = audioEnergyTracker?.currentEnergy ?? 0.0
                 let baseFreq = script.targetFrequency
                 let elapsed = result.elapsed
                 
-                // Calculate cinematic intensity
+                // Calculate cinematic intensity (continuous wave)
                 let cinematicIntensity = EntrainmentEngine.calculateCinematicIntensity(
                     baseFrequency: baseFreq,
                     currentTime: elapsed,
                     audioEnergy: audioEnergy
                 )
                 
-                // Multiply base event intensity with cinematic modulation
-                baseIntensity = event.intensity * cinematicIntensity
+                // Get color from default (cinematic mode doesn't use event colors)
+                let lightColor = defaultColor
+                let baseColor = lightColor.swiftUIColor(customRGB: customColorRGB?.tuple)
+                
+                // Use cinematic intensity directly as opacity
+                currentColor = baseColor.opacity(Double(cinematicIntensity))
+            } else if let event = result.event {
+                // For other modes, use event-based intensity with waveform
+                let lightColor = event.color ?? defaultColor
+                let baseColor = lightColor.swiftUIColor(customRGB: customColorRGB?.tuple)
+                
+                // Apply intensity as opacity for smoother transitions
+                // Waveform affects how intensity is applied over time
+                let opacity = calculateOpacity(
+                    event: event,
+                    elapsed: result.elapsed - event.timestamp,
+                    targetFrequency: script.targetFrequency
+                )
+                
+                currentColor = baseColor.opacity(opacity)
             } else {
-                baseIntensity = event.intensity
+                // Between events or no active event, show black
+                currentColor = .black
             }
-            
-            // Create modified event with cinematic intensity for opacity calculation
-            let modifiedEvent = LightEvent(
-                timestamp: event.timestamp,
-                intensity: baseIntensity,
-                duration: event.duration,
-                waveform: event.waveform,
-                color: event.color
-            )
-            
-            // Apply intensity as opacity for smoother transitions
-            // Waveform affects how intensity is applied over time
-            let opacity = calculateOpacity(
-                event: modifiedEvent,
-                elapsed: result.elapsed - event.timestamp,
-                targetFrequency: script.targetFrequency
-            )
-            
-            currentColor = baseColor.opacity(Double(opacity))
         } else {
-            // Between events or no active event, show black
+            // No script, show black
             currentColor = .black
         }
     }

@@ -72,6 +72,7 @@
 "session.pauseAccessibility" = "Sitzung pausieren";
 "session.resumeAccessibility" = "Sitzung fortsetzen";
 "session.stopAccessibility" = "Sitzung stoppen";
+"session.frequencyBpm" = "%d Hz • %d BPM";
 
 // MARK: - Analysis Progress
 "analysis.loading" = "Audio wird geladen...";
@@ -80,6 +81,10 @@
 "analysis.detecting" = "Beats werden erkannt...";
 "analysis.mapping" = "LightScript wird erstellt...";
 "analysis.complete" = "Analyse abgeschlossen!";
+"analysis.cancel" = "Abbrechen";
+"analysis.cancelHint" = "Bricht die laufende Analyse ab";
+"analysis.warning.medium" = "Analyse dauert länger als erwartet. Noch ca. %d Sekunden...";
+"analysis.warning.long" = "Analyse benötigt noch ca. %d Sekunden. Bitte warten...";
 
 // MARK: - Settings
 "settings.title" = "Einstellungen";
@@ -93,6 +98,11 @@
 "settings.fallDetection" = "Sturzerkennung";
 "settings.thermalProtection" = "Thermischer Schutz";
 "settings.hapticFeedback" = "Haptisches Feedback";
+"settings.hapticFeedbackDescription" = "Kurzes haptisches Feedback für UI-Interaktionen (Buttons, Start/Stop)";
+"settings.vibration" = "Sitzungsvibration";
+"settings.vibrationDescription" = "Kontinuierliche Vibration synchron mit Audio und Licht während der Sitzung";
+"settings.vibrationEnabled" = "Sitzungsvibration aktivieren";
+"settings.vibrationIntensity" = "Vibrationsintensität";
 "settings.intensity" = "Intensität";
 "settings.defaultIntensity" = "Standard-Intensität";
 "settings.intensityDescription" = "Standard-Helligkeit für Stroboskoplicht (betrifft nur Taschenlampe).";
@@ -101,10 +111,15 @@
 "settings.affirmationSelect" = "Affirmation auswählen";
 "settings.affirmationRemove" = "Affirmation entfernen";
 "settings.affirmationNone" = "Keine Affirmation hinterlegt.";
-"settings.session" = "Sitzungsdauer";
+"settings.session" = "Sitzung & Analyse";
 "settings.sessionDescription" = "Begrenzt die maximale Dauer von Taschenlampen-Sessions, um Überhitzung zu vermeiden.";
+"settings.quickAnalysis" = "Schnellanalyse";
+"settings.quickAnalysisDescription" = "Reduziert die Analysezeit für Audiotracks durch schnellere Beat-Erkennung. Titel über 10 Minuten verwenden automatisch Schnellanalyse.";
 "settings.maxDuration" = "Maximale Dauer";
 "settings.duration.unlimited" = "Kein Limit";
+"settings.duration.5min" = "5 Min";
+"settings.duration.10min" = "10 Min";
+"settings.duration.15min" = "15 Min";
 "settings.history" = "Sitzungshistorie";
 "settings.invalidAudioFile" = "Die ausgewählte Datei ist keine gültige oder abspielbare Audiodatei";
 "settings.importError" = "Fehler beim Importieren der Datei";
@@ -187,7 +202,9 @@
 "error.audio.unsupportedFormat" = "Audioformat wird nicht unterstützt.";
 "error.audio.analysisFailure" = "Analyse fehlgeschlagen: %@";
 "error.audio.cancelled" = "Analyse abgebrochen.";
-"error.audio.fileTooLong" = "Audiodatei ist zu lang (%d Minuten). Die maximal unterstützte Länge beträgt 30 Minuten.";
+"status.audio.cancelled" = "Analyse wurde abgebrochen.";
+"status.vibration.unavailable" = "Vibration ist nicht verfügbar. Session wird ohne Vibration fortgesetzt.";
+"error.audio.fileTooLong" = "Audiodatei ist zu lang (%d Minuten). Die maximal unterstützte Länge beträgt 120 Minuten.";
 "error.audio.corruptedData" = "Die Audiodaten wirken beschädigt oder leer. Bitte wähle einen anderen Titel.";
 "error.audio.timeout" = "Die Audio-Analyse hat ungewöhnlich lange gedauert und wurde abgebrochen. Bitte wähle einen kürzeren Titel oder versuche es erneut.";
 "error.file.copyFailed" = "Datei konnte nicht kopiert werden. Bitte versuche es erneut.";
@@ -195,6 +212,11 @@
 "error.file.validationFailed" = "Fehler beim Prüfen der Audiodatei: %@";
 "error.file.selectionFailed" = "Fehler beim Auswählen der Datei: %@";
 "error.file.saveFailed" = "Datei konnte nicht gespeichert werden. Bitte stelle sicher, dass du Zugriff auf die Datei hast.";
+"error.vibration.hapticsUnavailable" = "Dieses Gerät unterstützt keine Haptik. Vibration ist nicht verfügbar.";
+"error.vibration.engineCreationFailed" = "Haptikmodul konnte nicht initialisiert werden. Vibration ist nicht verfügbar.";
+"error.vibration.scriptGenerationFailed" = "Vibrationsskript konnte nicht erstellt werden. Bitte versuche es erneut.";
+"error.vibrationScript.invalidTargetFrequency" = "Ungültige Zielfrequenz: %f Hz. Die Frequenz muss endlich und größer als null sein.";
+"error.vibrationScript.invalidMultiplier" = "Ungültiger Multiplikator: %d. Der Multiplikator muss größer als null sein.";
 
 // MARK: - Frequency Validation
 "frequency.tooLow" = "Frequenz zu niedrig (Minimum: %d Hz)";

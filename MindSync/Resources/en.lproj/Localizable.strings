@@ -70,6 +70,7 @@
 "session.pauseAccessibility" = "Pause session";
 "session.resumeAccessibility" = "Resume session";
 "session.stopAccessibility" = "Stop session";
+"session.frequencyBpm" = "%d Hz • %d BPM";
 
 // MARK: - Analysis Progress
 "analysis.loading" = "Loading audio...";
@@ -78,6 +79,10 @@
 "analysis.detecting" = "Detecting beats...";
 "analysis.mapping" = "Creating LightScript...";
 "analysis.complete" = "Analysis complete!";
+"analysis.cancel" = "Cancel";
+"analysis.cancelHint" = "Cancels the running analysis";
+"analysis.warning.medium" = "Analysis taking longer than expected. About %d seconds remaining...";
+"analysis.warning.long" = "Analysis needs about %d more seconds. Please wait...";
 
 // MARK: - Settings
 "settings.title" = "Settings";
@@ -91,6 +96,11 @@
 "settings.fallDetection" = "Fall Detection";
 "settings.thermalProtection" = "Thermal Protection";
 "settings.hapticFeedback" = "Haptic Feedback";
+"settings.hapticFeedbackDescription" = "Short haptic feedback for UI interactions (buttons, start/stop)";
+"settings.vibration" = "Session Vibration";
+"settings.vibrationDescription" = "Continuous vibration synchronized with audio and light during sessions";
+"settings.vibrationEnabled" = "Enable Session Vibration";
+"settings.vibrationIntensity" = "Vibration Intensity";
 "settings.intensity" = "Intensity";
 "settings.defaultIntensity" = "Default Intensity";
 "settings.intensityDescription" = "Default brightness for the strobe (flashlight only).";
@@ -99,10 +109,15 @@
 "settings.affirmationSelect" = "Choose affirmation";
 "settings.affirmationRemove" = "Remove affirmation";
 "settings.affirmationNone" = "No affirmation selected.";
-"settings.session" = "Session Duration";
-"settings.sessionDescription" = "Limits maximum flashlight session duration to avoid overheating.";
+"settings.session" = "Session & Analysis";
+"settings.sessionDescription" = "This setting limits the maximum flashlight session duration to prevent overheating.";
+"settings.quickAnalysis" = "Quick Analysis";
+"settings.quickAnalysisDescription" = "Reduces analysis time for audio tracks with faster beat detection. Tracks over 10 minutes automatically use quick analysis.";
 "settings.maxDuration" = "Maximum duration";
 "settings.duration.unlimited" = "No limit";
+"settings.duration.5min" = "5 min";
+"settings.duration.10min" = "10 min";
+"settings.duration.15min" = "15 min";
 "settings.history" = "Session History";
 "settings.invalidAudioFile" = "The selected file is not a valid or playable audio file";
 "settings.importError" = "Import error";
@@ -177,7 +192,9 @@
 "error.audio.unsupportedFormat" = "Audio format is not supported.";
 "error.audio.analysisFailure" = "Analysis failed: %@";
 "error.audio.cancelled" = "Analysis cancelled.";
-"error.audio.fileTooLong" = "Audio file is too long (%d minutes). Maximum supported length is 30 minutes.";
+"status.audio.cancelled" = "Analysis was cancelled.";
+"status.vibration.unavailable" = "Vibration is unavailable. Session continues without vibration.";
+"error.audio.fileTooLong" = "Audio file is too long (%d minutes). Maximum supported length is 120 minutes.";
 "error.audio.corruptedData" = "Audio data appears to be corrupted or empty. Please choose another track.";
 "error.audio.timeout" = "Audio analysis took too long and was stopped. Please choose a shorter track or try again.";
 "error.file.copyFailed" = "File could not be copied. Please try again.";
@@ -185,6 +202,11 @@
 "error.file.validationFailed" = "Error validating audio file: %@";
 "error.file.selectionFailed" = "Error selecting file: %@";
 "error.file.saveFailed" = "File could not be saved. Please make sure you have access to the file.";
+"error.vibration.hapticsUnavailable" = "This device does not support vibration. Vibration is not available.";
+"error.vibration.engineCreationFailed" = "Vibration engine could not be initialized. Vibration is not available.";
+"error.vibration.scriptGenerationFailed" = "Failed to generate vibration script. Please try again.";
+"error.vibrationScript.invalidTargetFrequency" = "Invalid target frequency: %f Hz. Frequency must be finite and greater than zero.";
+"error.vibrationScript.invalidMultiplier" = "Invalid multiplier: %d. Multiplier must be greater than zero.";
 
 // MARK: - Frequency Validation
 "frequency.tooLow" = "Frequency too low (minimum: %d Hz)";

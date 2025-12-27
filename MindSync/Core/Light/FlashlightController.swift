@@ -153,33 +153,83 @@ final class FlashlightController: BaseLightController, LightControlling {
             return
         }
         
-        if let event = result.event {
+        if let script = currentScript {
             // Check if cinematic mode - apply dynamic intensity modulation
-            let intensity: Float
-            if let script = currentScript, script.mode == .cinematic {
-                // Get audio energy and calculate dynamic intensity
+            if script.mode == .cinematic {
+                // For cinematic mode, use continuous wave regardless of events
+                // This ensures smooth synchronization even if beat detection is imperfect
                 let audioEnergy = audioEnergyTracker?.currentEnergy ?? 0.0
                 let baseFreq = script.targetFrequency
                 let elapsed = result.elapsed
                 
-                // Calculate cinematic intensity
+                // Calculate cinematic intensity (continuous wave)
                 let cinematicIntensity = EntrainmentEngine.calculateCinematicIntensity(
                     baseFrequency: baseFreq,
                     currentTime: elapsed,
                     audioEnergy: audioEnergy
                 )
                 
-                // Multiply base event intensity with cinematic modulation
-                intensity = event.intensity * cinematicIntensity
+                // Use cinematic intensity directly (it already includes wave modulation)
+                setIntensity(cinematicIntensity)
+            } else if let event = result.event {
+                // For other modes, use event-based intensity with waveform
+                let timeWithinEvent = result.elapsed - event.timestamp
+                
+                // Apply waveform-based intensity modulation (similar to ScreenController)
+                let intensity = calculateIntensity(
+                    event: event,
+                    timeWithinEvent: timeWithinEvent,
+                    targetFrequency: script.targetFrequency
+                )
+                
+                setIntensity(intensity)
             } else {
-                intensity = event.intensity
+                // Between events or no active event, turn off
+                setIntensity(0.0)
             }
-            
-            // Current event is active
-            setIntensity(intensity)
         } else {
-            // Between events or no active event, turn off
+            // No script, turn off
             setIntensity(0.0)
+        }
+    }
+    
+    /// Calculates intensity based on waveform and time within event
+    /// Similar to ScreenController.calculateOpacity but returns Float intensity
+    private func calculateIntensity(
+        event: LightEvent,
+        timeWithinEvent: TimeInterval,
+        targetFrequency: Double
+    ) -> Float {
+        switch event.waveform {
+        case .square:
+            // Hard on/off based on intensity
+            return event.intensity
+            
+        case .sine:
+            // Smooth sine wave pulsation with time-based frequency
+            // Use the script's target frequency so pulsation rate is independent of event duration
+            guard targetFrequency > 0 else {
+                // Fallback: constant intensity if frequency is not valid
+                return event.intensity
+            }
+            let sineValue = sin(timeWithinEvent * 2.0 * .pi * targetFrequency)
+            // Map sine value from [-1, 1] to [0, 1], then scale by intensity
+            let normalizedSine = (sineValue + 1.0) / 2.0
+            return event.intensity * Float(normalizedSine)
+            
+        case .triangle:
+            // Triangle wave based on absolute elapsed time, independent of event duration
+            // One full cycle (0 -> 1 -> 0) per period based on target frequency for consistent strobe timing
+            guard targetFrequency > 0 else {
+                // Fallback: constant intensity if frequency is not valid (to avoid division by zero)
+                return event.intensity
+            }
+            let period: TimeInterval = 1.0 / targetFrequency
+            let phase = (timeWithinEvent.truncatingRemainder(dividingBy: period)) / period  // [0, 1)
+            let triangleValue = phase < 0.5
+                ? Float(phase * 2.0)              // 0 to 1
+                : Float(2.0 - (phase * 2.0))      // 1 to 0
+            return event.intensity * triangleValue
         }
     }
     

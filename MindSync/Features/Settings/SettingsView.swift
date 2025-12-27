@@ -176,6 +176,45 @@ struct SettingsView: View {
                 }
                 
                 Section {
+                    Toggle(NSLocalizedString("settings.vibrationEnabled", comment: ""), isOn: Binding(
+                        get: { preferences.vibrationEnabled },
+                        set: { newValue in
+                            preferences.vibrationEnabled = newValue
+                            preferences.save()
+                        }
+                    ))
+                    .accessibilityIdentifier("settings.vibrationEnabledToggle")
+                    
+                    if preferences.vibrationEnabled {
+                        HStack {
+                            Text(NSLocalizedString("settings.vibrationIntensity", comment: ""))
+                                .font(AppConstants.Typography.body)
+                            Spacer()
+                            Text("\(Int(preferences.vibrationIntensity * 100))%")
+                                .font(AppConstants.Typography.body)
+                                .foregroundColor(.mindSyncSecondaryText)
+                        }
+                        
+                        Slider(
+                            value: Binding(
+                                get: { preferences.vibrationIntensity },
+                                set: { newValue in
+                                    preferences.vibrationIntensity = newValue
+                                    preferences.save()
+                                }
+                            ),
+                            in: 0.1...1.0,
+                            step: 0.1
+                        )
+                        .accessibilityIdentifier("settings.vibrationIntensitySlider")
+                    }
+                } header: {
+                    Text(NSLocalizedString("settings.vibration", comment: ""))
+                } footer: {
+                    Text(NSLocalizedString("settings.vibrationDescription", comment: ""))
+                }
+                
+                Section {
                     if let url = preferences.selectedAffirmationURL {
                         Text(url.lastPathComponent)
                             .font(AppConstants.Typography.body)
@@ -207,6 +246,15 @@ struct SettingsView: View {
                 }
                 
                 Section {
+                    Toggle(NSLocalizedString("settings.quickAnalysis", comment: ""), isOn: Binding(
+                        get: { preferences.quickAnalysisEnabled },
+                        set: { newValue in
+                            preferences.quickAnalysisEnabled = newValue
+                            preferences.save()
+                        }
+                    ))
+                    .accessibilityIdentifier("settings.quickAnalysisToggle")
+                    
                     Picker(NSLocalizedString("settings.maxDuration", comment: ""), selection: Binding(
                         get: { preferences.maxSessionDuration },
                         set: { newValue in
@@ -216,9 +264,12 @@ struct SettingsView: View {
                     )) {
                         Text(NSLocalizedString("settings.duration.unlimited", comment: ""))
                             .tag(TimeInterval?.none)
-                        Text("5 min").tag(TimeInterval?(300))
-                        Text("10 min").tag(TimeInterval?(600))
-                        Text("15 min").tag(TimeInterval?(900))
+                        Text(NSLocalizedString("settings.duration.5min", comment: ""))
+                            .tag(TimeInterval?(300))
+                        Text(NSLocalizedString("settings.duration.10min", comment: ""))
+                            .tag(TimeInterval?(600))
+                        Text(NSLocalizedString("settings.duration.15min", comment: ""))
+                            .tag(TimeInterval?(900))
                     }
                     .pickerStyle(.menu)
                 } header: {

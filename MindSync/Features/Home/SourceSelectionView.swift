@@ -25,12 +25,6 @@ struct SourceSelectionView: View {
                 Text(NSLocalizedString("sourceSelection.title", comment: ""))
                     .font(AppConstants.Typography.title)
                     .accessibilityIdentifier("sourceSelection.title")
-                    .onAppear {
-                        // DEBUG: Test if localization is working
-                        let testString = NSLocalizedString("sourceSelection.filePicker.title", comment: "")
-                        print("DEBUG: sourceSelection.filePicker.title = '\(testString)'")
-                        print("DEBUG: If you see 'sourceSelection.filePicker.title' above, the key is missing!")
-                    }
                 
                 // Direct file selection (RECOMMENDED)
                 Button(action: {

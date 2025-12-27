@@ -3,6 +3,18 @@ import Foundation
 /// Engine for generating LightScripts from AudioTracks and EntrainmentMode
 final class EntrainmentEngine {
     
+    /// Minimum perceptible vibration intensity (0.0 - 1.0)
+    /// 
+    /// This value ensures vibrations are strong enough to be noticeable even at low user intensity settings.
+    /// User intensity preferences are scaled by mode multipliers, then clamped to this minimum.
+    /// 
+    /// Default: 0.15 (15% intensity) - ensures vibrations are perceptible while respecting user preferences
+    /// 
+    /// - Note: This is applied after user intensity (0.1-1.0) is multiplied by mode-specific multipliers.
+    ///   For example, if a user sets intensity to 0.1 and the mode multiplier is 1.0, the result
+    ///   would be 0.1, which is then clamped to this minimum (0.15).
+    static let minVibrationIntensity: Float = 0.15
+    
     /// Calculates cinematic intensity with frequency drift and audio reactivity
     /// - Parameters:
     ///   - baseFrequency: Base frequency in Hz (typically 6.5 for cinematic mode)
@@ -104,6 +116,141 @@ final class EntrainmentEngine {
         )
     }
     
+    // MARK: - Generic Event Generation Helpers
+    
+    /// Generic helper for generating events from timestamps with shared logic:
+    /// ramping, frequency interpolation, period calculation, waveform selection, and intensity handling.
+    /// - Parameters:
+    ///   - timestamps: Array of timestamps (e.g., beat timestamps)
+    ///   - targetFrequency: Target frequency in Hz
+    ///   - mode: Entrainment mode for waveform and intensity selection
+    ///   - baseIntensity: Base intensity value (0.0 - 1.0)
+    ///   - waveformSelector: Closure that selects waveform based on mode
+    ///   - durationMultiplier: Closure that calculates event duration from mode, waveform, and period
+    ///   - eventFactory: Closure that creates an event from timestamp, intensity, duration, and waveform
+    /// - Returns: Array of generated events
+    private func generateEvents<Event, Waveform>(
+        timestamps: [TimeInterval],
+        targetFrequency: Double,
+        mode: EntrainmentMode,
+        baseIntensity: Float,
+        waveformSelector: (EntrainmentMode) -> Waveform,
+        durationMultiplier: (EntrainmentMode, Waveform, TimeInterval) -> TimeInterval,
+        eventFactory: (TimeInterval, Float, TimeInterval, Waveform) -> Event
+    ) -> [Event] {
+        // Delegate to throwing variant by wrapping non-throwing factory in throwing closure.
+        // This should never throw; if it does, we fail fast with a clear precondition message.
+        do {
+            return try generateEvents(
+                timestamps: timestamps,
+                targetFrequency: targetFrequency,
+                mode: mode,
+                baseIntensity: baseIntensity,
+                waveformSelector: waveformSelector,
+                durationMultiplier: durationMultiplier,
+                eventFactory: { timestamp, intensity, duration, waveform in
+                    // Original factory can't throw, so we can call it directly within throwing closure
+                    return eventFactory(timestamp, intensity, duration, waveform)
+                }
+            )
+        } catch {
+            preconditionFailure("Non-throwing generateEvents unexpectedly threw: \(error)")
+        }
+    }
+    
+    /// Generic helper for generating events with shared logic (ramping, smoothstep, frequency interpolation, etc.)
+    /// Supports throwing event factories for validation.
+    private func generateEvents<Event, Waveform>(
+        timestamps: [TimeInterval],
+        targetFrequency: Double,
+        mode: EntrainmentMode,
+        baseIntensity: Float,
+        waveformSelector: (EntrainmentMode) -> Waveform,
+        durationMultiplier: (EntrainmentMode, Waveform, TimeInterval) -> TimeInterval,
+        eventFactory: (TimeInterval, Float, TimeInterval, Waveform) throws -> Event
+    ) throws -> [Event] {
+        var events: [Event] = []
+        
+        // Ramping: start from mode.startFrequency and interpolate to targetFrequency over mode.rampDuration
+        let startFreq = mode.startFrequency
+        let rampTime = mode.rampDuration
+        
+        for timestamp in timestamps {
+            // Calculate progress for ramp at this timestamp
+            let progress = rampTime > 0 ? min(timestamp / rampTime, 1.0) : 1.0
+            let smooth = MathHelpers.smoothstep(progress)
+            let currentFreq = startFreq + (targetFrequency - startFreq) * smooth
+            let period = 1.0 / max(0.0001, currentFreq) // avoid div by zero
+            
+            // Select waveform based on mode
+            let waveform = waveformSelector(mode)
+            
+            // Calculate duration based on waveform and mode
+            let eventDuration = durationMultiplier(mode, waveform, period)
+            
+            // Create event (propagate throws)
+            let event = try eventFactory(timestamp, baseIntensity, eventDuration, waveform)
+            events.append(event)
+        }
+        
+        return events
+    }
+    
+    /// Generic helper for generating uniform events (fallback when no beats detected) with shared logic:
+    /// ramping, frequency interpolation, period calculation, waveform selection, and intensity handling.
+    /// - Parameters:
+    ///   - frequency: Target frequency in Hz
+    ///   - duration: Total duration to generate events for
+    ///   - mode: Entrainment mode for waveform and intensity selection
+    ///   - baseIntensity: Base intensity value (0.0 - 1.0)
+    ///   - waveformSelector: Closure that selects waveform based on mode
+    ///   - durationCalculator: Closure that calculates event duration from waveform and period
+    ///   - eventFactory: Closure that creates an event from timestamp, intensity, duration, and waveform
+    /// - Returns: Array of generated events
+    private func generateUniformEvents<Event, Waveform>(
+        frequency: Double,
+        duration: TimeInterval,
+        mode: EntrainmentMode,
+        baseIntensity: Float,
+        waveformSelector: (EntrainmentMode) -> Waveform,
+        durationCalculator: (Waveform, TimeInterval) -> TimeInterval,
+        eventFactory: (TimeInterval, Float, TimeInterval, Waveform) -> Event
+    ) -> [Event] {
+        var events: [Event] = []
+        
+        // Ramping: start from mode.startFrequency and interpolate to provided frequency
+        let startFreq = mode.startFrequency
+        let targetFreq = frequency
+        let rampTime = mode.rampDuration
+        
+        var currentTime: TimeInterval = 0
+        
+        while currentTime < duration {
+            // Calculate progress for ramp [0..1]
+            let progress = rampTime > 0 ? min(currentTime / rampTime, 1.0) : 1.0
+            
+            // Smoothstep for nicer transitions
+            let smooth = MathHelpers.smoothstep(progress)
+            
+            let currentFreq = startFreq + (targetFreq - startFreq) * smooth
+            let period = 1.0 / max(0.0001, currentFreq)
+            
+            // Select waveform based on mode
+            let waveform = waveformSelector(mode)
+            
+            // Calculate duration based on waveform
+            let eventDuration = durationCalculator(waveform, period)
+            
+            // Create event
+            let event = eventFactory(currentTime, baseIntensity, eventDuration, waveform)
+            events.append(event)
+            
+            currentTime += period
+        }
+        
+        return events
+    }
+    
     /// Generates light events from beat timestamps
     private func generateLightEvents(
         beatTimestamps: [TimeInterval],
@@ -127,61 +274,56 @@ final class EntrainmentEngine {
         // Determine color: use provided screenColor for screen mode, nil for flashlight
         let eventColor: LightEvent.LightColor? = (lightSource == .screen) ? (screenColor ?? .white) : nil
         
-        var events: [LightEvent] = []
-
-        // Create a light event for each beat. Use ramping so frequency at timestamp
-        // smoothly interpolates from mode.startFrequency -> targetFrequency over mode.rampDuration.
-        let startFreq = mode.startFrequency
-        let rampTime = mode.rampDuration
-
-        for beatTimestamp in beatTimestamps {
-            // Calculate progress for ramp at this beat timestamp
-            let progress = rampTime > 0 ? min(beatTimestamp / rampTime, 1.0) : 1.0
-            let smooth = progress * progress * (3.0 - 2.0 * progress)
-            let currentFreq = startFreq + (targetFrequency - startFreq) * smooth
-            let period = 1.0 / max(0.0001, currentFreq) // avoid div by zero
-            // Select waveform based on mode
-            let waveform: LightEvent.Waveform = {
-                switch mode {
-                case .alpha: return .sine      // Smooth for relaxation
-                case .theta: return .sine     // Smooth for trip
-                case .gamma: return .square   // Hard for focus
-                case .cinematic: return .sine // Smooth for cinematic (dynamically modulated at runtime)
-                }
-            }()
-            
-            // Intensity based on mode
-            // For cinematic mode, use base intensity 0.5 (will be dynamically modulated at runtime)
-            let intensity: Float = {
-                switch mode {
-                case .alpha: return 0.4  // Softer for relaxation
-                case .theta: return 0.3  // Very soft for trip
-                case .gamma: return 0.7  // More intense for focus
-                case .cinematic: return 0.5  // Base intensity (dynamically adjusted at runtime)
-                }
-            }()
-            
-            // Duration: half period for square, full period for sine
-            let duration: TimeInterval = {
-                switch waveform {
-                case .square: return period / 2.0  // Short for hard blink
-                case .sine: return period         // Longer for soft pulse
-                case .triangle: return period
-                }
-            }()
-            
-            let event = LightEvent(
-                timestamp: beatTimestamp,
-                intensity: intensity,
-                duration: duration,
-                waveform: waveform,
-                color: eventColor
-            )
-            
-            events.append(event)
+        // Waveform selector based on mode
+        let waveformSelector: (EntrainmentMode) -> LightEvent.Waveform = { mode in
+            switch mode {
+            case .alpha: return .sine      // Smooth for relaxation
+            case .theta: return .sine     // Smooth for trip
+            case .gamma: return .square   // Hard for focus
+            case .cinematic: return .sine // Smooth for cinematic (dynamically modulated at runtime)
+            }
         }
         
-        return events
+        // Intensity selector based on mode
+        let intensitySelector: (EntrainmentMode) -> Float = { mode in
+            switch mode {
+            case .alpha: return 0.4  // Softer for relaxation
+            case .theta: return 0.3  // Very soft for trip
+            case .gamma: return 0.7  // More intense for focus
+            case .cinematic: return 0.5  // Base intensity (dynamically adjusted at runtime)
+            }
+        }
+        
+        // Duration multiplier for cinematic mode
+        let durationMultiplier: (EntrainmentMode, LightEvent.Waveform, TimeInterval) -> TimeInterval = { mode, waveform, period in
+            if mode == .cinematic {
+                // Use 1.5x period for cinematic to ensure events overlap and create continuous wave
+                return period * 1.5
+            }
+            switch waveform {
+            case .square: return period / 2.0  // Short for hard blink
+            case .sine: return period         // Longer for soft pulse
+            case .triangle: return period
+            }
+        }
+        
+        return generateEvents(
+            timestamps: beatTimestamps,
+            targetFrequency: targetFrequency,
+            mode: mode,
+            baseIntensity: intensitySelector(mode),
+            waveformSelector: waveformSelector,
+            durationMultiplier: durationMultiplier,
+            eventFactory: { timestamp, intensity, duration, waveform in
+                LightEvent(
+                    timestamp: timestamp,
+                    intensity: intensity,
+                    duration: duration,
+                    waveform: waveform,
+                    color: eventColor
+                )
+            }
+        )
     }
     
     /// Fallback: Generates uniform pulsation if no beats were detected
@@ -192,58 +334,263 @@ final class EntrainmentEngine {
         lightSource: LightSource,
         screenColor: LightEvent.LightColor?
     ) -> [LightEvent] {
-        var events: [LightEvent] = []
         let eventColor: LightEvent.LightColor? = (lightSource == .screen) ? (screenColor ?? .white) : nil
 
-        // Determine intensity and waveform for fallback based on mode
-        let fallbackIntensity: Float = {
+        // Waveform selector for fallback based on mode
+        let waveformSelector: (EntrainmentMode) -> LightEvent.Waveform = { mode in
+            switch mode {
+            case .alpha, .theta, .cinematic: return .sine
+            case .gamma: return .square
+            }
+        }
+        
+        // Intensity selector for fallback based on mode
+        let intensitySelector: (EntrainmentMode) -> Float = { mode in
             switch mode {
             case .alpha: return 0.4
             case .theta: return 0.3
             case .gamma: return 0.7
             case .cinematic: return 0.5
             }
-        }()
-
-        let fallbackWaveform: LightEvent.Waveform = {
+        }
+        
+        // Duration calculator: half period for square, full period for sine/triangle
+        let durationCalculator: (LightEvent.Waveform, TimeInterval) -> TimeInterval = { waveform, period in
+            (waveform == .square) ? (period / 2.0) : period
+        }
+        
+        return generateUniformEvents(
+            frequency: frequency,
+            duration: duration,
+            mode: mode,
+            baseIntensity: intensitySelector(mode),
+            waveformSelector: waveformSelector,
+            durationCalculator: durationCalculator,
+            eventFactory: { timestamp, intensity, duration, waveform in
+                LightEvent(
+                    timestamp: timestamp,
+                    intensity: intensity,
+                    duration: duration,
+                    waveform: waveform,
+                    color: eventColor
+                )
+            }
+        )
+    }
+    
+    /// Generates a VibrationScript from an AudioTrack and EntrainmentMode
+    /// - Parameters:
+    ///   - track: The analyzed AudioTrack with beat timestamps
+    ///   - mode: The selected EntrainmentMode (Alpha/Theta/Gamma)
+    ///   - intensity: User preference for vibration intensity (0.1 - 1.0)
+    ///     Note: The actual intensity applied to events will be clamped to a minimum of
+    ///     `minVibrationIntensity` (default: 0.15) to ensure vibrations are perceptible.
+    ///     The intensity is first multiplied by mode-specific multipliers, then clamped.
+    /// - Returns: A VibrationScript with synchronized vibration events
+    /// - Throws: VibrationScriptError if validation fails
+    func generateVibrationScript(
+        from track: AudioTrack,
+        mode: EntrainmentMode,
+        intensity: Float
+    ) throws -> VibrationScript {
+        // Calculate multiplier N so that f_target is in target band
+        // For vibration, we use a reasonable max frequency (e.g., 30 Hz like flashlight)
+        let maxVibrationFrequency = 30.0
+        let multiplier = calculateMultiplier(
+            bpm: track.bpm,
+            targetRange: mode.frequencyRange,
+            maxFrequency: maxVibrationFrequency
+        )
+        
+        // Calculate target frequency: f_target = (BPM / 60) × N
+        let targetFrequency = (track.bpm / 60.0) * Double(multiplier)
+        
+        // Generate vibration events based on beat timestamps
+        let events = try generateVibrationEvents(
+            beatTimestamps: track.beatTimestamps,
+            targetFrequency: targetFrequency,
+            mode: mode,
+            trackDuration: track.duration,
+            intensity: intensity
+        )
+        
+        return try VibrationScript(
+            trackId: track.id,
+            mode: mode,
+            targetFrequency: targetFrequency,
+            multiplier: multiplier,
+            events: events
+        )
+    }
+    
+    /// Generates vibration events from beat timestamps
+    private func generateVibrationEvents(
+        beatTimestamps: [TimeInterval],
+        targetFrequency: Double,
+        mode: EntrainmentMode,
+        trackDuration: TimeInterval,
+        intensity: Float
+    ) throws -> [VibrationEvent] {
+        guard !beatTimestamps.isEmpty else {
+            // Fallback: uniform pulsation if no beats detected
+            return try generateFallbackVibrationEvents(
+                frequency: targetFrequency,
+                duration: trackDuration,
+                mode: mode,
+                intensity: intensity
+            )
+        }
+        
+        // Waveform selector based on mode
+        let waveformSelector: (EntrainmentMode) -> VibrationEvent.Waveform = { mode in
+            switch mode {
+            case .alpha: return .sine      // Smooth for relaxation
+            case .theta: return .sine     // Smooth for trip
+            case .gamma: return .square   // Hard for focus
+            case .cinematic: return .sine // Smooth for cinematic
+            }
+        }
+        
+        // Intensity: apply user preference intensity directly.
+        // Mode-specific intensity differences are handled by base event intensity values,
+        // so user preference acts as a global scale factor.
+        
+        // Ensure minimum intensity for vibration to be noticeable
+        // User preference (0.1-1.0), clamped to minVibrationIntensity
+        let baseIntensity = max(Self.minVibrationIntensity, intensity)
+        
+        // Duration multiplier: half period for square, full period for sine
+        let durationMultiplier: (EntrainmentMode, VibrationEvent.Waveform, TimeInterval) -> TimeInterval = { _, waveform, period in
+            switch waveform {
+            case .square: return period / 2.0  // Short for hard vibration
+            case .sine: return period         // Longer for soft pulse
+            case .triangle: return period
+            }
+        }
+        
+        // Use throwing version of generateEvents for VibrationEvent
+        return try generateVibrationEventsWithValidation(
+            timestamps: beatTimestamps,
+            targetFrequency: targetFrequency,
+            mode: mode,
+            baseIntensity: baseIntensity,
+            waveformSelector: waveformSelector,
+            durationMultiplier: durationMultiplier
+        )
+    }
+    
+    /// Helper for generating VibrationEvents with validation (throws on invalid values)
+    private func generateVibrationEventsWithValidation(
+        timestamps: [TimeInterval],
+        targetFrequency: Double,
+        mode: EntrainmentMode,
+        baseIntensity: Float,
+        waveformSelector: (EntrainmentMode) -> VibrationEvent.Waveform,
+        durationMultiplier: (EntrainmentMode, VibrationEvent.Waveform, TimeInterval) -> TimeInterval
+    ) throws -> [VibrationEvent] {
+        return try generateEvents(
+            timestamps: timestamps,
+            targetFrequency: targetFrequency,
+            mode: mode,
+            baseIntensity: baseIntensity,
+            waveformSelector: waveformSelector,
+            durationMultiplier: durationMultiplier,
+            eventFactory: { timestamp, intensity, duration, waveform in
+                try VibrationEvent(
+                    timestamp: timestamp,
+                    intensity: intensity,
+                    duration: duration,
+                    waveform: waveform
+                )
+            }
+        )
+    }
+    
+    /// Fallback: Generates uniform pulsation if no beats were detected
+    private func generateFallbackVibrationEvents(
+        frequency: Double,
+        duration: TimeInterval,
+        mode: EntrainmentMode,
+        intensity: Float
+    ) throws -> [VibrationEvent] {
+        // Waveform selector for fallback based on mode
+        let waveformSelector: (EntrainmentMode) -> VibrationEvent.Waveform = { mode in
             switch mode {
             case .alpha, .theta, .cinematic: return .sine
             case .gamma: return .square
             }
-        }()
-
+        }
+        
+        // Intensity: apply user preference intensity directly.
+        // Mode-specific intensity differences are handled by base event intensity values,
+        // so user preference acts as a global scale factor.
+        
+        // Ensure minimum intensity for vibration to be noticeable
+        // User preference (0.1-1.0), clamped to minVibrationIntensity
+        let baseIntensity = max(Self.minVibrationIntensity, intensity)
+        
+        // Duration calculator: half period for square, full period for sine/triangle
+        let durationCalculator: (VibrationEvent.Waveform, TimeInterval) -> TimeInterval = { waveform, period in
+            (waveform == .square) ? (period / 2.0) : period
+        }
+        
+        // Use throwing version of generateUniformEvents for VibrationEvent
+        return try generateUniformVibrationEventsWithValidation(
+            frequency: frequency,
+            duration: duration,
+            mode: mode,
+            baseIntensity: baseIntensity,
+            waveformSelector: waveformSelector,
+            durationCalculator: durationCalculator
+        )
+    }
+    
+    /// Helper for generating uniform VibrationEvents with validation (throws on invalid values)
+    private func generateUniformVibrationEventsWithValidation(
+        frequency: Double,
+        duration: TimeInterval,
+        mode: EntrainmentMode,
+        baseIntensity: Float,
+        waveformSelector: (EntrainmentMode) -> VibrationEvent.Waveform,
+        durationCalculator: (VibrationEvent.Waveform, TimeInterval) -> TimeInterval
+    ) throws -> [VibrationEvent] {
+        var events: [VibrationEvent] = []
+        
         // Ramping: start from mode.startFrequency and interpolate to provided frequency
         let startFreq = mode.startFrequency
         let targetFreq = frequency
         let rampTime = mode.rampDuration
-
+        
         var currentTime: TimeInterval = 0
-
+        
         while currentTime < duration {
             // Calculate progress for ramp [0..1]
             let progress = rampTime > 0 ? min(currentTime / rampTime, 1.0) : 1.0
-
+            
             // Smoothstep for nicer transitions
-            let smooth = progress * progress * (3.0 - 2.0 * progress)
-
+            let smooth = MathHelpers.smoothstep(progress)
+            
             let currentFreq = startFreq + (targetFreq - startFreq) * smooth
             let period = 1.0 / max(0.0001, currentFreq)
-
-            let eventDuration: TimeInterval = (fallbackWaveform == .square) ? (period / 2.0) : period
-
-            let event = LightEvent(
+            
+            // Select waveform based on mode
+            let waveform = waveformSelector(mode)
+            
+            // Calculate duration based on waveform
+            let eventDuration = durationCalculator(waveform, period)
+            
+            // Create event with validation (throws on invalid values)
+            let event = try VibrationEvent(
                 timestamp: currentTime,
-                intensity: fallbackIntensity,
+                intensity: baseIntensity,
                 duration: eventDuration,
-                waveform: fallbackWaveform,
-                color: eventColor
+                waveform: waveform
             )
-
             events.append(event)
-
+            
             currentTime += period
         }
-
+        
         return events
     }
 }

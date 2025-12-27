@@ -9,6 +9,20 @@ struct SessionView: View {
     let audioFileURL: URL?
     let isMicrophoneMode: Bool
     
+    /// Height of the status banner including padding (used for offset calculations)
+    /// Calculated from: top padding (8) + banner vertical padding (sm + xs = 12) + content height (icon ~24 or text ~20)
+    /// Note: Uses max of icon and text heights, accounts for potential text wrapping with conservative estimate
+    private static var statusBannerHeight: CGFloat {
+        let topPadding: CGFloat = 8
+        let bannerVerticalPadding: CGFloat = AppConstants.Spacing.sm + AppConstants.Spacing.xs // 8 + 4 = 12
+        let iconHeight: CGFloat = AppConstants.IconSize.medium // 24
+        // Subheadline font typically ~20pt, but allow for text wrapping
+        let estimatedTextHeight: CGFloat = 20
+        let contentHeight = max(iconHeight, estimatedTextHeight) // 24
+        
+        return topPadding + bannerVerticalPadding + contentHeight // 8 + 12 + 24 = 44
+    }
+    
     init(song: MPMediaItem? = nil, audioFileURL: URL? = nil, isMicrophoneMode: Bool = false) {
         self.mediaItem = song
         self.audioFileURL = audioFileURL
@@ -31,7 +45,9 @@ struct SessionView: View {
                 
             case .analyzing:
                 if let progress = viewModel.analysisProgress {
-                    AnalysisProgressView(progress: progress)
+                    AnalysisProgressView(progress: progress) {
+                        viewModel.cancelAnalysis()
+                    }
                 }
                 
             case .running:
@@ -44,11 +60,24 @@ struct SessionView: View {
                 errorView
             }
             
+            // Status message banner overlay (non-error notifications)
+            if let statusMessage = viewModel.statusMessage {
+                VStack {
+                    StatusBanner(message: statusMessage)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                    
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.statusMessage)
+            }
+            
             // Thermal warning banner overlay
             VStack {
                 SafetyBanner(warningLevel: viewModel.thermalWarningLevel)
                     .padding(.horizontal)
-                    .padding(.top, 8)
+                    .padding(.top, viewModel.statusMessage != nil ? Self.statusBannerHeight : 8)
                 
                 Spacer()
             }
@@ -74,7 +103,8 @@ struct SessionView: View {
                 SessionTrackInfoView(
                     track: viewModel.currentTrack,
                     script: viewModel.currentScript,
-                    session: session
+                    session: session,
+                    currentFrequency: viewModel.currentFrequency
                 )
                 .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
             }
@@ -205,6 +235,7 @@ private struct SessionTrackInfoView: View {
     let track: AudioTrack?
     let script: LightScript?
     let session: Session
+    let currentFrequency: Double?
     
     var body: some View {
         VStack(spacing: AppConstants.Spacing.sm) {
@@ -241,9 +272,22 @@ private struct SessionTrackInfoView: View {
                 )
                 
                 if let script = script, let bpm = track?.bpm {
+                    // Defensive check: currentFrequency should be > 0. Fall back to targetFrequency and assert in debug if invalid.
+                    let validatedFrequency: Double
+                    if let frequency = currentFrequency {
+                        if frequency > 0 {
+                            validatedFrequency = frequency
+                        } else {
+                            assertionFailure("SessionTrackInfoView received invalid currentFrequency: \(frequency). Expected > 0 Hz.")
+                            validatedFrequency = script.targetFrequency
+                        }
+                    } else {
+                        validatedFrequency = script.targetFrequency
+                    }
+                    let frequencyText = String(format: NSLocalizedString("session.frequencyBpm", comment: ""), Int(validatedFrequency), Int(bpm))
                     ModeChip(
                         icon: "metronome.fill",
-                        text: "\(Int(script.targetFrequency)) Hz • \(Int(bpm)) BPM",
+                        text: frequencyText,
                         color: .mint.opacity(0.8)
                     )
                 }
@@ -290,6 +334,36 @@ private struct AffirmationStatusView: View {
         }
         .padding(AppConstants.Spacing.md)
         .mindSyncCardStyle()
+    }
+}
+
+private struct StatusBanner: View {
+    let message: String
+    
+    var body: some View {
+        HStack(spacing: AppConstants.Spacing.md) {
+            // Info icon (non-error)
+            Image(systemName: "info.circle.fill")
+                .font(.system(size: AppConstants.IconSize.medium, weight: .semibold))
+                .foregroundStyle(.mindSyncInfo)
+                .accessibilityHidden(true)
+            
+            // Status message
+            Text(message)
+                .font(AppConstants.Typography.subheadline)
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.leading)
+            
+            Spacer()
+        }
+        .padding(.horizontal, AppConstants.Spacing.md)
+        .padding(.vertical, AppConstants.Spacing.sm + AppConstants.Spacing.xs)
+        .background(Color.mindSyncInfo.opacity(AppConstants.Opacity.bannerBackground))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppConstants.CornerRadius.medium)
+                .stroke(Color.mindSyncInfo.opacity(AppConstants.Opacity.bannerBorder), lineWidth: AppConstants.Border.standard)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: AppConstants.CornerRadius.medium))
     }
 }
 

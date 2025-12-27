@@ -115,6 +115,23 @@ enum AppConstants {
         
         /// Background opacity for buttons
         static let buttonBackground: Double = 0.3
+        
+        /// Background opacity for status/info banners
+        static let bannerBackground: Double = 0.2
+        
+        /// Border opacity for status/info banners
+        static let bannerBorder: Double = 0.3
+    }
+    
+    // MARK: - Border
+    
+    /// Border and stroke styles
+    enum Border {
+        /// Standard border width for cards and banners
+        static let standard: CGFloat = 1
+        
+        /// Thick border width for emphasis
+        static let thick: CGFloat = 2
     }
     
     // MARK: - Shadows

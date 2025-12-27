@@ -80,6 +80,10 @@
 "analysis.detecting" = "Beats werden erkannt...";
 "analysis.mapping" = "LightScript wird erstellt...";
 "analysis.complete" = "Analyse abgeschlossen!";
+"analysis.cancel" = "Abbrechen";
+"analysis.cancelHint" = "Bricht die laufende Analyse ab";
+"analysis.warning.medium" = "Analyse dauert länger als erwartet. Noch ca. %d Sekunden...";
+"analysis.warning.long" = "Analyse benötigt noch ca. %d Sekunden. Bitte warten...";
 
 // MARK: - Settings
 "settings.title" = "Einstellungen";
@@ -93,6 +97,11 @@
 "settings.fallDetection" = "Sturzerkennung";
 "settings.thermalProtection" = "Thermischer Schutz";
 "settings.hapticFeedback" = "Haptisches Feedback";
+"settings.hapticFeedbackDescription" = "Kurzes haptisches Feedback für UI-Interaktionen (Buttons, Start/Stop)";
+"settings.vibration" = "Sitzungs-Vibration";
+"settings.vibrationDescription" = "Kontinuierliche Vibration synchron mit Audio und Licht während der Sitzung";
+"settings.vibrationEnabled" = "Sitzungs-Vibration aktivieren";
+"settings.vibrationIntensity" = "Vibrations-Intensität";
 "settings.intensity" = "Intensität";
 "settings.defaultIntensity" = "Standard-Intensität";
 "settings.intensityDescription" = "Standard-Helligkeit für Stroboskoplicht (betrifft nur Taschenlampe).";
@@ -101,8 +110,10 @@
 "settings.affirmationSelect" = "Affirmation auswählen";
 "settings.affirmationRemove" = "Affirmation entfernen";
 "settings.affirmationNone" = "Keine Affirmation hinterlegt.";
-"settings.session" = "Sitzungsdauer";
+"settings.session" = "Sitzung & Analyse";
 "settings.sessionDescription" = "Begrenzt die maximale Dauer von Taschenlampen-Sessions, um Überhitzung zu vermeiden.";
+"settings.quickAnalysis" = "Schnellanalyse";
+"settings.quickAnalysisDescription" = "Aktiviert die Schnellanalyse für alle Titel und reduziert die Analysezeit durch schnellere Beat-Erkennung. Titel mit mehr als 10 Minuten Länge verwenden Schnellanalyse immer automatisch – unabhängig von dieser Einstellung.";
 "settings.maxDuration" = "Maximale Dauer";
 "settings.duration.unlimited" = "Kein Limit";
 "settings.history" = "Sitzungshistorie";
@@ -187,7 +198,9 @@
 "error.audio.unsupportedFormat" = "Audioformat wird nicht unterstützt.";
 "error.audio.analysisFailure" = "Analyse fehlgeschlagen: %@";
 "error.audio.cancelled" = "Analyse abgebrochen.";
-"error.audio.fileTooLong" = "Audiodatei ist zu lang (%d Minuten). Die maximal unterstützte Länge beträgt 30 Minuten.";
+"status.audio.cancelled" = "Analyse wurde abgebrochen.";
+"status.vibration.unavailable" = "Vibration ist nicht verfügbar. Session wird ohne Vibration fortgesetzt.";
+"error.audio.fileTooLong" = "Audiodatei ist zu lang (%d Minuten). Die maximal unterstützte Länge beträgt 120 Minuten.";
 "error.audio.corruptedData" = "Die Audiodaten wirken beschädigt oder leer. Bitte wähle einen anderen Titel.";
 "error.audio.timeout" = "Die Audio-Analyse hat ungewöhnlich lange gedauert und wurde abgebrochen. Bitte wähle einen kürzeren Titel oder versuche es erneut.";
 "error.file.copyFailed" = "Datei konnte nicht kopiert werden. Bitte versuche es erneut.";
