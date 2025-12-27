@@ -225,6 +225,7 @@ final class VibrationController: NSObject {
             // One full cycle (0 -> 1 -> 0) per period based on target frequency for consistent timing
             guard targetFrequency > 0 else {
                 // Fallback: constant intensity if frequency is not valid (to avoid division-by-zero)
+                logger.warning("Invalid targetFrequency for triangle wave: \(targetFrequency). Using base intensity fallback.")
                 return baseIntensity
             }
             let period: TimeInterval = 1.0 / targetFrequency

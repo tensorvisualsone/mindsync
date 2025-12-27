@@ -98,9 +98,9 @@
 "settings.thermalProtection" = "Thermischer Schutz";
 "settings.hapticFeedback" = "Haptisches Feedback";
 "settings.hapticFeedbackDescription" = "Kurzes haptisches Feedback für UI-Interaktionen (Buttons, Start/Stop)";
-"settings.vibration" = "Session-Vibration";
-"settings.vibrationDescription" = "Kontinuierliche Vibration synchron mit Audio und Licht während der Session";
-"settings.vibrationEnabled" = "Session-Vibration aktivieren";
+"settings.vibration" = "Sitzungs-Vibration";
+"settings.vibrationDescription" = "Kontinuierliche Vibration synchron mit Audio und Licht während der Sitzung";
+"settings.vibrationEnabled" = "Sitzungs-Vibration aktivieren";
 "settings.vibrationIntensity" = "Vibrations-Intensität";
 "settings.intensity" = "Intensität";
 "settings.defaultIntensity" = "Standard-Intensität";
@@ -113,7 +113,7 @@
 "settings.session" = "Sitzung & Analyse";
 "settings.sessionDescription" = "Begrenzt die maximale Dauer von Taschenlampen-Sessions, um Überhitzung zu vermeiden.";
 "settings.quickAnalysis" = "Schnellanalyse";
-"settings.quickAnalysisDescription" = "Reduziert die Analysezeit für Audiotracks durch schnellere Beat-Erkennung. Titel über 10 Minuten verwenden automatisch Schnellanalyse.";
+"settings.quickAnalysisDescription" = "Aktiviert die Schnellanalyse für alle Titel und reduziert die Analysezeit durch schnellere Beat-Erkennung. Titel mit mehr als 10 Minuten Länge verwenden Schnellanalyse immer automatisch – unabhängig von dieser Einstellung.";
 "settings.maxDuration" = "Maximale Dauer";
 "settings.duration.unlimited" = "Kein Limit";
 "settings.history" = "Sitzungshistorie";

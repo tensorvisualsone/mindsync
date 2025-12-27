@@ -138,19 +138,24 @@ final class EntrainmentEngine {
         durationMultiplier: (EntrainmentMode, Waveform, TimeInterval) -> TimeInterval,
         eventFactory: (TimeInterval, Float, TimeInterval, Waveform) -> Event
     ) -> [Event] {
-        // Delegate to throwing variant by wrapping non-throwing factory in throwing closure
-        return try! generateEvents(
-            timestamps: timestamps,
-            targetFrequency: targetFrequency,
-            mode: mode,
-            baseIntensity: baseIntensity,
-            waveformSelector: waveformSelector,
-            durationMultiplier: durationMultiplier,
-            eventFactory: { timestamp, intensity, duration, waveform in
-                // Original factory can't throw, so we can call it directly within throwing closure
-                return eventFactory(timestamp, intensity, duration, waveform)
-            }
-        )
+        // Delegate to throwing variant by wrapping non-throwing factory in throwing closure.
+        // This should never throw; if it does, we fail fast with a clear precondition message.
+        do {
+            return try generateEvents(
+                timestamps: timestamps,
+                targetFrequency: targetFrequency,
+                mode: mode,
+                baseIntensity: baseIntensity,
+                waveformSelector: waveformSelector,
+                durationMultiplier: durationMultiplier,
+                eventFactory: { timestamp, intensity, duration, waveform in
+                    // Original factory can't throw, so we can call it directly within throwing closure
+                    return eventFactory(timestamp, intensity, duration, waveform)
+                }
+            )
+        } catch {
+            preconditionFailure("Non-throwing generateEvents unexpectedly threw: \(error)")
+        }
     }
     
     /// Generic helper for generating events with shared logic (ramping, smoothstep, frequency interpolation, etc.)
@@ -446,14 +451,13 @@ final class EntrainmentEngine {
             }
         }
         
-        // Intensity multiplier: Apply user preference intensity, scaled by mode
+        // Intensity: apply user preference intensity directly.
         // Mode-specific intensity differences are handled by base event intensity values,
-        // so we use a uniform multiplier here for user preference scaling
-        let modeIntensityMultiplier: Float = 1.0
+        // so user preference acts as a global scale factor.
         
         // Ensure minimum intensity for vibration to be noticeable
-        // User preference (0.1-1.0) * mode multiplier, clamped to minVibrationIntensity
-        let baseIntensity = max(Self.minVibrationIntensity, intensity * modeIntensityMultiplier)
+        // User preference (0.1-1.0), clamped to minVibrationIntensity
+        let baseIntensity = max(Self.minVibrationIntensity, intensity)
         
         // Duration multiplier: half period for square, full period for sine
         let durationMultiplier: (EntrainmentMode, VibrationEvent.Waveform, TimeInterval) -> TimeInterval = { _, waveform, period in
@@ -517,14 +521,13 @@ final class EntrainmentEngine {
             }
         }
         
-        // Intensity multiplier: Apply user preference intensity, scaled by mode
+        // Intensity: apply user preference intensity directly.
         // Mode-specific intensity differences are handled by base event intensity values,
-        // so we use a uniform multiplier here for user preference scaling
-        let modeIntensityMultiplier: Float = 1.0
+        // so user preference acts as a global scale factor.
         
         // Ensure minimum intensity for vibration to be noticeable
-        // User preference (0.1-1.0) * mode multiplier, clamped to minVibrationIntensity
-        let baseIntensity = max(Self.minVibrationIntensity, intensity * modeIntensityMultiplier)
+        // User preference (0.1-1.0), clamped to minVibrationIntensity
+        let baseIntensity = max(Self.minVibrationIntensity, intensity)
         
         // Duration calculator: half period for square, full period for sine/triangle
         let durationCalculator: (VibrationEvent.Waveform, TimeInterval) -> TimeInterval = { waveform, period in

@@ -272,11 +272,15 @@ private struct SessionTrackInfoView: View {
                 )
                 
                 if let script = script, let bpm = track?.bpm {
-                    // TODO: Investigate why currentFrequency can be zero/negative upstream
-                    // Use currentFrequency only if it's positive, otherwise fall back to script.targetFrequency
+                    // Defensive check: currentFrequency should be > 0. Fall back to targetFrequency and assert in debug if invalid.
                     let validatedFrequency: Double
-                    if let frequency = currentFrequency, frequency > 0 {
-                        validatedFrequency = frequency
+                    if let frequency = currentFrequency {
+                        if frequency > 0 {
+                            validatedFrequency = frequency
+                        } else {
+                            assertionFailure("SessionTrackInfoView received invalid currentFrequency: \(frequency). Expected > 0 Hz.")
+                            validatedFrequency = script.targetFrequency
+                        }
                     } else {
                         validatedFrequency = script.targetFrequency
                     }

@@ -103,6 +103,10 @@ final class SessionViewModel: ObservableObject {
     private var playbackProgressTimer: Timer?
     private var activeTask: Task<Void, Never>?
     
+    // Tracks total duration the session has been paused to adjust elapsed time calculations
+    private var totalPauseDuration: TimeInterval = 0
+    private var pauseStartTime: Date?
+    
     init(historyService: SessionHistoryServiceProtocol? = nil) {
         self.audioAnalyzer = services.audioAnalyzer
         self.audioPlayback = services.audioPlayback
@@ -459,7 +463,7 @@ final class SessionViewModel: ObservableObject {
             return
         }
         
-        let elapsed = Date().timeIntervalSince(startTime)
+        let elapsed = Date().timeIntervalSince(startTime) - totalPauseDuration
         let mode = session.mode
         
         // Calculate ramping progress
@@ -696,9 +700,12 @@ final class SessionViewModel: ObservableObject {
                     vibrationController = services.vibrationController
                 } catch {
                     logger.error("Failed to generate vibration script: \(error.localizedDescription, privacy: .public)")
-                    errorMessage = NSLocalizedString("error.vibration.scriptGenerationFailed", comment: "")
-                    state = .idle
-                    return
+                    // Degrade gracefully: continue without vibration instead of blocking session start
+                    vibrationController = nil
+                    currentVibrationScript = nil
+                    statusMessage = NSLocalizedString("status.vibration.unavailable", comment: "")
+                    // Clear any previous critical error state to avoid stale UI
+                    errorMessage = nil
                 }
             } else {
                 vibrationController = nil
@@ -778,6 +785,7 @@ final class SessionViewModel: ObservableObject {
         // This ensures smooth transition when resuming
         
         state = .paused
+        pauseStartTime = Date()
         
         // Haptic feedback for pause (if enabled)
         if cachedPreferences.hapticFeedbackEnabled {
@@ -801,6 +809,11 @@ final class SessionViewModel: ObservableObject {
         pausedBySilence = false
         
         state = .running
+        
+        if let pauseStart = pauseStartTime {
+            totalPauseDuration += Date().timeIntervalSince(pauseStart)
+            pauseStartTime = nil
+        }
         
         // Haptic feedback for resume (if enabled)
         if cachedPreferences.hapticFeedbackEnabled {
@@ -863,6 +876,8 @@ final class SessionViewModel: ObservableObject {
         pausedByBackground = false
         pausedBySilence = false
         microphoneSilenceStart = nil
+        totalPauseDuration = 0
+        pauseStartTime = nil
         
         // Stop affirmation if playing
         affirmationService.stop()
@@ -967,9 +982,11 @@ final class SessionViewModel: ObservableObject {
                     vibrationController = services.vibrationController
                 } catch {
                     logger.error("Failed to generate initial vibration script: \(error.localizedDescription, privacy: .public)")
-                    errorMessage = NSLocalizedString("error.vibration.scriptGenerationFailed", comment: "")
-                    state = .idle
-                    return
+                    // Degrade gracefully: continue without vibration
+                    vibrationController = nil
+                    currentVibrationScript = nil
+                    statusMessage = NSLocalizedString("status.vibration.unavailable", comment: "")
+                    errorMessage = nil
                 }
             } else {
                 vibrationController = nil
@@ -1226,6 +1243,8 @@ final class SessionViewModel: ObservableObject {
         pausedBySilence = false
         microphoneSilenceStart = nil
         affirmationStatus = nil
+        totalPauseDuration = 0
+        pauseStartTime = nil
         
         // Invalidate affirmation timer
         affirmationTimer?.invalidate()
