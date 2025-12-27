@@ -41,7 +41,7 @@ final class HomeViewUITests: XCTestCase {
     func testHomeView_ModeCardIsTappable() throws {
         // Find the mode card (it should be a button now)
         // We'll look for the current mode text which should be inside a tappable element
-        let modeCard = app.buttons.containing(matching: .staticText, identifier: "home.currentMode").firstMatch
+        let modeCard = app.buttons.containing(.staticText, identifier: "home.currentMode").firstMatch
         
         if modeCard.waitForExistence(timeout: 5) {
             modeCard.tap()
@@ -59,7 +59,7 @@ final class HomeViewUITests: XCTestCase {
     
     func testModeSelectionView_ShowsAllModes() throws {
         // Open mode selection
-        let modeCard = app.buttons.containing(matching: .staticText, identifier: "home.currentMode").firstMatch
+        let modeCard = app.buttons.containing(.staticText, identifier: "home.currentMode").firstMatch
         if modeCard.waitForExistence(timeout: 5) {
             modeCard.tap()
             
@@ -69,10 +69,10 @@ final class HomeViewUITests: XCTestCase {
             
             // Verify all modes are visible (Alpha, Theta, Gamma, Cinematic)
             // We check for display names since they're localized
-            let alphaMode = app.buttons.containing(matching: .staticText, identifier: "mode.alpha.displayName").firstMatch
-            let thetaMode = app.buttons.containing(matching: .staticText, identifier: "mode.theta.displayName").firstMatch
-            let gammaMode = app.buttons.containing(matching: .staticText, identifier: "mode.gamma.displayName").firstMatch
-            let cinematicMode = app.buttons.containing(matching: .staticText, identifier: "mode.cinematic.displayName").firstMatch
+            let alphaMode = app.buttons.containing(.staticText, identifier: "mode.alpha.displayName").firstMatch
+            let thetaMode = app.buttons.containing(.staticText, identifier: "mode.theta.displayName").firstMatch
+            let gammaMode = app.buttons.containing(.staticText, identifier: "mode.gamma.displayName").firstMatch
+            let cinematicMode = app.buttons.containing(.staticText, identifier: "mode.cinematic.displayName").firstMatch
             
             XCTAssertTrue(alphaMode.waitForExistence(timeout: 2), "Alpha mode should be visible")
             XCTAssertTrue(thetaMode.waitForExistence(timeout: 2), "Theta mode should be visible")
@@ -88,7 +88,7 @@ final class HomeViewUITests: XCTestCase {
     
     func testModeSelection_CanSelectMode() throws {
         // Open mode selection
-        let modeCard = app.buttons.containing(matching: .staticText, identifier: "home.currentMode").firstMatch
+        let modeCard = app.buttons.containing(.staticText, identifier: "home.currentMode").firstMatch
         if modeCard.waitForExistence(timeout: 5) {
             modeCard.tap()
             
@@ -97,7 +97,7 @@ final class HomeViewUITests: XCTestCase {
             XCTAssertTrue(modeSelectionTitle.waitForExistence(timeout: 5))
             
             // Select a different mode (e.g., Theta if not already selected)
-            let thetaMode = app.buttons.containing(matching: .staticText, identifier: "mode.theta.displayName").firstMatch
+            let thetaMode = app.buttons.containing(.staticText, identifier: "mode.theta.displayName").firstMatch
             if thetaMode.waitForExistence(timeout: 2) {
                 thetaMode.tap()
                 

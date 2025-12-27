@@ -1,6 +1,7 @@
 import XCTest
 @testable import MindSync
 import AVFoundation
+import Combine
 
 final class AudioAnalyzerIntegrationTests: XCTestCase {
     

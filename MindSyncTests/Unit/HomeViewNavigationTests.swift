@@ -1,4 +1,5 @@
 import XCTest
+import MediaPlayer
 @testable import MindSync
 
 /// Unit tests for HomeView navigation logic

@@ -28,12 +28,13 @@ final class SessionHistoryViewModelTests: XCTestCase {
         mockService.savedSessions = [session]
         
         // When
-        viewModel = SessionHistoryViewModel(historyService: mockService)
+        // Create a fresh viewModel for this test to ensure clean state
+        let testViewModel = SessionHistoryViewModel(historyService: mockService)
         
         // Then
         XCTAssertTrue(mockService.loadAllCalled)
-        XCTAssertEqual(viewModel.sessions.count, 1)
-        XCTAssertEqual(viewModel.sessions.first?.id, session.id)
+        XCTAssertEqual(testViewModel.sessions.count, 1)
+        XCTAssertEqual(testViewModel.sessions.first?.id, session.id)
     }
     
     func testClearHistory() {
@@ -53,8 +54,8 @@ final class SessionHistoryViewModelTests: XCTestCase {
     func testFilteringByMode() {
         // Given
         let thetaSession = createTestSession(mode: .theta)
-        let deltaSession = createTestSession(mode: .delta)
-        mockService.savedSessions = [thetaSession, deltaSession]
+        let gammaSession = createTestSession(mode: .gamma)
+        mockService.savedSessions = [thetaSession, gammaSession]
         viewModel.loadSessions()
         
         // When

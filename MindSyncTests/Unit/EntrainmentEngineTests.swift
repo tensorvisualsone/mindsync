@@ -205,7 +205,11 @@ final class EntrainmentEngineTests: XCTestCase {
         // Cinematic mode should use sine waveform
         XCTAssertEqual(script.events.first?.waveform, .sine)
         // Base intensity should be 0.5 (dynamically modulated at runtime)
-        XCTAssertEqual(script.events.first?.intensity, 0.5, accuracy: 0.01)
+        if let intensity = script.events.first?.intensity {
+            XCTAssertEqual(intensity, 0.5, accuracy: 0.01)
+        } else {
+            XCTFail("Intensity should not be nil")
+        }
     }
     
     func testCalculateCinematicIntensity_BaseCase() {
