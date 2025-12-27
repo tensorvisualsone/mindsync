@@ -177,7 +177,7 @@ struct SessionView: View {
         VStack(spacing: AppConstants.Spacing.sectionSpacing) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: AppConstants.IconSize.extraLarge))
-                .foregroundColor(.mindSyncWarning)
+                .foregroundStyle(Color.mindSyncWarning)
             
             if let error = viewModel.errorMessage {
                 Text(error)
@@ -242,7 +242,7 @@ private struct SessionTrackInfoView: View {
             HStack(spacing: AppConstants.Spacing.sm) {
                 Image(systemName: session.audioSource == .microphone ? "waveform" : "music.note")
                     .font(.system(size: AppConstants.IconSize.medium, weight: .semibold))
-                    .foregroundColor(session.audioSource == .microphone ? .mindSyncWarning : .mindSyncAccent)
+                    .foregroundStyle(session.audioSource == .microphone ? Color.mindSyncWarning : Color.mindSyncAccent)
                 
                 VStack(alignment: .leading, spacing: AppConstants.Spacing.xs) {
                     Text(track?.title ?? NSLocalizedString("session.liveAudio", comment: ""))
@@ -271,20 +271,31 @@ private struct SessionTrackInfoView: View {
                     color: session.mode.themeColor
                 )
                 
-                if let script = script, let bpm = track?.bpm {
+                if let script = script {
                     // Defensive check: currentFrequency should be > 0. Fall back to targetFrequency and assert in debug if invalid.
-                    let validatedFrequency: Double
-                    if let frequency = currentFrequency {
-                        if frequency > 0 {
-                            validatedFrequency = frequency
+                    let validatedFrequency: Double = {
+                        if let frequency = currentFrequency, frequency > 0 {
+                            return frequency
                         } else {
-                            assertionFailure("SessionTrackInfoView received invalid currentFrequency: \(frequency). Expected > 0 Hz.")
-                            validatedFrequency = script.targetFrequency
+                            if let frequency = currentFrequency {
+                                assertionFailure("SessionTrackInfoView received invalid currentFrequency: \(frequency). Expected > 0 Hz.")
+                            } else {
+                                // Assert on nil in debug to catch issues where frequency calculation might be failing
+                                assertionFailure("SessionTrackInfoView received nil currentFrequency. Expected valid frequency.")
+                            }
+                            return script.targetFrequency
                         }
+                    }()
+                    
+                    // Build frequency text with optional BPM
+                    let frequencyText: String
+                    if let bpm = track?.bpm {
+                        frequencyText = String(format: NSLocalizedString("session.frequencyBpm", comment: ""), Int(validatedFrequency), Int(bpm))
                     } else {
-                        validatedFrequency = script.targetFrequency
+                        // Fallback: Show only frequency if BPM is not available (shouldn't happen in practice)
+                        frequencyText = "\(Int(validatedFrequency)) Hz"
                     }
-                    let frequencyText = String(format: NSLocalizedString("session.frequencyBpm", comment: ""), Int(validatedFrequency), Int(bpm))
+                    
                     ModeChip(
                         icon: "metronome.fill",
                         text: frequencyText,
@@ -315,7 +326,7 @@ private struct ModeChip: View {
         .padding(.vertical, AppConstants.Spacing.xs)
         .padding(.horizontal, AppConstants.Spacing.sm)
         .background(color.opacity(0.15))
-        .foregroundColor(color)
+        .foregroundStyle(color)
         .clipShape(RoundedRectangle(cornerRadius: AppConstants.CornerRadius.small, style: .continuous))
     }
 }
@@ -326,7 +337,7 @@ private struct AffirmationStatusView: View {
     var body: some View {
         HStack(spacing: AppConstants.Spacing.sm) {
             Image(systemName: "waveform.and.mic")
-                .foregroundColor(.mindSyncInfo)
+                .foregroundStyle(Color.mindSyncInfo)
             Text(status)
                 .font(AppConstants.Typography.caption)
                 .foregroundStyle(.white)
@@ -345,7 +356,7 @@ private struct StatusBanner: View {
             // Info icon (non-error)
             Image(systemName: "info.circle.fill")
                 .font(.system(size: AppConstants.IconSize.medium, weight: .semibold))
-                .foregroundStyle(.mindSyncInfo)
+                .foregroundStyle(Color.mindSyncInfo)
                 .accessibilityHidden(true)
             
             // Status message

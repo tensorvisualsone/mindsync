@@ -12,9 +12,12 @@ final class MicrophoneAnalyzer {
     private let sampleRate: Double = 44100.0
     private let fftSize: Int = 2048
     private let hopSize: Int = 512
-    
+
+    // Serial queue for FFT setup access to prevent race conditions
+    private let fftQueue = DispatchQueue(label: "com.mindsync.microphoneanalyzer.fft", qos: .userInteractive)
+
     // FFT setup for real-time analysis
-    private let fftSetup: FFTSetup
+    private var fftSetup: FFTSetup?
     private let log2n: vDSP_Length
     
     // Beat detection state
@@ -55,17 +58,29 @@ final class MicrophoneAnalyzer {
     init?() {
         // Initialize FFT setup
         self.log2n = vDSP_Length(log2(Double(fftSize)))
-        guard let setup = vDSP_create_fftsetup(log2n, FFTRadix(kFFTRadix2)) else {
+        let setup = vDSP_create_fftsetup(log2n, FFTRadix(kFFTRadix2))
+        guard setup != nil else {
             logger.error("Failed to create FFT setup for MicrophoneAnalyzer")
             return nil
         }
-        self.fftSetup = setup
+
+        // Safely set fftSetup using serial queue
+        fftQueue.sync {
+            self.fftSetup = setup
+        }
+
         self.previousMagnitude = Array(repeating: 0, count: fftSize / 2)
     }
     
     deinit {
         stop()
-        vDSP_destroy_fftsetup(fftSetup)
+        // Safely destroy FFT setup using serial queue to prevent race conditions
+        fftQueue.sync {
+            if let setup = self.fftSetup {
+                vDSP_destroy_fftsetup(setup)
+                self.fftSetup = nil
+            }
+        }
     }
     
     /// Starts microphone analysis
@@ -200,7 +215,15 @@ final class MicrophoneAnalyzer {
             
             // Perform FFT
             let magnitude = performFFT(on: frame)
-            
+
+            // Skip processing if FFT setup is unavailable
+            guard !magnitude.isEmpty else {
+                // FFT setup was nil, skip this frame
+                bufferIndex += hopSize
+                frameIndex += hopSize
+                continue
+            }
+
             let frameRMS = calculateRMS(frame)
             let normalizedLevel = min(1.0, max(0.0, frameRMS * levelNormalizationFactor))
             
@@ -301,6 +324,16 @@ final class MicrophoneAnalyzer {
     
     /// Performs FFT on a frame
     private func performFFT(on frame: [Float]) -> [Float] {
+        // Access fftSetup directly to avoid blocking the real-time audio thread
+        // Note: we rely on stop() calling removeTap() to ensure no callbacks occur after deinit starts cleanup
+        let setup = self.fftSetup
+
+        // Guard against nil fftSetup
+        guard let setup = setup else {
+            logger.error("FFT setup is nil during FFT operation")
+            return [] // Return empty array instead of zero magnitudes to indicate error
+        }
+        
         // Apply Hann window
         var windowed = frame
         var window = [Float](repeating: 0, count: fftSize)
@@ -332,7 +365,7 @@ final class MicrophoneAnalyzer {
                 }
                 
                 // Perform FFT
-                vDSP_fft_zrip(fftSetup, &splitComplex, 1, log2n, FFTDirection(FFT_FORWARD))
+                vDSP_fft_zrip(setup, &splitComplex, 1, log2n, FFTDirection(FFT_FORWARD))
                 
                 // Calculate magnitude
                 vDSP_zvabs(&splitComplex, 1, &magnitude, 1, vDSP_Length(fftSize / 2))

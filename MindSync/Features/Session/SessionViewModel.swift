@@ -426,15 +426,18 @@ final class SessionViewModel: ObservableObject {
         }
         
         updatePlaybackProgress(duration: duration)
-        updateCurrentFrequency()
+        // Note: updateCurrentFrequency() is called in the timer below, not here,
+        // because sessionStartTime may not be set yet when this method is called
         
-        let timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        // Create timer and add to main RunLoop to ensure it fires even during UI interactions
+        let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             Task { @MainActor in
                 self.updatePlaybackProgress(duration: duration)
-                self.updateCurrentFrequency()
+                self.updateCurrentFrequency()  // Will update once sessionStartTime is set
             }
         }
+        RunLoop.main.add(timer, forMode: .common)
         playbackProgressTimer = timer
     }
     
@@ -447,6 +450,25 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
+    /// Starts frequency updates for microphone mode
+    private func startFrequencyUpdates() {
+        // Stop any existing timer first
+        playbackProgressTimer?.invalidate()
+        
+        // Initial update
+        updateCurrentFrequency()
+        
+        // Create timer and add to main RunLoop to ensure it fires even during UI interactions
+        let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            Task { @MainActor in
+                self.updateCurrentFrequency()
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        playbackProgressTimer = timer
+    }
+
     private func updatePlaybackProgress(duration: TimeInterval) {
         let current = audioPlayback.currentTime
         let clampedDuration = max(duration, 0.1)
@@ -604,6 +626,8 @@ final class SessionViewModel: ObservableObject {
             // Start playback and light (this sets the startTime)
             let startTime = Date()
             sessionStartTime = startTime
+            // Update frequency now that sessionStartTime is set (timer will continue updating)
+            updateCurrentFrequency()
             try await startPlaybackAndLight(url: assetURL, script: script, startTime: startTime)
             
             // Start vibration if enabled (using same startTime for synchronization)
@@ -733,6 +757,8 @@ final class SessionViewModel: ObservableObject {
             // Start playback and light (this sets the startTime)
             let startTime = Date()
             sessionStartTime = startTime
+            // Update frequency now that sessionStartTime is set (timer will continue updating)
+            updateCurrentFrequency()
             try await startPlaybackAndLight(url: audioFileURL, script: script, startTime: startTime)
             
             // Start vibration if enabled (using same startTime for synchronization)
@@ -881,7 +907,7 @@ final class SessionViewModel: ObservableObject {
         
         // Stop affirmation if playing
         affirmationService.stop()
-        stopPlaybackProgressUpdates()
+        stopPlaybackProgressUpdates()  // Stops both playback progress and frequency updates (both use playbackProgressTimer)
         affirmationStatus = nil
         
         // Haptic feedback for session stop (if enabled)
@@ -1037,6 +1063,9 @@ final class SessionViewModel: ObservableObject {
             affirmationPlayed = false
             state = .running
             
+            // Start frequency updates for UI display
+            startFrequencyUpdates()
+            
             // Start observing for affirmation trigger
             startAffirmationObserver()
             
@@ -1146,9 +1175,10 @@ final class SessionViewModel: ObservableObject {
             // Extend duration one beat beyond the last detected beat
             estimatedDuration = lastBeat + beatDuration
         } else if bpm > 0 {
-            // No beats yet: assume a short window of several beats
-            let beatDuration = 60.0 / bpm
-            estimatedDuration = beatDuration * 8.0
+            // No beats yet: use a relatively short duration (60 seconds) to ensure events are generated
+            // without creating excessive overhead (which 1 hour would cause).
+            // This will be regenerated as needed when BPM changes or beats are detected.
+            estimatedDuration = 60.0
         } else {
             // Fallback duration when no timing information is available
             estimatedDuration = 60.0

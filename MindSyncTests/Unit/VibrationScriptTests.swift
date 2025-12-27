@@ -222,15 +222,15 @@ final class VibrationScriptTests: XCTestCase {
         }
     }
     
-    func testVibrationScript_InvalidTargetFrequency_Zero_OtherModes_Throws() {
+    func testVibrationScript_InvalidTargetFrequency_Zero_OtherModes_Throws() throws {
         let testCases: [ModeTestCase] = [
             ModeTestCase(mode: .theta, targetFrequency: 0.0, multiplier: 2),
             ModeTestCase(mode: .gamma, targetFrequency: 0.0, multiplier: 2),
             ModeTestCase(mode: .cinematic, targetFrequency: 0.0, multiplier: 2)
         ]
-        
+
         for testCase in testCases {
-            XCTContext.runActivity(named: testCase.description) { _ in
+            try XCTContext.runActivity(named: testCase.description) { _ in
                 let (trackId, events) = makeTestParameters()
                 
                 XCTAssertThrowsError(try VibrationScript(
@@ -250,15 +250,15 @@ final class VibrationScriptTests: XCTestCase {
         }
     }
     
-    func testVibrationScript_InvalidTargetFrequency_Negative_OtherModes_Throws() {
+    func testVibrationScript_InvalidTargetFrequency_Negative_OtherModes_Throws() throws {
         let testCases: [ModeTestCase] = [
             ModeTestCase(mode: .theta, targetFrequency: -5.0, multiplier: 2),
             ModeTestCase(mode: .gamma, targetFrequency: -10.0, multiplier: 3),
             ModeTestCase(mode: .cinematic, targetFrequency: -7.0, multiplier: 4)
         ]
-        
+
         for testCase in testCases {
-            XCTContext.runActivity(named: testCase.description) { _ in
+            try XCTContext.runActivity(named: testCase.description) { _ in
                 let (trackId, events) = makeTestParameters()
                 
                 XCTAssertThrowsError(try VibrationScript(
@@ -278,15 +278,15 @@ final class VibrationScriptTests: XCTestCase {
         }
     }
     
-    func testVibrationScript_InvalidMultiplier_Zero_OtherModes_Throws() {
+    func testVibrationScript_InvalidMultiplier_Zero_OtherModes_Throws() throws {
         let testCases: [ModeTestCase] = [
             ModeTestCase(mode: .theta, targetFrequency: 6.0, multiplier: 0),
             ModeTestCase(mode: .gamma, targetFrequency: 35.0, multiplier: 0),
             ModeTestCase(mode: .cinematic, targetFrequency: 6.5, multiplier: 0)
         ]
-        
+
         for testCase in testCases {
-            XCTContext.runActivity(named: testCase.description) { _ in
+            try XCTContext.runActivity(named: testCase.description) { _ in
                 let (trackId, events) = makeTestParameters()
                 
                 XCTAssertThrowsError(try VibrationScript(
@@ -306,15 +306,15 @@ final class VibrationScriptTests: XCTestCase {
         }
     }
     
-    func testVibrationScript_InvalidMultiplier_Negative_OtherModes_Throws() {
+    func testVibrationScript_InvalidMultiplier_Negative_OtherModes_Throws() throws {
         let testCases: [ModeTestCase] = [
             ModeTestCase(mode: .theta, targetFrequency: 6.0, multiplier: -1),
             ModeTestCase(mode: .gamma, targetFrequency: 35.0, multiplier: -2),
             ModeTestCase(mode: .cinematic, targetFrequency: 6.5, multiplier: -3)
         ]
-        
+
         for testCase in testCases {
-            XCTContext.runActivity(named: testCase.description) { _ in
+            try XCTContext.runActivity(named: testCase.description) { _ in
                 let (trackId, events) = makeTestParameters()
                 
                 XCTAssertThrowsError(try VibrationScript(
