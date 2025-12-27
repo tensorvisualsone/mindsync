@@ -264,7 +264,7 @@ private struct SessionTrackInfoView: View {
                 )
                 
                 // Show frequency indicator only if it provides useful information
-                if let script = script, let currentFrequency = currentFrequency, currentFrequency > 0,
+                if let _ = script, let currentFrequency = currentFrequency, currentFrequency > 0,
                    let bpm = track?.bpm, abs(Int(bpm) - Int(currentFrequency)) >= 2 {
                     // Only show frequency if it differs significantly from BPM (indicating ramping)
                     ModeChip(
