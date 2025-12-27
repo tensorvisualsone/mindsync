@@ -55,7 +55,7 @@ enum WaveformGenerator {
         return max(0.0, min(1.0, intensity)) // Clamp to valid range
     }
     
-    /// Calculates intensity for vibration waveform (same logic as light, but returns Float)
+    /// Calculates intensity for vibration waveform (delegates to calculateIntensity with mapping)
     /// - Parameters:
     ///   - waveform: The vibration waveform type
     ///   - time: Time within the waveform cycle
@@ -68,37 +68,25 @@ enum WaveformGenerator {
         frequency: Double,
         baseIntensity: Float
     ) -> Float {
-        guard frequency > 0 else {
-            return baseIntensity
-        }
-        
-        let period = 1.0 / frequency
-        let phase = (time.truncatingRemainder(dividingBy: period)) / period // 0.0 to 1.0
-        
-        let intensity: Float
+        // Map vibration waveform to light waveform to reuse the core implementation
+        let lightWaveform: LightEvent.Waveform
         switch waveform {
         case .square:
-            // Hard on/off (vibration doesn't need duty cycle adjustment)
-            intensity = phase < 0.5 ? baseIntensity : 0.0
-            
+            lightWaveform = .square
         case .sine:
-            // Smooth sine wave pulsation
-            let sineValue = sin(phase * 2.0 * .pi)
-            let normalizedSine = Float((sineValue + 1.0) / 2.0)
-            intensity = baseIntensity * normalizedSine
-            
+            lightWaveform = .sine
         case .triangle:
-            // Linear ramp up and down
-            let triangleValue: Float
-            if phase < 0.5 {
-                triangleValue = Float(phase * 2.0)
-            } else {
-                triangleValue = Float(2.0 - (phase * 2.0))
-            }
-            intensity = baseIntensity * triangleValue
+            lightWaveform = .triangle
         }
         
-        return max(0.0, min(1.0, intensity))
+        // Use a fixed 50% duty cycle to match the original vibration behavior
+        return calculateIntensity(
+            waveform: lightWaveform,
+            time: time,
+            frequency: frequency,
+            baseIntensity: baseIntensity,
+            dutyCycle: 0.5
+        )
     }
     
     /// Calculates intensity with smooth fade-out for signal pausing (microphone mode)

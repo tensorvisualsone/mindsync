@@ -347,7 +347,7 @@ final class LatencyCalibrationViewModel: ObservableObject {
     /// WICHTIG: Validierung
     /// Speichert nur wenn:
     /// - Kalibrierung erfolgreich abgeschlossen (state == .completed)
-    /// - calibratedOffset ist gültig (nicht 0 und innerhalb akzeptabler Grenzen)
+    /// - calibratedOffset ist gültig (>= 0 und innerhalb akzeptabler Grenzen)
     /// 
     /// - Returns: `true` wenn erfolgreich gespeichert, `false` wenn Validierung fehlgeschlagen ist
     @discardableResult
