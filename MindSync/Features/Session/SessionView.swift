@@ -247,7 +247,16 @@ private struct SessionTrackInfoView: View {
                 Spacer(minLength: 0)
             }
         }
-        .mindSyncCardStyle()
+        .padding(AppConstants.Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: AppConstants.CornerRadius.card, style: .continuous)
+                .fill(Color(.secondarySystemBackground).opacity(0.7))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppConstants.CornerRadius.card, style: .continuous)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                )
+                .shadow(color: Color.black.opacity(0.45), radius: 18, x: 0, y: 16)
+        )
     }
 }
 
@@ -284,7 +293,15 @@ private struct AffirmationStatusView: View {
             Spacer()
         }
         .padding(AppConstants.Spacing.md)
-        .mindSyncCardStyle()
+        .background(
+            RoundedRectangle(cornerRadius: AppConstants.CornerRadius.card, style: .continuous)
+                .fill(Color(.secondarySystemBackground).opacity(0.7))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppConstants.CornerRadius.card, style: .continuous)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                )
+                .shadow(color: Color.black.opacity(0.45), radius: 18, x: 0, y: 16)
+        )
     }
 }
 
