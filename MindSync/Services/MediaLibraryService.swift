@@ -19,7 +19,15 @@ final class MediaLibraryService {
     /// Returns the asset URL if the item is analyzable, otherwise throws with a detailed reason.
     func assetURLForAnalysis(of item: MPMediaItem) async throws -> URL {
         // Accessing `MPMediaItem` properties must happen on the main actor
-        let assetURL = await MainActor.run { item.assetURL }
+        let (assetURL, isCloudItem) = await MainActor.run { 
+            (item.assetURL, item.isCloudItem) 
+        }
+        
+        // Check if this is a cloud-only item (not downloaded)
+        if isCloudItem && assetURL == nil {
+            throw MediaLibraryValidationError.cloudItemNotDownloaded
+        }
+        
         guard let url = assetURL else {
             throw MediaLibraryValidationError.missingAsset
         }
@@ -40,9 +48,35 @@ final class MediaLibraryService {
             return url
         } catch let validationError as MediaLibraryValidationError {
             throw validationError
-        } catch {
-            logger.error("Error checking analyzability: \(error.localizedDescription)")
-            throw MediaLibraryValidationError.unknown(error)
+        } catch let nsError as NSError {
+            logger.error("Error checking analyzability: \(nsError.localizedDescription), domain: \(nsError.domain), code: \(nsError.code)")
+            
+            // Check for common AVFoundation errors
+            if nsError.domain == AVFoundationErrorDomain {
+                switch nsError.code {
+                case AVError.contentIsProtected.rawValue:
+                    throw MediaLibraryValidationError.drmProtected
+                case AVError.fileFormatNotRecognized.rawValue,
+                     AVError.decodingFailed.rawValue:
+                    throw MediaLibraryValidationError.unreadable
+                default:
+                    break
+                }
+            }
+            
+            // Check for file not found or permission issues
+            if nsError.domain == NSCocoaErrorDomain {
+                switch nsError.code {
+                case NSFileReadNoSuchFileError, NSFileNoSuchFileError:
+                    throw MediaLibraryValidationError.missingAsset
+                case NSFileReadNoPermissionError:
+                    throw MediaLibraryValidationError.unreadable
+                default:
+                    break
+                }
+            }
+            
+            throw MediaLibraryValidationError.unknown(nsError)
         }
     }
     
@@ -64,6 +98,7 @@ final class MediaLibraryService {
 
 enum MediaLibraryValidationError: LocalizedError {
     case missingAsset
+    case cloudItemNotDownloaded
     case drmProtected
     case unreadable
     case unknown(Error)
@@ -71,6 +106,8 @@ enum MediaLibraryValidationError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingAsset:
+            return NSLocalizedString("error.media.cloudItem", comment: "")
+        case .cloudItemNotDownloaded:
             return NSLocalizedString("error.media.cloudItem", comment: "")
         case .drmProtected:
             return NSLocalizedString("error.drmProtected", comment: "")

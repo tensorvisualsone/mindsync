@@ -11,6 +11,7 @@ struct SourceSelectionView: View {
     @State private var selectedItem: MPMediaItem?
     @State private var showingError = false
     @State private var errorMessage = ""
+    @State private var isLoadingSong = false
     
     let onSongSelected: (MPMediaItem) -> Void
     let onMicrophoneSelected: (() -> Void)?
@@ -123,6 +124,28 @@ struct SourceSelectionView: View {
                 authorizationStatus = services.mediaLibraryService.authorizationStatus
                 microphoneStatus = services.permissionsService.microphoneStatus
             }
+            .overlay {
+                if isLoadingSong {
+                    ZStack {
+                        Color.black.opacity(0.6)
+                            .ignoresSafeArea()
+                        
+                        VStack(spacing: AppConstants.Spacing.md) {
+                            ProgressView()
+                                .scaleEffect(1.5)
+                                .tint(.white)
+                            
+                            Text(NSLocalizedString("analysis.loading", comment: ""))
+                                .font(AppConstants.Typography.subheadline)
+                                .foregroundColor(.white)
+                        }
+                        .padding(AppConstants.Spacing.xl)
+                        .mindSyncCardStyle()
+                    }
+                    .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: isLoadingSong)
         }
         .mindSyncBackground()
     }
@@ -163,16 +186,20 @@ struct SourceSelectionView: View {
         // Check if song can be analyzed
         guard let mediaLibraryService = mediaLibraryService else { return }
         
+        isLoadingSong = true
+        
         Task {
             do {
                 _ = try await mediaLibraryService.assetURLForAnalysis(of: item)
                 await MainActor.run {
+                    isLoadingSong = false
                     selectedItem = item
                     onSongSelected(item)
                     showingMediaPicker = false
                 }
             } catch {
                 await MainActor.run {
+                    isLoadingSong = false
                     errorMessage = error.localizedDescription
                     showingError = true
                 }

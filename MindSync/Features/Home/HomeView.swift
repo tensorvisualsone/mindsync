@@ -14,16 +14,75 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: AppConstants.Spacing.sectionSpacing) {
-                    VStack(spacing: AppConstants.Spacing.sm) {
-                        Text("MindSync")
-                            .font(AppConstants.Typography.largeTitle)
-                            .accessibilityIdentifier("home.title")
+                    // App Header with Logo
+                    VStack(spacing: AppConstants.Spacing.md) {
+                        // App Icon/Logo
+                        ZStack {
+                            // Glow effect
+                            Circle()
+                                .fill(
+                                    RadialGradient(
+                                        colors: [
+                                            Color.mindSyncAccent.opacity(0.4),
+                                            Color.mindSyncAccent.opacity(0.1),
+                                            Color.clear
+                                        ],
+                                        center: .center,
+                                        startRadius: 20,
+                                        endRadius: 80
+                                    )
+                                )
+                                .frame(width: 160, height: 160)
+                            
+                            // Icon background
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.mindSyncAccent.opacity(0.3),
+                                            Color.mindSyncTheta.opacity(0.2)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 100, height: 100)
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                )
+                            
+                            // Brain/Wave icon
+                            Image(systemName: "brain.head.profile")
+                                .font(.system(size: 48, weight: .light))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [.white, .white.opacity(0.8)],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                )
+                        }
+                        .padding(.top, AppConstants.Spacing.lg)
                         
-                        Text(NSLocalizedString("home.subtitle", comment: ""))
-                            .font(AppConstants.Typography.body)
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(.mindSyncSecondaryText)
-                            .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
+                        VStack(spacing: AppConstants.Spacing.xs) {
+                            Text("MindSync")
+                                .font(.system(size: 36, weight: .bold, design: .rounded))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [.white, .white.opacity(0.9)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .accessibilityIdentifier("home.title")
+                            
+                            Text(NSLocalizedString("home.subtitle", comment: ""))
+                                .font(AppConstants.Typography.subheadline)
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(.mindSyncSecondaryText)
+                                .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
+                        }
                     }
                     
                     LargeButton(
