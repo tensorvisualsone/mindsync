@@ -22,22 +22,30 @@ final class SessionHistoryViewModelTests: XCTestCase {
         super.tearDown()
     }
     
-    func testInitializationLoadsSessions() async throws {
+    func testInitializationLoadsSessions() {
         // Given
         let session = createTestSession()
         mockService.savedSessions = [session]
         
-        // When
-        // Create a fresh viewModel for this test to ensure clean state
-        let testViewModel = SessionHistoryViewModel(historyService: mockService)
+        let expectation = XCTestExpectation(description: "Sessions loaded")
         
-        // Give the Combine pipeline a moment to settle
-        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        viewModel.$sessions
+            .dropFirst()
+            .sink { sessions in
+                if sessions.count == 1 {
+                    expectation.fulfill()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // When
+        viewModel.loadSessions()
         
         // Then
+        wait(for: [expectation], timeout: 1.0)
         XCTAssertTrue(mockService.loadAllCalled)
-        XCTAssertEqual(testViewModel.sessions.count, 1)
-        XCTAssertEqual(testViewModel.sessions.first?.id, session.id)
+        XCTAssertEqual(viewModel.sessions.count, 1)
+        XCTAssertEqual(viewModel.sessions.first?.id, session.id)
     }
     
     func testClearHistory() {
