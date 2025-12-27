@@ -22,6 +22,9 @@ final class ServiceContainer: ObservableObject {
     let thermalManager: ThermalManager
     let fallDetector: FallDetector
     
+    // Vibration
+    let vibrationController: VibrationController
+    
     // Audio Energy Tracking (for Cinematic Mode)
     let audioEnergyTracker: AudioEnergyTracker
     
@@ -48,6 +51,9 @@ final class ServiceContainer: ObservableObject {
         self.screenController = ScreenController()
         self.entrainmentEngine = EntrainmentEngine()
         self.fallDetector = FallDetector()
+        
+        // Vibration
+        self.vibrationController = VibrationController()
         
         // Audio Energy Tracking (for Cinematic Mode)
         self.audioEnergyTracker = AudioEnergyTracker()

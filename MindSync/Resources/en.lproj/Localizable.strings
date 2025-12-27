@@ -91,6 +91,10 @@
 "settings.fallDetection" = "Fall Detection";
 "settings.thermalProtection" = "Thermal Protection";
 "settings.hapticFeedback" = "Haptic Feedback";
+"settings.vibration" = "Vibration";
+"settings.vibrationDescription" = "Vibration feedback synchronized with audio and light";
+"settings.vibrationEnabled" = "Enable Vibration";
+"settings.vibrationIntensity" = "Vibration Intensity";
 "settings.intensity" = "Intensity";
 "settings.defaultIntensity" = "Default Intensity";
 "settings.intensityDescription" = "Default brightness for the strobe (flashlight only).";
@@ -185,6 +189,8 @@
 "error.file.validationFailed" = "Error validating audio file: %@";
 "error.file.selectionFailed" = "Error selecting file: %@";
 "error.file.saveFailed" = "File could not be saved. Please make sure you have access to the file.";
+"error.vibration.hapticsUnavailable" = "This device does not support haptics. Vibration is not available.";
+"error.vibration.engineCreationFailed" = "Haptic engine could not be initialized. Vibration is not available.";
 
 // MARK: - Frequency Validation
 "frequency.tooLow" = "Frequency too low (minimum: %d Hz)";

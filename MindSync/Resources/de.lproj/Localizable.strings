@@ -93,6 +93,10 @@
 "settings.fallDetection" = "Sturzerkennung";
 "settings.thermalProtection" = "Thermischer Schutz";
 "settings.hapticFeedback" = "Haptisches Feedback";
+"settings.vibration" = "Vibration";
+"settings.vibrationDescription" = "Vibrations-Feedback synchron mit Audio und Licht";
+"settings.vibrationEnabled" = "Vibration aktivieren";
+"settings.vibrationIntensity" = "Vibrations-Intensität";
 "settings.intensity" = "Intensität";
 "settings.defaultIntensity" = "Standard-Intensität";
 "settings.intensityDescription" = "Standard-Helligkeit für Stroboskoplicht (betrifft nur Taschenlampe).";
@@ -195,6 +199,8 @@
 "error.file.validationFailed" = "Fehler beim Prüfen der Audiodatei: %@";
 "error.file.selectionFailed" = "Fehler beim Auswählen der Datei: %@";
 "error.file.saveFailed" = "Datei konnte nicht gespeichert werden. Bitte stelle sicher, dass du Zugriff auf die Datei hast.";
+"error.vibration.hapticsUnavailable" = "Dieses Gerät unterstützt keine Haptik. Vibration ist nicht verfügbar.";
+"error.vibration.engineCreationFailed" = "Haptik-Engine konnte nicht initialisiert werden. Vibration ist nicht verfügbar.";
 
 // MARK: - Frequency Validation
 "frequency.tooLow" = "Frequenz zu niedrig (Minimum: %d Hz)";

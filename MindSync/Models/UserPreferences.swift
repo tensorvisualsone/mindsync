@@ -39,6 +39,10 @@ struct UserPreferences: Codable {
     // UI
     var hapticFeedbackEnabled: Bool
     
+    // Vibration
+    var vibrationEnabled: Bool
+    var vibrationIntensity: Float  // 0.1 - 1.0
+    
     // Affirmationen
     var selectedAffirmationURL: URL? // URL zum Sprachmemo des Users
 
@@ -55,6 +59,8 @@ struct UserPreferences: Codable {
             thermalProtectionEnabled: true,
             maxSessionDuration: nil,
             hapticFeedbackEnabled: true,
+            vibrationEnabled: false,
+            vibrationIntensity: 0.5,
             selectedAffirmationURL: nil
         )
     }

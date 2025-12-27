@@ -1,0 +1,346 @@
+import Foundation
+import CoreHaptics
+import QuartzCore
+import os.log
+
+/// Result of finding the current event in a vibration script
+struct CurrentVibrationEventResult {
+    let event: VibrationEvent?
+    let elapsed: TimeInterval
+    let isComplete: Bool
+}
+
+/// Weak reference wrapper for CADisplayLink target to avoid retain cycles
+private final class WeakVibrationDisplayLinkTarget {
+    weak var target: VibrationController?
+    
+    init(target: VibrationController) {
+        self.target = target
+    }
+    
+    @objc func updateVibration() {
+        target?.updateVibration()
+    }
+}
+
+/// Controller for vibration feedback synchronized with audio and light
+@MainActor
+final class VibrationController: NSObject {
+    // MARK: - Properties
+    
+    private var hapticEngine: CHHapticEngine?
+    private var hapticPlayer: CHHapticAdvancedPatternPlayer?
+    private var currentScript: VibrationScript?
+    private var scriptStartTime: Date?
+    private var totalPauseDuration: TimeInterval = 0
+    private var pauseStartTime: Date?
+    private var isPaused: Bool = false
+    private var currentEventIndex: Int = 0
+    nonisolated(unsafe) private var displayLink: CADisplayLink?
+    private var displayLinkTarget: WeakVibrationDisplayLinkTarget?
+    private let logger = Logger(subsystem: "com.mindsync", category: "VibrationController")
+    
+    // MARK: - Display Link Management
+    
+    @MainActor func setupDisplayLink(target: AnyObject, selector: Selector) {
+        displayLink = CADisplayLink(target: target, selector: selector)
+        displayLink?.preferredFrameRateRange = CAFrameRateRange(
+            minimum: 60,
+            maximum: 120,
+            preferred: 120
+        )
+        displayLink?.add(to: .main, forMode: .common)
+    }
+    
+    nonisolated func invalidateDisplayLink() {
+        displayLink?.invalidate()
+        displayLink = nil
+    }
+    
+    // MARK: - Haptic Engine Management
+    
+    func start() async throws {
+        // Check if device supports haptics
+        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else {
+            throw VibrationError.hapticsUnavailable
+        }
+        
+        // Create and configure haptic engine
+        do {
+            let engine = try CHHapticEngine()
+            
+            // Handle engine reset (e.g., when app goes to background)
+            engine.resetHandler = { [weak self] in
+                Task { @MainActor in
+                    self?.logger.warning("Haptic engine reset")
+                    // Try to restart engine
+                    try? await self?.restartEngine()
+                }
+            }
+            
+            // Handle engine stopped (e.g., audio interruption)
+            engine.stoppedHandler = { [weak self] reason in
+                Task { @MainActor in
+                    self?.logger.warning("Haptic engine stopped: \(reason.rawValue)")
+                }
+            }
+            
+            // Start the engine
+            try engine.start()
+            self.hapticEngine = engine
+        } catch {
+            logger.error("Failed to create haptic engine: \(error.localizedDescription, privacy: .public)")
+            throw VibrationError.engineCreationFailed
+        }
+    }
+    
+    func stop() {
+        stopCurrentPattern()
+        hapticEngine?.stop()
+        hapticEngine = nil
+        cancelExecution()
+    }
+    
+    private func restartEngine() async throws {
+        guard let engine = hapticEngine else { return }
+        try engine.start()
+    }
+    
+    // MARK: - Script Execution
+    
+    func execute(script: VibrationScript, syncedTo startTime: Date) {
+        currentScript = script
+        scriptStartTime = startTime
+        currentEventIndex = 0
+        totalPauseDuration = 0
+        pauseStartTime = nil
+        isPaused = false
+        
+        // Setup display link for continuous updates
+        let target = WeakVibrationDisplayLinkTarget(target: self)
+        displayLinkTarget = target
+        setupDisplayLink(target: target, selector: #selector(WeakVibrationDisplayLinkTarget.updateVibration))
+    }
+    
+    func cancelExecution() {
+        invalidateDisplayLink()
+        displayLinkTarget = nil
+        stopCurrentPattern()
+        currentScript = nil
+        scriptStartTime = nil
+        currentEventIndex = 0
+        totalPauseDuration = 0
+        pauseStartTime = nil
+        isPaused = false
+    }
+    
+    func pauseExecution() {
+        guard !isPaused else { return }
+        isPaused = true
+        pauseStartTime = Date()
+        invalidateDisplayLink()
+        stopCurrentPattern()
+    }
+    
+    func resumeExecution() {
+        guard isPaused, let pauseStart = pauseStartTime else { return }
+        isPaused = false
+        totalPauseDuration += Date().timeIntervalSince(pauseStart)
+        pauseStartTime = nil
+        
+        // Re-setup display link
+        let target = WeakVibrationDisplayLinkTarget(target: self)
+        displayLinkTarget = target
+        setupDisplayLink(target: target, selector: #selector(WeakVibrationDisplayLinkTarget.updateVibration))
+    }
+    
+    // MARK: - Vibration Update
+    
+    fileprivate func updateVibration() {
+        let result = findCurrentEvent()
+        
+        if result.isComplete {
+            cancelExecution()
+            return
+        }
+        
+        if let event = result.event {
+            // Calculate intensity based on waveform and elapsed time within event
+            let intensity = calculateIntensity(for: event, elapsed: result.elapsed)
+            setIntensity(intensity)
+        } else {
+            // Between events, turn off vibration
+            setIntensity(0.0)
+        }
+    }
+    
+    // MARK: - Intensity Calculation
+    
+    private func calculateIntensity(for event: VibrationEvent, elapsed: TimeInterval) -> Float {
+        let eventElapsed = elapsed - event.timestamp
+        let normalizedTime = eventElapsed / event.duration
+        
+        guard normalizedTime >= 0 && normalizedTime <= 1.0 else {
+            return 0.0
+        }
+        
+        let baseIntensity = event.intensity
+        
+        switch event.waveform {
+        case .square:
+            // Hard on/off
+            return baseIntensity
+            
+        case .sine:
+            // Smooth sine wave
+            let sineValue = sin(normalizedTime * .pi)
+            return baseIntensity * Float(sineValue)
+            
+        case .triangle:
+            // Linear ramp up and down
+            let triangleValue: Float
+            if normalizedTime < 0.5 {
+                triangleValue = Float(normalizedTime * 2.0)
+            } else {
+                triangleValue = Float(2.0 - (normalizedTime * 2.0))
+            }
+            return baseIntensity * triangleValue
+        }
+    }
+    
+    // MARK: - Haptic Pattern Generation
+    
+    private func setIntensity(_ intensity: Float) {
+        guard let engine = hapticEngine else { return }
+        
+        let clampedIntensity = max(0.0, min(1.0, intensity))
+        
+        // Stop current pattern if intensity is zero
+        if clampedIntensity <= 0.0 {
+            stopCurrentPattern()
+            return
+        }
+        
+        // If we already have a pattern playing, update it
+        // Otherwise create a new continuous pattern
+        if hapticPlayer == nil {
+            createContinuousPattern(intensity: clampedIntensity)
+        } else {
+            // Update intensity of current pattern
+            updatePatternIntensity(clampedIntensity)
+        }
+    }
+    
+    private func createContinuousPattern(intensity: Float) {
+        guard let engine = hapticEngine else { return }
+        
+        // Create a continuous haptic event with the specified intensity
+        let hapticEvent = CHHapticEvent(
+            eventType: .hapticContinuous,
+            parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: Float(intensity)),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5)
+            ],
+            relativeTime: 0,
+            duration: 0.1 // Short duration, will be updated continuously
+        )
+        
+        do {
+            let pattern = try CHHapticPattern(events: [hapticEvent], parameters: [])
+            let player = try engine.makeAdvancedPlayer(with: pattern)
+            player.loopEnabled = false
+            try player.start(atTime: 0)
+            hapticPlayer = player
+        } catch {
+            logger.error("Failed to create haptic pattern: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+    
+    private func updatePatternIntensity(_ intensity: Float) {
+        guard let player = hapticPlayer else { return }
+        
+        do {
+            // Update intensity parameter
+            try player.sendParameters(
+                [
+                    CHHapticDynamicParameter(parameterID: .hapticIntensityControl, value: intensity, relativeTime: 0)
+                ],
+                atTime: 0
+            )
+        } catch {
+            logger.error("Failed to update haptic pattern intensity: \(error.localizedDescription, privacy: .public)")
+            // If update fails, stop and recreate
+            stopCurrentPattern()
+            createContinuousPattern(intensity: intensity)
+        }
+    }
+    
+    private func stopCurrentPattern() {
+        do {
+            try hapticPlayer?.stop(atTime: 0)
+        } catch {
+            logger.error("Failed to stop haptic pattern: \(error.localizedDescription, privacy: .public)")
+        }
+        hapticPlayer = nil
+    }
+    
+    // MARK: - Event Finding
+    
+    private func findCurrentEvent() -> CurrentVibrationEventResult {
+        guard let script = currentScript,
+              let startTime = scriptStartTime else {
+            return CurrentVibrationEventResult(event: nil, elapsed: 0, isComplete: false)
+        }
+        
+        // Calculate elapsed time accounting for pauses
+        let realElapsed = Date().timeIntervalSince(startTime) - totalPauseDuration
+        
+        // Check if script is finished
+        if realElapsed >= script.duration {
+            return CurrentVibrationEventResult(event: nil, elapsed: realElapsed, isComplete: true)
+        }
+        
+        // Skip past events to find current event using index tracking
+        var foundEventIndex = currentEventIndex
+        while foundEventIndex < script.events.count {
+            let event = script.events[foundEventIndex]
+            let eventEnd = event.timestamp + event.duration
+            
+            if realElapsed < eventEnd {
+                if realElapsed >= event.timestamp {
+                    // Current event is active
+                    currentEventIndex = foundEventIndex
+                    return CurrentVibrationEventResult(event: event, elapsed: realElapsed, isComplete: false)
+                } else {
+                    // Between events
+                    return CurrentVibrationEventResult(event: nil, elapsed: realElapsed, isComplete: false)
+                }
+            } else {
+                // Move to next event
+                foundEventIndex += 1
+            }
+        }
+        
+        // Passed all events
+        return CurrentVibrationEventResult(event: nil, elapsed: realElapsed, isComplete: true)
+    }
+}
+
+// MARK: - Vibration Errors
+
+enum VibrationError: Error {
+    case hapticsUnavailable
+    case engineCreationFailed
+}
+
+extension VibrationError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .hapticsUnavailable:
+            return NSLocalizedString("error.vibration.hapticsUnavailable", comment: "")
+        case .engineCreationFailed:
+            return NSLocalizedString("error.vibration.engineCreationFailed", comment: "")
+        }
+    }
+}
+
