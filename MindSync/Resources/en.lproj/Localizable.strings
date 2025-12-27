@@ -110,7 +110,7 @@
 "settings.affirmationRemove" = "Remove affirmation";
 "settings.affirmationNone" = "No affirmation selected.";
 "settings.session" = "Session & Analysis";
-"settings.sessionDescription" = "Limits maximum flashlight session duration to prevent overheating. Quick Analysis processes long audio tracks faster, and tracks over 10 minutes are analyzed with Quick Analysis automatically.";
+"settings.sessionDescription" = "This setting limits the maximum flashlight session duration to prevent overheating.";
 "settings.quickAnalysis" = "Quick Analysis";
 "settings.quickAnalysisDescription" = "Reduces analysis time for audio tracks with faster beat detection. Tracks over 10 minutes automatically use quick analysis.";
 "settings.maxDuration" = "Maximum duration";
@@ -193,6 +193,7 @@
 "error.audio.analysisFailure" = "Analysis failed: %@";
 "error.audio.cancelled" = "Analysis cancelled.";
 "status.audio.cancelled" = "Analysis was cancelled.";
+"status.vibration.unavailable" = "Vibration is unavailable. Session continues without vibration.";
 "error.audio.fileTooLong" = "Audio file is too long (%d minutes). Maximum supported length is 120 minutes.";
 "error.audio.corruptedData" = "Audio data appears to be corrupted or empty. Please choose another track.";
 "error.audio.timeout" = "Audio analysis took too long and was stopped. Please choose a shorter track or try again.";

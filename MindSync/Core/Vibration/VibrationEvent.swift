@@ -18,7 +18,7 @@ struct VibrationEvent: Codable {
             case .invalidTimestamp(let value):
                 return "Invalid timestamp: \(value). Timestamp must be finite and >= 0.0 (seconds since session start)."
             case .invalidIntensity(let value):
-                return "Invalid intensity: \(value). Intensity must be in range [0.0, 1.0]."
+                return "Invalid intensity: \(value). Intensity must be finite and in range [0.0, 1.0]."
             case .invalidDuration(let value):
                 return "Invalid duration: \(value). Duration must be finite and >= 0.0 (seconds)."
             }
@@ -28,14 +28,14 @@ struct VibrationEvent: Codable {
     /// Initializes a vibration event with input value validation.
     /// - Parameters:
     ///   - timestamp: Seconds since session start (must be finite and >= 0.0)
-    ///   - intensity: Intensity between 0.0 and 1.0 (must be in this range)
+    ///   - intensity: Intensity between 0.0 and 1.0 (must be finite and in this range)
     ///   - duration: Duration of vibration in seconds (must be finite and >= 0.0)
     ///   - waveform: Waveform of the vibration signal
     /// - Throws: `ValidationError` when values are outside expected bounds
     /// 
     /// **Validation behavior:**
     /// - `timestamp`: Must be finite and >= 0.0 (negative values, infinity, and NaN are invalid)
-    /// - `intensity`: Must be in range [0.0, 1.0]
+    /// - `intensity`: Must be finite and in range [0.0, 1.0] (infinity and NaN are invalid)
     /// - `duration`: Must be finite and >= 0.0 (negative duration, infinity, and NaN are physically meaningless)
     init(timestamp: TimeInterval, intensity: Float, duration: TimeInterval, waveform: Waveform) throws {
         // Validate timestamp: must be finite and non-negative
@@ -43,8 +43,8 @@ struct VibrationEvent: Codable {
             throw ValidationError.invalidTimestamp(timestamp)
         }
         
-        // Validate intensity: must be in range [0.0, 1.0]
-        guard intensity >= 0.0 && intensity <= 1.0 else {
+        // Validate intensity: must be finite and in range [0.0, 1.0]
+        guard intensity.isFinite && intensity >= 0.0 && intensity <= 1.0 else {
             throw ValidationError.invalidIntensity(intensity)
         }
         

@@ -10,7 +10,18 @@ struct SessionView: View {
     let isMicrophoneMode: Bool
     
     /// Height of the status banner including padding (used for offset calculations)
-    private static let statusBannerHeight: CGFloat = 56
+    /// Calculated from: top padding (8) + banner vertical padding (sm + xs = 12) + content height (icon ~24 or text ~20)
+    /// Note: Uses max of icon and text heights, accounts for potential text wrapping with conservative estimate
+    private static var statusBannerHeight: CGFloat {
+        let topPadding: CGFloat = 8
+        let bannerVerticalPadding: CGFloat = AppConstants.Spacing.sm + AppConstants.Spacing.xs // 8 + 4 = 12
+        let iconHeight: CGFloat = AppConstants.IconSize.medium // 24
+        // Subheadline font typically ~20pt, but allow for text wrapping
+        let estimatedTextHeight: CGFloat = 20
+        let contentHeight = max(iconHeight, estimatedTextHeight) // 24
+        
+        return topPadding + bannerVerticalPadding + contentHeight // 8 + 12 + 24 = 44
+    }
     
     init(song: MPMediaItem? = nil, audioFileURL: URL? = nil, isMicrophoneMode: Bool = false) {
         self.mediaItem = song
@@ -263,7 +274,12 @@ private struct SessionTrackInfoView: View {
                 if let script = script, let bpm = track?.bpm {
                     // TODO: Investigate why currentFrequency can be zero/negative upstream
                     // Use currentFrequency only if it's positive, otherwise fall back to script.targetFrequency
-                    let validatedFrequency = currentFrequency.flatMap { $0 > 0 ? $0 : nil } ?? script.targetFrequency
+                    let validatedFrequency: Double
+                    if let frequency = currentFrequency, frequency > 0 {
+                        validatedFrequency = frequency
+                    } else {
+                        validatedFrequency = script.targetFrequency
+                    }
                     let frequencyText = String(format: NSLocalizedString("session.frequencyBpm", comment: ""), Int(validatedFrequency), Int(bpm))
                     ModeChip(
                         icon: "metronome.fill",

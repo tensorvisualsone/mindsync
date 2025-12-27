@@ -113,7 +113,7 @@
 "settings.session" = "Sitzung & Analyse";
 "settings.sessionDescription" = "Begrenzt die maximale Dauer von Taschenlampen-Sessions, um Überhitzung zu vermeiden.";
 "settings.quickAnalysis" = "Schnellanalyse";
-"settings.quickAnalysisDescription" = "Reduziert die Analysezeit für Audio-Tracks durch schnellere Beat-Erkennung. Tracks über 10 Minuten verwenden automatisch Schnellanalyse.";
+"settings.quickAnalysisDescription" = "Reduziert die Analysezeit für Audiotracks durch schnellere Beat-Erkennung. Titel über 10 Minuten verwenden automatisch Schnellanalyse.";
 "settings.maxDuration" = "Maximale Dauer";
 "settings.duration.unlimited" = "Kein Limit";
 "settings.history" = "Sitzungshistorie";
@@ -199,6 +199,7 @@
 "error.audio.analysisFailure" = "Analyse fehlgeschlagen: %@";
 "error.audio.cancelled" = "Analyse abgebrochen.";
 "status.audio.cancelled" = "Analyse wurde abgebrochen.";
+"status.vibration.unavailable" = "Vibration ist nicht verfügbar. Session wird ohne Vibration fortgesetzt.";
 "error.audio.fileTooLong" = "Audiodatei ist zu lang (%d Minuten). Die maximal unterstützte Länge beträgt 120 Minuten.";
 "error.audio.corruptedData" = "Die Audiodaten wirken beschädigt oder leer. Bitte wähle einen anderen Titel.";
 "error.audio.timeout" = "Die Audio-Analyse hat ungewöhnlich lange gedauert und wurde abgebrochen. Bitte wähle einen kürzeren Titel oder versuche es erneut.";

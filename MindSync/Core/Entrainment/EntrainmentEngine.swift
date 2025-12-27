@@ -138,31 +138,19 @@ final class EntrainmentEngine {
         durationMultiplier: (EntrainmentMode, Waveform, TimeInterval) -> TimeInterval,
         eventFactory: (TimeInterval, Float, TimeInterval, Waveform) -> Event
     ) -> [Event] {
-        var events: [Event] = []
-        
-        // Ramping: start from mode.startFrequency and interpolate to targetFrequency over mode.rampDuration
-        let startFreq = mode.startFrequency
-        let rampTime = mode.rampDuration
-        
-        for timestamp in timestamps {
-            // Calculate progress for ramp at this timestamp
-            let progress = rampTime > 0 ? min(timestamp / rampTime, 1.0) : 1.0
-            let smooth = MathHelpers.smoothstep(progress)
-            let currentFreq = startFreq + (targetFrequency - startFreq) * smooth
-            let period = 1.0 / max(0.0001, currentFreq) // avoid div by zero
-            
-            // Select waveform based on mode
-            let waveform = waveformSelector(mode)
-            
-            // Calculate duration based on waveform and mode
-            let eventDuration = durationMultiplier(mode, waveform, period)
-            
-            // Create event
-            let event = eventFactory(timestamp, baseIntensity, eventDuration, waveform)
-            events.append(event)
-        }
-        
-        return events
+        // Delegate to throwing variant by wrapping non-throwing factory in throwing closure
+        return try! generateEvents(
+            timestamps: timestamps,
+            targetFrequency: targetFrequency,
+            mode: mode,
+            baseIntensity: baseIntensity,
+            waveformSelector: waveformSelector,
+            durationMultiplier: durationMultiplier,
+            eventFactory: { timestamp, intensity, duration, waveform in
+                // Original factory can't throw, so we can call it directly within throwing closure
+                return eventFactory(timestamp, intensity, duration, waveform)
+            }
+        )
     }
     
     /// Generic helper for generating events with shared logic (ramping, smoothstep, frequency interpolation, etc.)

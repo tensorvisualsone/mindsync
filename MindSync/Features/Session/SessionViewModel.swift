@@ -569,7 +569,9 @@ final class SessionViewModel: ObservableObject {
                     // Degrade gracefully: continue without vibration instead of blocking session start
                     vibrationController = nil
                     currentVibrationScript = nil
-                    statusMessage = NSLocalizedString("error.vibration.scriptGenerationFailed", comment: "")
+                    statusMessage = NSLocalizedString("status.vibration.unavailable", comment: "")
+                    // Clear any previous critical error state to avoid stale UI: we're showing a non-critical
+                    // status message and continuing the session, so old error messages should not be displayed
                     errorMessage = nil
                 }
             } else {
