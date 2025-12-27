@@ -37,6 +37,12 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
         super.init()
         // Screen controller uses SwiftUI views for display
     }
+    
+    deinit {
+        // Ensure display link is properly cleaned up
+        invalidateDisplayLink()
+        displayLinkTarget = nil
+    }
 
     func start() async throws {
         // Screen mode doesn't require hardware setup
@@ -84,6 +90,7 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
     
     func pauseExecution() {
         pauseScriptExecution()
+        invalidateDisplayLink()
         displayLinkTarget = nil
         currentColor = .black
     }
