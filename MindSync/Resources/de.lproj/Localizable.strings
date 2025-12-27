@@ -69,6 +69,7 @@
 "session.screenController.error" = "Fehler beim Wechseln zum bildschirmbasierten Lichtcontroller";
 "session.affirmation.waiting" = "Affirmation wird nach 5 Minuten im Theta-Modus abgespielt.";
 "session.affirmation.playing" = "Affirmation läuft – entspanne dich und lausche.";
+"session.cinematic.liveMode" = "Cinematic Modus: Live-Reaktion ohne Latenz-Kompensation";
 "session.pauseAccessibility" = "Sitzung pausieren";
 "session.resumeAccessibility" = "Sitzung fortsetzen";
 "session.stopAccessibility" = "Sitzung stoppen";
