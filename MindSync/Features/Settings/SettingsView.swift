@@ -220,7 +220,7 @@ struct SettingsView: View {
             case .success(let url):
                 // Validate that the file is playable before saving (async load for consistency)
                 Task {
-                    let asset = AVAsset(url: url)
+                    let asset = AVURLAsset(url: url)
                     do {
                         let isPlayable = try await asset.load(.isPlayable)
                         
