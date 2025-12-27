@@ -1175,13 +1175,13 @@ final class SessionViewModel: ObservableObject {
             // Extend duration one beat beyond the last detected beat
             estimatedDuration = lastBeat + beatDuration
         } else if bpm > 0 {
-            // No beats yet: use a long duration (1 hour) to ensure events are generated
-            // for the entire session duration, since microphone sessions have unknown length
-            estimatedDuration = 3600.0  // 1 hour
+            // No beats yet: use a relatively short duration (60 seconds) to ensure events are generated
+            // without creating excessive overhead (which 1 hour would cause).
+            // This will be regenerated as needed when BPM changes or beats are detected.
+            estimatedDuration = 60.0
         } else {
             // Fallback duration when no timing information is available
-            // Use long duration to ensure events are generated
-            estimatedDuration = 3600.0  // 1 hour
+            estimatedDuration = 60.0
         }
         
         // Create a dummy track with current BPM and beat timestamps

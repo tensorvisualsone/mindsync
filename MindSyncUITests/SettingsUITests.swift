@@ -162,12 +162,12 @@ final class SettingsUITests: XCTestCase {
         // Wait for value to update
         sleep(1)
 
-        // Verify value changed
+        // Verify value changed and matches the expected normalized position (~0.8)
         let finalIntensity = intensitySlider.value as? Float ?? 0.5
         XCTAssertNotEqual(initialIntensity, finalIntensity, "Intensity slider value should change after adjustment")
         XCTAssertEqual(finalIntensity, 0.8, accuracy: 0.1, "Final intensity slider value should be approximately 0.8")
-        // Note: Slider value might be normalized, so we just verify it changed
-        // In a real scenario, we'd verify the displayed percentage text
+        // Note: Slider.value is a normalized Float in [0, 1], so we assert approximate values using an accuracy tolerance.
+        // Additional UI tests could verify any displayed percentage text that reflects this value.
         
         // Dismiss settings
         app.buttons["settings.doneButton"].tap()

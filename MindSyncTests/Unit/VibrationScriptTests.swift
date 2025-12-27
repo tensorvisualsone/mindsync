@@ -230,7 +230,7 @@ final class VibrationScriptTests: XCTestCase {
         ]
 
         for testCase in testCases {
-            try! XCTContext.runActivity(named: testCase.description) { _ in
+            try XCTContext.runActivity(named: testCase.description) { _ in
                 let (trackId, events) = makeTestParameters()
                 
                 XCTAssertThrowsError(try VibrationScript(
@@ -258,7 +258,7 @@ final class VibrationScriptTests: XCTestCase {
         ]
 
         for testCase in testCases {
-            try! XCTContext.runActivity(named: testCase.description) { _ in
+            try XCTContext.runActivity(named: testCase.description) { _ in
                 let (trackId, events) = makeTestParameters()
                 
                 XCTAssertThrowsError(try VibrationScript(
@@ -286,7 +286,7 @@ final class VibrationScriptTests: XCTestCase {
         ]
 
         for testCase in testCases {
-            try! XCTContext.runActivity(named: testCase.description) { _ in
+            try XCTContext.runActivity(named: testCase.description) { _ in
                 let (trackId, events) = makeTestParameters()
                 
                 XCTAssertThrowsError(try VibrationScript(
@@ -314,7 +314,7 @@ final class VibrationScriptTests: XCTestCase {
         ]
 
         for testCase in testCases {
-            try! XCTContext.runActivity(named: testCase.description) { _ in
+            try XCTContext.runActivity(named: testCase.description) { _ in
                 let (trackId, events) = makeTestParameters()
                 
                 XCTAssertThrowsError(try VibrationScript(

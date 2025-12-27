@@ -376,7 +376,7 @@ final class EntrainmentEngine {
         let durationCalculator: (LightEvent.Waveform, TimeInterval) -> TimeInterval = { waveform, period in
             switch waveform {
             case .square: return period / 2.0  // Short for hard blink
-            case .sine, .triangle: return period * 2.0  // Extend to match beat-based generation (next beat)
+            case .sine, .triangle: return period * 2.0  // Approx 2x period for fallback (approximation of next-beat logic)
             }
         }
         

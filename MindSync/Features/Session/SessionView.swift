@@ -279,6 +279,9 @@ private struct SessionTrackInfoView: View {
                         } else {
                             if let frequency = currentFrequency {
                                 assertionFailure("SessionTrackInfoView received invalid currentFrequency: \(frequency). Expected > 0 Hz.")
+                            } else {
+                                // Assert on nil in debug to catch issues where frequency calculation might be failing
+                                assertionFailure("SessionTrackInfoView received nil currentFrequency. Expected valid frequency.")
                             }
                             return script.targetFrequency
                         }

@@ -47,8 +47,13 @@ struct UserPreferences: Codable {
             _vibrationIntensity
         }
         set {
-            _vibrationIntensity = max(0.1, min(1.0, newValue))
+            _vibrationIntensity = Self.validateVibrationIntensity(newValue)
         }
+    }
+    
+    /// Validates vibration intensity to be within [0.1, 1.0]
+    private static func validateVibrationIntensity(_ value: Float) -> Float {
+        return max(0.1, min(1.0, value))
     }
     
     // Affirmationen
@@ -88,7 +93,7 @@ struct UserPreferences: Codable {
         self.maxSessionDuration = maxSessionDuration
         self.hapticFeedbackEnabled = hapticFeedbackEnabled
         self.vibrationEnabled = vibrationEnabled
-        self._vibrationIntensity = max(0.1, min(1.0, vibrationIntensity))
+        self._vibrationIntensity = Self.validateVibrationIntensity(vibrationIntensity)
         self.selectedAffirmationURL = selectedAffirmationURL
         self.quickAnalysisEnabled = quickAnalysisEnabled
     }

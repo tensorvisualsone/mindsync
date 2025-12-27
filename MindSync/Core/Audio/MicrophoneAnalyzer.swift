@@ -324,10 +324,9 @@ final class MicrophoneAnalyzer {
     
     /// Performs FFT on a frame
     private func performFFT(on frame: [Float]) -> [Float] {
-        // Safely access fftSetup using serial queue
-        let setup: FFTSetup? = fftQueue.sync {
-            return self.fftSetup
-        }
+        // Access fftSetup directly to avoid blocking the real-time audio thread
+        // Note: we rely on stop() calling removeTap() to ensure no callbacks occur after deinit starts cleanup
+        let setup = self.fftSetup
 
         // Guard against nil fftSetup
         guard let setup = setup else {
