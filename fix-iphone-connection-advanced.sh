@@ -4,6 +4,15 @@ echo "🔧 iPhone Verbindung - Erweiterte Reparatur"
 echo "=========================================="
 echo ""
 
+# Prüfen auf root oder sudo
+if [ "$EUID" -ne 0 ]; then
+    echo "ℹ️  Prüfe sudo-Berechtigungen..."
+    if ! sudo -v; then
+        echo "❌ Fehler: Root-Rechte erforderlich. Bitte führen Sie 'sudo -v' aus oder starten Sie das Skript mit sudo."
+        exit 1
+    fi
+fi
+
 echo "⚠️  ACHTUNG: Dies beendet Xcode und alle iOS-Dienste!"
 echo "Drücken Sie Ctrl+C zum Abbrechen oder warten Sie 5 Sekunden..."
 sleep 5
@@ -11,11 +20,35 @@ echo ""
 
 echo "1️⃣ Beende Xcode und alle iOS-Dienste..."
 killall Xcode 2>/dev/null
-sudo killall -9 usbmuxd 2>/dev/null
-sudo killall -9 lockdownd 2>/dev/null  
-sudo killall -9 com.apple.CoreDevice.coredeviced 2>/dev/null
-sudo killall -9 AMPDevicesAgent 2>/dev/null
-sudo killall -9 AMPDeviceDiscoveryAgent 2>/dev/null
+
+# Funktion zum sicheren Beenden
+safe_kill() {
+    local proc="$1"
+    # Prüfen ob Prozess läuft (pgrep ist auf macOS und Linux verfügbar)
+    if sudo pgrep -x "$proc" >/dev/null 2>&1; then
+        # Versuche SIGTERM
+        sudo killall "$proc" 2>/dev/null
+        sleep 1
+        # Prüfen ob immer noch läuft, dann SIGKILL
+        if sudo pgrep -x "$proc" >/dev/null 2>&1; then
+            sudo killall -9 "$proc" 2>/dev/null
+        fi
+    fi
+}
+
+# Liste der zu beendenden Dienste
+SERVICES=(
+    "usbmuxd"
+    "lockdownd"
+    "com.apple.CoreDevice.coredeviced"
+    "AMPDevicesAgent"
+    "AMPDeviceDiscoveryAgent"
+)
+
+for service in "${SERVICES[@]}"; do
+    safe_kill "$service"
+done
+
 echo "✓ Dienste beendet"
 echo ""
 
@@ -50,4 +83,3 @@ echo "   6. Öffnen Sie Ihr Projekt"
 echo "   7. Wählen Sie das iPhone 15 Pro als Target"
 echo "   8. Klicken Sie auf Build & Run"
 echo ""
-
