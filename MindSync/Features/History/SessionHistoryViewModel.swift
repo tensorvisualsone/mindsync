@@ -18,8 +18,8 @@ final class SessionHistoryViewModel: ObservableObject {
         return formatter
     }()
     
-    init(historyService: SessionHistoryServiceProtocol = ServiceContainer.shared.sessionHistoryService) {
-        self.historyService = historyService
+    init(historyService: SessionHistoryServiceProtocol? = nil) {
+        self.historyService = historyService ?? ServiceContainer.shared.sessionHistoryService
         loadSessions()
         
         $selectedModeFilter
