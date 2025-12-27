@@ -19,6 +19,7 @@ final class LatencyCalibrationViewModel: ObservableObject {
     @Published var measurements: [TimeInterval] = []
     @Published var calibratedOffset: TimeInterval = 0.0
     @Published var showFlash: Bool = false
+    @Published var missedMeasurements: Int = 0  // Tracks number of timeouts
     
     // MARK: - Constants
     
@@ -151,13 +152,22 @@ final class LatencyCalibrationViewModel: ObservableObject {
             wavData.append(contentsOf: withUnsafeBytes(of: &leValue) { Data($0) })
         }
         
-        // WAV Header
-        wavData.append("RIFF".data(using: .ascii)!)
+        // WAV Header (with defensive guard statements)
+        guard let riffData = "RIFF".data(using: .ascii),
+              let waveData = "WAVE".data(using: .ascii),
+              let fmtData = "fmt ".data(using: .ascii),
+              let dataChunkData = "data".data(using: .ascii) else {
+            // This should never fail for ASCII literals, but use defensive programming
+            print("Error: Failed to encode WAV header strings as ASCII")
+            return Data()
+        }
+        
+        wavData.append(riffData)
         appendLE(UInt32(36 + dataSize))
-        wavData.append("WAVE".data(using: .ascii)!)
+        wavData.append(waveData)
         
         // fmt chunk
-        wavData.append("fmt ".data(using: .ascii)!)
+        wavData.append(fmtData)
         appendLE(UInt32(16)) // fmt chunk size
         appendLE(UInt16(1)) // PCM
         appendLE(numChannels)
@@ -167,7 +177,7 @@ final class LatencyCalibrationViewModel: ObservableObject {
         appendLE(bitsPerSample)
         
         // data chunk
-        wavData.append("data".data(using: .ascii)!)
+        wavData.append(dataChunkData)
         appendLE(UInt32(dataSize))
         
         // Convert Float samples to Int16
@@ -197,6 +207,7 @@ final class LatencyCalibrationViewModel: ObservableObject {
         currentMeasurement = 0
         measurements = []
         calibratedOffset = 0.0
+        missedMeasurements = 0  // Reset missed measurement counter
         
         // Nach 3 Sekunden automatisch mit erster Messung beginnen
         // Nutze Task statt DispatchQueue für bessere Cancellation-Unterstützung
@@ -267,7 +278,10 @@ final class LatencyCalibrationViewModel: ObservableObject {
                 return
             }
             
-            // Verpasste Messung: Gehe zur nächsten über ohne Messung zu speichern
+            // Verpasste Messung: Erhöhe Zähler für User-Feedback
+            self.missedMeasurements += 1
+            
+            // Gehe zur nächsten Messung über ohne Messung zu speichern
             self.state = .measuring
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 self?.performNextMeasurement()
@@ -348,6 +362,7 @@ final class LatencyCalibrationViewModel: ObservableObject {
     /// Speichert nur wenn:
     /// - Kalibrierung erfolgreich abgeschlossen (state == .completed)
     /// - calibratedOffset ist gültig (>= 0 und innerhalb akzeptabler Grenzen)
+    ///   (0ms ist gültig und bedeutet keine Latenz, z.B. bei Kabelkopfhörern)
     /// 
     /// - Returns: `true` wenn erfolgreich gespeichert, `false` wenn Validierung fehlgeschlagen ist
     @discardableResult
