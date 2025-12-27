@@ -187,7 +187,7 @@
 "error.audio.unsupportedFormat" = "Audioformat wird nicht unterstützt.";
 "error.audio.analysisFailure" = "Analyse fehlgeschlagen: %@";
 "error.audio.cancelled" = "Analyse abgebrochen.";
-"error.audio.fileTooLong" = "Audiodatei ist zu lang (%d Minuten). Die maximal unterstützte Länge beträgt 30 Minuten.";
+"error.audio.fileTooLong" = "Audiodatei ist zu lang (%d Minuten). Die maximal unterstützte Länge beträgt 120 Minuten.";
 "error.audio.corruptedData" = "Die Audiodaten wirken beschädigt oder leer. Bitte wähle einen anderen Titel.";
 "error.audio.timeout" = "Die Audio-Analyse hat ungewöhnlich lange gedauert und wurde abgebrochen. Bitte wähle einen kürzeren Titel oder versuche es erneut.";
 "error.file.copyFailed" = "Datei konnte nicht kopiert werden. Bitte versuche es erneut.";

@@ -15,14 +15,14 @@ final class AudioAnalyzer {
     /// We intentionally use a fixed timeout instead of scaling directly with track length:
     /// - The analysis operates on downsampled PCM windows and is dominated by FFTs over
     ///   fixed-size buffers, so runtime grows sublinearly with the original track duration.
-    /// - For the current pipeline and maximum supported track duration (~30 minutes),
-    ///   18 seconds provides a conservative upper bound on iOS 17+ devices while keeping
+    /// - For the current pipeline and maximum supported track duration (~120 minutes),
+    ///   72 seconds provides a conservative upper bound on iOS 17+ devices while keeping
     ///   the user-visible wait time acceptable.
     /// - If analysis complexity changes (e.g. more passes or higher-resolution windows),
     ///   revisit this constant and consider a timeout that scales with `MPMediaItem.playbackDuration`.
     ///
-    /// Note: 0.6 seconds per minute of track * 30 minutes max track length = 18 seconds
-    private let analysisTimeout: TimeInterval = 0.6 * 30.0  // 18.0 seconds for ~30-minute tracks
+    /// Note: 0.6 seconds per minute of track * 120 minutes max track length = 72 seconds
+    private let analysisTimeout: TimeInterval = 0.6 * 120.0  // 72.0 seconds for ~120-minute tracks
     private let targetSampleRate: Double = 44_100.0
     private let fallbackWindowDuration: Double = 0.35
     private let minimumDetectedBeats = 4

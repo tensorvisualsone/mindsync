@@ -177,7 +177,7 @@
 "error.audio.unsupportedFormat" = "Audio format is not supported.";
 "error.audio.analysisFailure" = "Analysis failed: %@";
 "error.audio.cancelled" = "Analysis cancelled.";
-"error.audio.fileTooLong" = "Audio file is too long (%d minutes). Maximum supported length is 30 minutes.";
+"error.audio.fileTooLong" = "Audio file is too long (%d minutes). Maximum supported length is 120 minutes.";
 "error.audio.corruptedData" = "Audio data appears to be corrupted or empty. Please choose another track.";
 "error.audio.timeout" = "Audio analysis took too long and was stopped. Please choose a shorter track or try again.";
 "error.file.copyFailed" = "File could not be copied. Please try again.";
