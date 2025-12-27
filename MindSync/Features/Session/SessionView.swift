@@ -288,13 +288,14 @@ private struct SessionTrackInfoView: View {
                     }()
                     
                     // Build frequency text with optional BPM
-                    let frequencyText: String
-                    if let bpm = track?.bpm {
-                        frequencyText = String(format: NSLocalizedString("session.frequencyBpm", comment: ""), Int(validatedFrequency), Int(bpm))
-                    } else {
-                        // Fallback: Show only frequency if BPM is not available (shouldn't happen in practice)
-                        frequencyText = "\(Int(validatedFrequency)) Hz"
-                    }
+                    let frequencyText: String = {
+                        if let bpm = track?.bpm {
+                            return String(format: NSLocalizedString("session.frequencyBpm", comment: ""), Int(validatedFrequency), Int(bpm))
+                        } else {
+                            // Fallback: Show only frequency if BPM is not available (shouldn't happen in practice)
+                            return "\(Int(validatedFrequency)) Hz"
+                        }
+                    }()
                     
                     ModeChip(
                         icon: "metronome.fill",
