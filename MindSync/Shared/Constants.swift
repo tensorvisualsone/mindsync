@@ -133,6 +133,7 @@ enum AppConstants {
         static let minimum: CGFloat = 44  // Apple HIG minimum
         static let comfortable: CGFloat = 48
         static let large: CGFloat = 56
+        static let extraLarge: CGFloat = 64
     }
 }
 

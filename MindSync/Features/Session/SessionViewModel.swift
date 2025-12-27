@@ -97,11 +97,11 @@ final class SessionViewModel: ObservableObject {
     private var playbackProgressTimer: Timer?
     private var activeTask: Task<Void, Never>?
     
-    init(historyService: SessionHistoryServiceProtocol = ServiceContainer.shared.sessionHistoryService) {
+    init(historyService: SessionHistoryServiceProtocol? = nil) {
         self.audioAnalyzer = services.audioAnalyzer
         self.audioPlayback = services.audioPlayback
         self.cachedPreferences = UserPreferences.load()
-        self.historyService = historyService
+        self.historyService = historyService ?? ServiceContainer.shared.sessionHistoryService
         
         // Load microphone monitoring configuration from UserDefaults
         // Note: We validate that values are positive (> 0) to ensure sensible behavior.
