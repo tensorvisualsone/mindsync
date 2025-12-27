@@ -91,8 +91,11 @@ final class MediaLibraryService {
     }
     
     /// Gets the asset URL for an item (without validation)
-    func getAssetURL(for item: MPMediaItem) -> URL? {
-        item.assetURL
+    /// Note: This method should be called from the main actor context
+    func getAssetURL(for item: MPMediaItem) async -> URL? {
+        await MainActor.run {
+            item.assetURL
+        }
     }
 }
 
