@@ -102,8 +102,7 @@ MindSync/
 │   │   ├── AudioAnalyzer.swift          # Main analysis coordinator
 │   │   ├── BeatDetector.swift           # FFT-based onset detection
 │   │   ├── TempoEstimator.swift         # BPM calculation
-│   │   ├── AudioFileReader.swift        # AVAssetReader wrapper
-│   │   └── MicrophoneAnalyzer.swift     # Real-time mic input analysis
+│   │   └── AudioFileReader.swift        # AVAssetReader wrapper
 │   │
 │   ├── Light/
 │   │   ├── LightController.swift        # Protocol for light sources

@@ -381,9 +381,6 @@ struct LatencyCalibrationView: View {
                         .cornerRadius(12)
                 }
             }
-            
-        default:
-            EmptyView()
         }
     }
     

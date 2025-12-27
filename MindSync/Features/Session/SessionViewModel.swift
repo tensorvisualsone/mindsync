@@ -532,15 +532,18 @@ final class SessionViewModel: ObservableObject {
             }
             
             // Apply audio latency offset from user preferences for Bluetooth compensation
-            lightController?.audioLatencyOffset = cachedPreferences.audioLatencyOffset
-            // Set audio playback reference for precise audio-thread timing
-            lightController?.audioPlayback = audioPlayback
+            if let baseController = lightController as? BaseLightController {
+                baseController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+                // Set audio playback reference for precise audio-thread timing
+                baseController.audioPlayback = audioPlayback
+            }
             
             // Start playback and light (this sets the startTime)
             let startTime = Date()
             sessionStartTime = startTime
             // Update frequency now that sessionStartTime is set (timer will continue updating)
             updateCurrentFrequency()
+            startFrequencyUpdates()
             try await startPlaybackAndLight(url: assetURL, script: script, startTime: startTime)
             
             // Start vibration if enabled (using same startTime for synchronization)
@@ -676,15 +679,18 @@ final class SessionViewModel: ObservableObject {
             }
             
             // Apply audio latency offset from user preferences for Bluetooth compensation
-            lightController?.audioLatencyOffset = cachedPreferences.audioLatencyOffset
-            // Set audio playback reference for precise audio-thread timing
-            lightController?.audioPlayback = audioPlayback
+            if let baseController = lightController as? BaseLightController {
+                baseController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+                // Set audio playback reference for precise audio-thread timing
+                baseController.audioPlayback = audioPlayback
+            }
             
             // Start playback and light (this sets the startTime)
             let startTime = Date()
             sessionStartTime = startTime
             // Update frequency now that sessionStartTime is set (timer will continue updating)
             updateCurrentFrequency()
+            startFrequencyUpdates()
             try await startPlaybackAndLight(url: audioFileURL, script: script, startTime: startTime)
             
             // Start vibration if enabled (using same startTime for synchronization)

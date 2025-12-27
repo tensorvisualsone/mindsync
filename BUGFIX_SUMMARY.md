@@ -64,15 +64,6 @@ let timer = Timer(timeInterval: 0.5, repeats: true) { ... }
 RunLoop.main.add(timer, forMode: .common)  // WICHTIG!
 ```
 
-### 3. Test-Crash behoben
-
-**Problem**: `MicrophoneAnalyzerTests.testInitialization_WithValidFFTSetup_Succeeds()` erstellte eine zweite Analyzer-Instanz, was zu Konflikten mit AVAudioEngine und Memory-Management-Problemen führte.
-
-**Lösung**: Test verwendet jetzt die bereits in `setUp()` erstellte Instanz.
-
-**Betroffene Dateien**:
-- `MindSyncTests/Unit/MicrophoneAnalyzerTests.swift`: Line 25-31
-
 ## Architektur-Verständnis
 
 ### Wie Entrainment funktioniert
@@ -212,7 +203,6 @@ Um sicherzustellen, dass die ursprüngliche Architektur erhalten bleibt:
 - ✅ `EntrainmentEngineTests`
 - ✅ `FrequencyMapperTests`
 - ✅ `SessionViewModelTests`
-- ⚠️ `MicrophoneAnalyzerTests` (erfordert echtes Gerät)
 
 ## Nächste Schritte
 

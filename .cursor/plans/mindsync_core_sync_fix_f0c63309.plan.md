@@ -67,6 +67,8 @@ In [`MindSync/Models/UserPreferences.swift`](MindSync/Models/UserPreferences.swi
 var audioLatencyOffset: TimeInterval  // 0.0 - 0.5 Sekunden
 ```
 
+
+
 ### 1.2 Latenz-Kalibrierungs-View erstellen
 
 Neuer Screen im Onboarding oder Settings, der:
@@ -104,6 +106,8 @@ private func calculateDutyCycle(for frequency: Double) -> Double {
 }
 ```
 
+
+
 ### 2.2 Square-Wave mit reduziertem Duty-Cycle
 
 Die `calculateIntensity` Methode anpassen:
@@ -136,15 +140,15 @@ var preciseAudioTime: TimeInterval {
 }
 ```
 
+
+
 ### 3.2 Light-Controller mit Audio-Zeit synchronisieren
 
 Die Light-Controller sollten `audioPlayback.preciseAudioTime` nutzen statt `Date().timeIntervalSince(startTime)`.---
 
 ## Phase 4: ~~Mikrofon-Modus Latenz-Reduktion~~ (ENTFERNT)
 
-**Status:** Phase 4 wurde entfernt, da der Mikrofon-Modus vollständig aus der App entfernt wurde.
-
----
+**Status:** Phase 4 wurde entfernt, da der Mikrofon-Modus vollständig aus der App entfernt wurde.---
 
 ## Phase 5: Robustheit und Edge Cases ✅
 
@@ -166,12 +170,12 @@ Die Light-Controller sollten `audioPlayback.preciseAudioTime` nutzen statt `Date
 **Implementiert:**
 
 - `WaveformGenerator` erweitert um:
-  - `dutyCycle` Parameter für Square-Wave (FlashlightController-spezifisch)
-  - `calculateVibrationIntensity()` für Vibration-Waveforms
+- `dutyCycle` Parameter für Square-Wave (FlashlightController-spezifisch)
+- `calculateVibrationIntensity()` für Vibration-Waveforms
 - Alle Controller nutzen jetzt `WaveformGenerator`:
-  - `FlashlightController`: Nutzt frequenzabhängigen Duty-Cycle
-  - `ScreenController`: Nutzt Standard-Duty-Cycle (50%)
-  - `VibrationController`: Nutzt Vibration-spezifische Methode
+- `FlashlightController`: Nutzt frequenzabhängigen Duty-Cycle
+- `ScreenController`: Nutzt Standard-Duty-Cycle (50%)
+- `VibrationController`: Nutzt Vibration-spezifische Methode
 
 **Vorteile:**
 
@@ -240,4 +244,3 @@ flowchart TD
 
 1. [`MindSync/Models/UserPreferences.swift`](MindSync/Models/UserPreferences.swift) - Latency-Offset Property
 2. [`MindSync/Core/Light/BaseLightController.swift`](MindSync/Core/Light/BaseLightController.swift) - Offset anwenden
-3. [`MindSync/Core/Light/FlashlightController.swift`](MindSync/Core/Light/FlashlightController.swift) - Duty-Cycle

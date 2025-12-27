@@ -124,7 +124,7 @@ touch MindSync/Features/Onboarding/{OnboardingView,EpilepsyWarningView,Onboardin
 touch MindSync/Features/Home/{HomeView,ModeSelectionView,SourceSelectionView}.swift
 touch MindSync/Features/Session/{SessionView,SessionViewModel,SessionControlsView,AnalysisProgressView}.swift
 touch MindSync/Features/Settings/{SettingsView,LightSourcePicker}.swift
-touch MindSync/Core/Audio/{AudioAnalyzer,BeatDetector,TempoEstimator,AudioFileReader,MicrophoneAnalyzer}.swift
+touch MindSync/Core/Audio/{AudioAnalyzer,BeatDetector,TempoEstimator,AudioFileReader}.swift
 touch MindSync/Core/Light/{LightController,FlashlightController,ScreenController,ThermalManager}.swift
 touch MindSync/Core/Entrainment/{EntrainmentEngine,LightScript,FrequencyMapper,WaveformGenerator}.swift
 touch MindSync/Core/Safety/{FallDetector,SafetyLimits}.swift

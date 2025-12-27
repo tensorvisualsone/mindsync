@@ -42,9 +42,18 @@ final class FlashlightController: BaseLightController, LightControlling {
     }
 
     func start() async throws {
-        guard let device = device, device.hasTorch else {
+        logger.info("FlashlightController.start() called")
+        guard let device = device else {
+            logger.error("No AVCaptureDevice available for video")
             throw LightControlError.torchUnavailable
         }
+
+        guard device.hasTorch else {
+            logger.error("Device does not have torch capability")
+            throw LightControlError.torchUnavailable
+        }
+
+        logger.info("Device has torch, proceeding with configuration")
         
         let attempts = 3
         var lastError: Error?
@@ -82,9 +91,14 @@ final class FlashlightController: BaseLightController, LightControlling {
     }
 
     func setIntensity(_ intensity: Float) {
-        guard let device = device, isLocked else { return }
-        
+        logger.debug("setIntensity called with \(intensity)")
+        guard let device = device, isLocked else {
+            logger.warning("setIntensity failed: device=\(self.device != nil), isLocked=\(self.isLocked)")
+            return
+        }
+
         if thermalManager.maxFlashlightIntensity <= 0 {
+            logger.warning("Thermal manager blocking flashlight: maxIntensity=\(self.thermalManager.maxFlashlightIntensity)")
             handleTorchSystemShutdown(error: LightControlError.thermalShutdown)
             return
         }
@@ -101,10 +115,13 @@ final class FlashlightController: BaseLightController, LightControlling {
         do {
             if clampedIntensity <= 0 {
                 device.torchMode = .off
+                logger.debug("Torch turned off (intensity <= 0)")
             } else {
                 try device.setTorchModeOn(level: clampedIntensity)
+                logger.debug("Torch set to intensity: \(clampedIntensity)")
             }
         } catch {
+            logger.error("Failed to set torch intensity \(clampedIntensity): \(error.localizedDescription, privacy: .public)")
             handleTorchSystemShutdown(error: error)
         }
     }
