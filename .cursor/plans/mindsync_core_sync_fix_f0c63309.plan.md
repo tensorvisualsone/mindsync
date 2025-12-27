@@ -4,34 +4,37 @@ overview: Dieser Plan adressiert die kritischen Synchronisierungsprobleme zwisch
 todos:
   - id: latency-offset-prefs
     content: audioLatencyOffset Property zu UserPreferences hinzufuegen
-    status: pending
+    status: completed
   - id: apply-latency-offset
     content: Latenz-Offset in BaseLightController.findCurrentEvent() anwenden
-    status: pending
+    status: completed
   - id: latency-calibration-ui
     content: Latenz-Kalibrierungs-View erstellen (Settings oder Onboarding)
-    status: pending
+    status: completed
     dependencies:
       - latency-offset-prefs
   - id: duty-cycle-impl
     content: Frequenzabhaengigen Duty-Cycle fuer Square-Wave in FlashlightController
-    status: pending
+    status: completed
   - id: precise-audio-time
     content: preciseAudioTime Property in AudioPlaybackService implementieren
-    status: pending
+    status: completed
   - id: audio-sync-light
     content: Light-Controller mit Audio-Zeit statt Date() synchronisieren
-    status: pending
+    status: completed
     dependencies:
       - precise-audio-time
-  - id: centralize-waveform
-    content: Wellenform-Berechnung in WaveformGenerator zentralisieren
-    status: pending
   - id: vibration-sync
     content: VibrationController mit demselben Sync-Mechanismus aktualisieren
-    status: pending
+    status: completed
     dependencies:
       - audio-sync-light
+  - id: background-handling
+    content: Background-Handling fuer CADisplayLink implementieren
+    status: completed
+  - id: centralize-waveform
+    content: Wellenform-Berechnung in WaveformGenerator zentralisieren
+    status: completed
 ---
 
 # MindSync Herzstück-Optimierung: Synchronisierung und Hardware-Kompensation
@@ -42,17 +45,7 @@ Nach gruendlicher Pruefung des Codes kann ich Geminis Analyse groesstenteils bes
 
 ### Geminis Punkte - Validierung:
 
-| Problem | Geminis Einschaetzung | Meine Analyse |
-
-|---------|----------------------|---------------|
-
-| Bluetooth-Latenz | **Kritisch** | **Bestaetigt** - Keine Kompensation vorhanden |
-
-| Flashlight 40Hz | **Kritisch** | **Teilweise** - SafetyLimits begrenzt auf 30Hz, aber Duty-Cycle fehlt |
-
-| BeatDetector reaktiv | **Wichtig** | **Differenziert** - Pre-Analyse ist OK, aber Mikrofon-Modus ist problematisch |
-
-| Timer-Praezision | **Wichtig** | **Bestaetigt** - CADisplayLink ist gut, aber nicht audio-synchron |
+| Problem | Geminis Einschaetzung | Meine Analyse ||---------|----------------------|---------------|| Bluetooth-Latenz | **Kritisch** | **Bestaetigt** - Keine Kompensation vorhanden || Flashlight 40Hz | **Kritisch** | **Teilweise** - SafetyLimits begrenzt auf 30Hz, aber Duty-Cycle fehlt || BeatDetector reaktiv | **Wichtig** | **Differenziert** - Pre-Analyse ist OK, aber Mikrofon-Modus ist problematisch || Timer-Praezision | **Wichtig** | **Bestaetigt** - CADisplayLink ist gut, aber nicht audio-synchron |
 
 ### Zusaetzliche Probleme:
 
@@ -73,8 +66,6 @@ In [`MindSync/Models/UserPreferences.swift`](MindSync/Models/UserPreferences.swi
 // Neue Property fuer Audio-Latenz-Kompensation (in Sekunden)
 var audioLatencyOffset: TimeInterval  // 0.0 - 0.5 Sekunden
 ```
-
-
 
 ### 1.2 Latenz-Kalibrierungs-View erstellen
 
@@ -113,8 +104,6 @@ private func calculateDutyCycle(for frequency: Double) -> Double {
 }
 ```
 
-
-
 ### 2.2 Square-Wave mit reduziertem Duty-Cycle
 
 Die `calculateIntensity` Methode anpassen:
@@ -147,38 +136,55 @@ var preciseAudioTime: TimeInterval {
 }
 ```
 
-
-
 ### 3.2 Light-Controller mit Audio-Zeit synchronisieren
 
 Die Light-Controller sollten `audioPlayback.preciseAudioTime` nutzen statt `Date().timeIntervalSince(startTime)`.---
 
-## Phase 4: Mikrofon-Modus Latenz-Reduktion
+## Phase 4: ~~Mikrofon-Modus Latenz-Reduktion~~ (ENTFERNT)
 
-### 4.1 Reduzierte Analyse-Latenz
+**Status:** Phase 4 wurde entfernt, da der Mikrofon-Modus vollständig aus der App entfernt wurde.
 
-Der BeatDetector hat inherente Latenz (FFT-Fenster: 2048 Samples = ~46ms bei 44.1kHz).In [`MindSync/Core/Audio/BeatDetector.swift`](MindSync/Core/Audio/BeatDetector.swift):
+---
 
-- Fuer Echtzeit: Kleineres FFT-Fenster (1024 = ~23ms) mit Genauigkeits-Tradeoff
-- Oder: Peak-Detection statt FFT fuer schnellere Reaktion
+## Phase 5: Robustheit und Edge Cases ✅
 
-### 4.2 Vorhersage statt Reaktion
+### 5.1 Background-Handling ✅
 
-Fuer Mikrofon-Modus: Wenn BPM stabil, naechsten Beat **vorhersagen** statt auf ihn zu warten.---
+**Implementiert:**
 
-## Phase 5: Robustheit und Edge Cases
+- `UIApplication.shared.isIdleTimerDisabled = true` wird bei Session-Start gesetzt
+- Verhindert, dass der Screen ausgeht während einer Session
+- Wird bei Session-Stop wieder zurückgesetzt
+- App pausiert automatisch im Hintergrund (bereits vorhanden)
 
-### 5.1 Background-Handling
+**Dateien geändert:**
 
-CADisplayLink stoppt im Hintergrund. Loesungen:
+- `MindSync/Features/Session/SessionViewModel.swift`
 
-1. `UIApplication.shared.isIdleTimerDisabled = true` setzen
-2. User warnen, dass Screen an bleiben muss
-3. Fallback auf Timer wenn DisplayLink pausiert
+### 5.2 Konsistente Wellenform ueber alle Modalitaeten ✅
 
-### 5.2 Konsistente Wellenform ueber alle Modalitaeten
+**Implementiert:**
 
-Aktuell berechnen FlashlightController, ScreenController und VibrationController die Wellenform **separat**. Das sollte zentralisiert werden in `WaveformGenerator`.---
+- `WaveformGenerator` erweitert um:
+  - `dutyCycle` Parameter für Square-Wave (FlashlightController-spezifisch)
+  - `calculateVibrationIntensity()` für Vibration-Waveforms
+- Alle Controller nutzen jetzt `WaveformGenerator`:
+  - `FlashlightController`: Nutzt frequenzabhängigen Duty-Cycle
+  - `ScreenController`: Nutzt Standard-Duty-Cycle (50%)
+  - `VibrationController`: Nutzt Vibration-spezifische Methode
+
+**Vorteile:**
+
+- Konsistente Wellenform-Berechnung
+- Weniger Code-Duplikation
+- Einfacher zu warten und zu testen
+
+**Dateien geändert:**
+
+- `MindSync/Core/Entrainment/WaveformGenerator.swift`
+- `MindSync/Core/Light/FlashlightController.swift`
+- `MindSync/Core/Light/ScreenController.swift`
+- `MindSync/Core/Vibration/VibrationController.swift`---
 
 ## Architektur-Diagramm
 
@@ -218,28 +224,20 @@ flowchart TD
 
 ## Implementierungs-Prioritaeten
 
-| Prioritaet | Task | Aufwand | Impact |
+| Prioritaet | Task | Status | Aufwand | Impact ||------------|------|--------|---------|--------|| 1 - Kritisch | Bluetooth-Latenz-Offset in UserPreferences | ✅ **Fertig** | Niedrig | Hoch || 1 - Kritisch | Latenz-Offset in Light-Controllern anwenden | ✅ **Fertig** | Niedrig | Hoch || 2 - Hoch | Latenz-Kalibrierungs-UI | ✅ **Fertig** | Mittel | Hoch || 2 - Hoch | Frequenzabhaengiger Duty-Cycle | ✅ **Fertig** | Niedrig | Mittel || 3 - Mittel | Audio-basierte Master-Clock | ✅ **Fertig** | Hoch | Hoch || 3 - Mittel | Wellenform-Berechnung zentralisieren | ✅ **Fertig** | Mittel | Niedrig || 5 - Mittel | Background-Handling (isIdleTimerDisabled) | ✅ **Fertig** | Niedrig | Mittel |---
 
-|------------|------|---------|--------|
+## Implementierungs-Status
 
-| 1 - Kritisch | Bluetooth-Latenz-Offset in UserPreferences | Niedrig | Hoch |
+**Alle kritischen und wichtigen Tasks sind abgeschlossen! ✅**
 
-| 1 - Kritisch | Latenz-Offset in Light-Controllern anwenden | Niedrig | Hoch |
-
-| 2 - Hoch | Latenz-Kalibrierungs-UI | Mittel | Hoch |
-
-| 2 - Hoch | Frequenzabhaengiger Duty-Cycle | Niedrig | Mittel |
-
-| 3 - Mittel | Audio-basierte Master-Clock | Hoch | Hoch |
-
-| 3 - Mittel | Wellenform-Berechnung zentralisieren | Mittel | Niedrig |
-
-| 4 - Nice-to-have | Mikrofon-Modus Beat-Vorhersage | Hoch | Mittel |---
+- ✅ Phase 1: Bluetooth-Latenz-Kompensation
+- ✅ Phase 2: Flashlight Duty-Cycle Optimierung
+- ✅ Phase 3: Audio-Licht-Synchronisation verbessern
+- ✅ Phase 5: Robustheit und Edge Cases
+- ❌ Phase 4: Entfernt (Mikrofon-Modus entfernt)
 
 ## Dateien, die geaendert werden
 
 1. [`MindSync/Models/UserPreferences.swift`](MindSync/Models/UserPreferences.swift) - Latency-Offset Property
 2. [`MindSync/Core/Light/BaseLightController.swift`](MindSync/Core/Light/BaseLightController.swift) - Offset anwenden
 3. [`MindSync/Core/Light/FlashlightController.swift`](MindSync/Core/Light/FlashlightController.swift) - Duty-Cycle
-4. [`MindSync/Services/AudioPlaybackService.swift`](MindSync/Services/AudioPlaybackService.swift) - Precise Audio Time
-5. [`MindSync/Features/Settings/`](MindSync/Features/Settings/) - Latenz-Kalibrierung UI

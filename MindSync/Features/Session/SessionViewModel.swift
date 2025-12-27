@@ -15,7 +15,6 @@ final class SessionViewModel: ObservableObject {
     private let audioAnalyzer: AudioAnalyzer
     private let audioPlayback: AudioPlaybackService
     private let entrainmentEngine: EntrainmentEngine
-    private let microphoneAnalyzer: MicrophoneAnalyzer?
     private let fallDetector: FallDetector
     private let affirmationService: AffirmationOverlayService
     private let audioEnergyTracker: AudioEnergyTracker
@@ -60,46 +59,13 @@ final class SessionViewModel: ObservableObject {
     private var vibrationController: VibrationController?
     private var currentVibrationScript: VibrationScript?
     
-    // Microphone mode state
-    private var microphoneBeatTimestamps: [TimeInterval] = []
-    private var microphoneBPM: Double = 120.0
-    private var microphoneStartTime: Date?
-    private var lastScriptBPM: Double?
-    
-    // Maximum number of beat timestamps to keep in memory for BPM estimation.
-    // This limit prevents unbounded memory growth during long microphone sessions
-    // while maintaining sufficient history for accurate tempo estimation.
-    // At typical BPM rates (60-150), 100 beats represent ≈40-100 seconds of audio.
-    private let maxBeatHistoryCount = 100
-    
     // Flag to prevent re-entrancy in fall detection handling
     private var isHandlingFall = false
-    
-    // Microphone signal monitoring configuration keys
-    private enum MicrophoneConfigKeys {
-        static let silenceThreshold = "microphone_silenceThreshold"
-        static let autoPauseDelay = "microphone_autoPauseDelay"
-        static let autoStopDelay = "microphone_autoStopDelay"
-    }
-    
-    // Microphone signal monitoring configuration
-    // These values can be overridden via UserDefaults to adapt to different environments
-    // and microphone sensitivities. Values are cached on initialization for performance.
-    //
-    // Default values:
-    // - silenceThreshold: 0.02 (2% of normalized signal level)
-    // - autoPauseDelay: 2.0 seconds of silence before pausing
-    // - autoStopDelay: 12.0 seconds of silence before stopping
-    private let silenceThreshold: Float
-    private let autoPauseDelay: TimeInterval
-    private let autoStopDelay: TimeInterval
     
     // Lifecycle pause flags
     private var pausedBySystemInterruption = false
     private var pausedByRouteChange = false
     private var pausedByBackground = false
-    private var pausedBySilence = false
-    private var microphoneSilenceStart: Date?
     private var playbackProgressTimer: Timer?
     private var activeTask: Task<Void, Never>?
     
@@ -113,26 +79,10 @@ final class SessionViewModel: ObservableObject {
         self.cachedPreferences = UserPreferences.load()
         self.historyService = historyService ?? ServiceContainer.shared.sessionHistoryService
         
-        // Load microphone monitoring configuration from UserDefaults
-        // Note: We validate that values are positive (> 0) to ensure sensible behavior.
-        // A silenceThreshold of 0 would never detect silence, and delays of 0 would
-        // cause immediate pause/stop. If the key doesn't exist or has an invalid value,
-        // we fall back to the documented defaults.
-        let defaults = UserDefaults.standard
-        let thresholdValue = defaults.float(forKey: MicrophoneConfigKeys.silenceThreshold)
-        self.silenceThreshold = thresholdValue > 0 ? thresholdValue : 0.02
-        
-        let pauseDelayValue = defaults.double(forKey: MicrophoneConfigKeys.autoPauseDelay)
-        self.autoPauseDelay = pauseDelayValue > 0 ? pauseDelayValue : 2.0
-        
-        let stopDelayValue = defaults.double(forKey: MicrophoneConfigKeys.autoStopDelay)
-        self.autoStopDelay = stopDelayValue > 0 ? stopDelayValue : 12.0
-        
         // EntrainmentEngine from ServiceContainer
         self.entrainmentEngine = services.entrainmentEngine
         
-        // MicrophoneAnalyzer and FallDetector
-        self.microphoneAnalyzer = services.microphoneAnalyzer
+        // FallDetector
         self.fallDetector = services.fallDetector
         
         // Affirmation Service
@@ -207,12 +157,6 @@ final class SessionViewModel: ObservableObject {
             }
             .store(in: &cancellables)
         
-        microphoneAnalyzer?.signalLevelPublisher
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] level in
-                self?.handleMicrophoneSignalLevel(level)
-            }
-            .store(in: &cancellables)
     }
     
     /// Handles thermal warning level changes during session
@@ -328,42 +272,6 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
-    private func handleMicrophoneSignalLevel(_ level: Float) {
-        guard currentSession?.audioSource == .microphone,
-              state == .running else {
-            microphoneSilenceStart = nil
-            pausedBySilence = false
-            return
-        }
-        
-        if level < silenceThreshold {
-            if microphoneSilenceStart == nil {
-                microphoneSilenceStart = Date()
-            }
-            
-            guard let silenceStart = microphoneSilenceStart else { return }
-            let elapsed = Date().timeIntervalSince(silenceStart)
-            
-            if elapsed >= autoPauseDelay, !pausedBySilence {
-                pausedBySilence = true
-                lightController?.pauseExecution()
-            }
-            
-            if elapsed >= autoStopDelay {
-                microphoneSilenceStart = nil
-                pausedBySilence = false
-                errorMessage = NSLocalizedString("session.microphone.noSignal", comment: "")
-                stopSession()
-            }
-        } else {
-            microphoneSilenceStart = nil
-            if pausedBySilence {
-                pausedBySilence = false
-                lightController?.resumeExecution()
-            }
-        }
-    }
-    
     private func switchToScreenController(using script: LightScript, session: Session) {
         // Prevent race conditions by checking if a task is already running
         // Bail out if there's an active task that hasn't been cancelled
@@ -450,7 +358,7 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
-    /// Starts frequency updates for microphone mode
+    /// Starts frequency updates for UI display
     private func startFrequencyUpdates() {
         // Stop any existing timer first
         playbackProgressTimer?.invalidate()
@@ -625,6 +533,8 @@ final class SessionViewModel: ObservableObject {
             
             // Apply audio latency offset from user preferences for Bluetooth compensation
             lightController?.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+            // Set audio playback reference for precise audio-thread timing
+            lightController?.audioPlayback = audioPlayback
             
             // Start playback and light (this sets the startTime)
             let startTime = Date()
@@ -638,6 +548,8 @@ final class SessionViewModel: ObservableObject {
                 try await vibrationController.start()
                 // Apply audio latency offset for Bluetooth compensation
                 vibrationController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+                // Set audio playback reference for precise audio-thread timing
+                vibrationController.audioPlayback = audioPlayback
                 vibrationController.execute(script: vibrationScript, syncedTo: startTime)
             }
             
@@ -649,6 +561,9 @@ final class SessionViewModel: ObservableObject {
                 // Attach audio energy tracker to light controller for dynamic intensity modulation
                 lightController?.audioEnergyTracker = audioEnergyTracker
             }
+            
+            // Prevent screen from turning off during session
+            UIApplication.shared.isIdleTimerDisabled = true
             
             state = .running
             affirmationPlayed = false
@@ -761,6 +676,8 @@ final class SessionViewModel: ObservableObject {
             
             // Apply audio latency offset from user preferences for Bluetooth compensation
             lightController?.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+            // Set audio playback reference for precise audio-thread timing
+            lightController?.audioPlayback = audioPlayback
             
             // Start playback and light (this sets the startTime)
             let startTime = Date()
@@ -774,6 +691,8 @@ final class SessionViewModel: ObservableObject {
                 try await vibrationController.start()
                 // Apply audio latency offset for Bluetooth compensation
                 vibrationController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+                // Set audio playback reference for precise audio-thread timing
+                vibrationController.audioPlayback = audioPlayback
                 vibrationController.execute(script: vibrationScript, syncedTo: startTime)
             }
             
@@ -784,6 +703,9 @@ final class SessionViewModel: ObservableObject {
                 }
                 lightController?.audioEnergyTracker = audioEnergyTracker
             }
+            
+            // Prevent screen from turning off during session
+            UIApplication.shared.isIdleTimerDisabled = true
             
             state = .running
             affirmationPlayed = false
@@ -842,7 +764,6 @@ final class SessionViewModel: ObservableObject {
         pausedBySystemInterruption = false
         pausedByRouteChange = false
         pausedByBackground = false
-        pausedBySilence = false
         
         state = .running
         
@@ -863,6 +784,10 @@ final class SessionViewModel: ObservableObject {
         guard state != .idle else { return }
         
         logger.info("Stopping session")
+        
+        // Re-enable idle timer when session stops
+        UIApplication.shared.isIdleTimerDisabled = false
+        
         audioPlayback.stop()
         lightController?.stop()
         vibrationController?.stop()
@@ -874,8 +799,7 @@ final class SessionViewModel: ObservableObject {
         audioEnergyTracker.stopTracking()
         lightController?.audioEnergyTracker = nil
         
-        // Stop microphone and fall detection
-        microphoneAnalyzer?.stop()
+        // Stop fall detection
         fallDetector.stopMonitoring()
         
         // Invalidate affirmation timer
@@ -903,15 +827,11 @@ final class SessionViewModel: ObservableObject {
         currentSession = nil
         lightController = nil
         vibrationController = nil
-        microphoneBeatTimestamps.removeAll()
-        microphoneStartTime = nil
         sessionStartTime = nil
         affirmationPlayed = false
         pausedBySystemInterruption = false
         pausedByRouteChange = false
         pausedByBackground = false
-        pausedBySilence = false
-        microphoneSilenceStart = nil
         totalPauseDuration = 0
         pauseStartTime = nil
         
@@ -924,322 +844,6 @@ final class SessionViewModel: ObservableObject {
         if cachedPreferences.hapticFeedbackEnabled {
             HapticFeedback.heavy()
         }
-    }
-    
-    /// Starts a microphone-based session
-    func startMicrophoneSession() async {
-        guard state == .idle else { 
-            logger.warning("Attempted to start microphone session while state is \(String(describing: self.state))")
-            return 
-        }
-        
-        logger.info("Starting microphone session")
-        
-        guard let microphoneAnalyzer = microphoneAnalyzer else {
-            logger.error("Microphone analyzer not available")
-            errorMessage = NSLocalizedString(
-                "error.microphoneUnavailable",
-                comment: "Shown when microphone analysis is not available for starting a microphone-based session"
-            )
-            state = .error
-            return
-        }
-        
-        state = .analyzing
-        
-        // Refresh cached preferences
-        cachedPreferences = UserPreferences.load()
-        
-        // Set the light controller based on current preferences
-        switch cachedPreferences.preferredLightSource {
-        case .flashlight:
-            lightController = services.flashlightController
-        case .screen:
-            lightController = services.screenController
-        }
-        
-        do {
-            // Start microphone analysis
-            try await microphoneAnalyzer.start()
-            
-            // Start fall detection if enabled
-            if cachedPreferences.fallDetectionEnabled {
-                fallDetector.startMonitoring()
-            }
-            
-            // Create a dummy AudioTrack for microphone mode
-            let dummyTrack = AudioTrack(
-                title: "Live Audio",
-                artist: "Mikrofon",
-                duration: 0, // Unknown duration
-                bpm: 120.0, // Initial BPM, will be updated
-                beatTimestamps: []
-            )
-            currentTrack = dummyTrack
-            
-            // Subscribe to beat events
-            microphoneAnalyzer.beatEventPublisher
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] timestamp in
-                    self?.handleMicrophoneBeat(timestamp: timestamp)
-                }
-                .store(in: &cancellables)
-            
-            // Subscribe to BPM updates
-            microphoneAnalyzer.bpmPublisher
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] bpm in
-                    self?.handleMicrophoneBPM(bpm: bpm)
-                }
-                .store(in: &cancellables)
-            
-            // Generate initial LightScript
-            let mode = cachedPreferences.preferredMode
-            let lightSource = cachedPreferences.preferredLightSource
-            let screenColor = cachedPreferences.screenColor
-            
-            let initialScript = generateMicrophoneLightScript(
-                mode: mode,
-                lightSource: lightSource,
-                screenColor: screenColor,
-                bpm: microphoneBPM
-            )
-            currentScript = initialScript
-            
-            // Generate initial VibrationScript if vibration is enabled
-            if cachedPreferences.vibrationEnabled {
-                do {
-                    let initialVibrationScript = try generateMicrophoneVibrationScript(
-                        mode: mode,
-                        bpm: microphoneBPM,
-                        intensity: cachedPreferences.vibrationIntensity
-                    )
-                    currentVibrationScript = initialVibrationScript
-                    vibrationController = services.vibrationController
-                } catch {
-                    logger.error("Failed to generate initial vibration script: \(error.localizedDescription, privacy: .public)")
-                    // Degrade gracefully: continue without vibration
-                    vibrationController = nil
-                    currentVibrationScript = nil
-                    statusMessage = NSLocalizedString("status.vibration.unavailable", comment: "")
-                    errorMessage = nil
-                }
-            } else {
-                vibrationController = nil
-                currentVibrationScript = nil
-            }
-            
-            // Create session
-            let session = Session(
-                mode: mode,
-                lightSource: lightSource,
-                audioSource: .microphone,
-                trackTitle: "Live Audio",
-                trackArtist: "Mikrofon",
-                trackBPM: microphoneBPM
-            )
-            currentSession = session
-            microphoneStartTime = Date()
-            updateAffirmationStatusForCurrentPreferences()
-            
-            // Set custom color RGB if screen mode and custom color is selected
-            if lightSource == .screen, mode != .cinematic, screenColor == .custom,
-               let screenController = lightController as? ScreenController {
-                screenController.setCustomColorRGB(cachedPreferences.customColorRGB)
-            }
-            
-            // Apply audio latency offset from user preferences for Bluetooth compensation
-            lightController?.audioLatencyOffset = cachedPreferences.audioLatencyOffset
-
-            // Start light controller
-            try await lightController?.start()
-            
-            // Start LightScript execution
-            let startTime = Date()
-
-            // Start optional isochronic audio for microphone sessions (no music playback)
-            IsochronicAudioService.shared.carrierFrequency = 150.0
-            IsochronicAudioService.shared.start(mode: mode)
-
-            lightController?.execute(script: initialScript, syncedTo: startTime)
-            
-            // Start vibration if enabled
-            if cachedPreferences.vibrationEnabled, let vibrationController = vibrationController, let vibrationScript = currentVibrationScript {
-                try await vibrationController.start()
-                // Apply audio latency offset for Bluetooth compensation
-                vibrationController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
-                vibrationController.execute(script: vibrationScript, syncedTo: startTime)
-            }
-            
-            // Note: Cinematic mode is not supported for microphone sessions
-            // as it requires audio file playback with mixer node access
-            
-            sessionStartTime = startTime
-            affirmationPlayed = false
-            state = .running
-            
-            // Start frequency updates for UI display
-            startFrequencyUpdates()
-            
-            // Start observing for affirmation trigger
-            startAffirmationObserver()
-            
-            // Haptic feedback for session start (if enabled)
-            if cachedPreferences.hapticFeedbackEnabled {
-                HapticFeedback.medium()
-            }
-            
-        } catch {
-            errorMessage = error.localizedDescription
-            state = .error
-            fallDetector.stopMonitoring()
-            microphoneAnalyzer.stop()
-            lightController?.stop()
-            vibrationController?.stop()
-        }
-    }
-    
-    /// Handles beat events from microphone analyzer
-    private func handleMicrophoneBeat(timestamp: TimeInterval) {
-        microphoneBeatTimestamps.append(timestamp)
-        
-        // Keep only recent beats (last 20 seconds)
-        let cutoffTime = timestamp - 20.0
-        microphoneBeatTimestamps = microphoneBeatTimestamps.filter { $0 >= cutoffTime }
-        
-        // Additionally, cap the history size to prevent unbounded growth
-        if microphoneBeatTimestamps.count > maxBeatHistoryCount {
-            microphoneBeatTimestamps = Array(microphoneBeatTimestamps.suffix(maxBeatHistoryCount))
-        }
-        
-        // Beats are used for BPM estimation; avoid regenerating the light script
-        // and restarting the light controller on every single beat to prevent
-        // visual flicker and unnecessary work. Script updates are handled in
-        // handleMicrophoneBPM(bpm:) when there is a significant BPM change.
-    }
-    
-    /// Handles BPM updates from microphone analyzer
-    private func handleMicrophoneBPM(bpm: Double) {
-        microphoneBPM = bpm
-        
-        // Debounce script updates: only regenerate when BPM changes significantly
-        // to avoid frequent cancel/restart cycles and visible flicker.
-        // Threshold: 5 BPM difference from the last script BPM.
-        // Check if BPM change is significant enough to warrant regeneration
-        // A 5 BPM threshold prevents excessive restarts from minor tempo variations.
-        // Note: While this approach uses cancelExecution/restart which could cause
-        // brief flickering, it ensures the light frequency remains synchronized with
-        // the detected tempo. More sophisticated smoothing (e.g., gradual frequency
-        // interpolation) would add complexity and may compromise the entrainment
-        // effect by temporarily using off-target frequencies. The 5 BPM threshold
-        // strikes a balance between responsiveness and stability.
-        if let previousBPM = lastScriptBPM, abs(bpm - previousBPM) < 5.0 {
-            return
-        }
-        lastScriptBPM = bpm
-        
-        // Regenerate LightScript with new BPM
-        guard currentScript != nil,
-              let startTime = microphoneStartTime else {
-            return
-        }
-        
-        let mode = cachedPreferences.preferredMode
-        let lightSource = cachedPreferences.preferredLightSource
-        let screenColor = cachedPreferences.screenColor
-        
-        let updatedScript = generateMicrophoneLightScript(
-            mode: mode,
-            lightSource: lightSource,
-            screenColor: screenColor,
-            bpm: bpm
-        )
-        currentScript = updatedScript
-        
-        // Update light controller
-        lightController?.cancelExecution()
-        lightController?.execute(script: updatedScript, syncedTo: startTime)
-        
-        // Update vibration script if enabled
-        if cachedPreferences.vibrationEnabled {
-            do {
-                let updatedVibrationScript = try generateMicrophoneVibrationScript(
-                    mode: mode,
-                    bpm: bpm,
-                    intensity: cachedPreferences.vibrationIntensity
-                )
-                currentVibrationScript = updatedVibrationScript
-                vibrationController?.cancelExecution()
-                vibrationController?.execute(script: updatedVibrationScript, syncedTo: startTime)
-            } catch {
-                logger.error("Failed to update vibration script: \(error.localizedDescription, privacy: .public)")
-                // Stop any active vibration and clear state to prevent stale script execution
-                vibrationController?.cancelExecution()
-                currentVibrationScript = nil
-                // Don't stop the session, just log the error and continue without vibration
-            }
-        }
-    }
-    
-    /// Creates a dummy AudioTrack for microphone mode with estimated duration
-    private func createMicrophoneDummyTrack(bpm: Double) -> AudioTrack {
-        // Estimate a non-zero duration for the dummy track based on live analysis
-        let estimatedDuration: TimeInterval
-        if let lastBeat = microphoneBeatTimestamps.last {
-            let beatDuration = bpm > 0 ? 60.0 / bpm : 0
-            // Extend duration one beat beyond the last detected beat
-            estimatedDuration = lastBeat + beatDuration
-        } else if bpm > 0 {
-            // No beats yet: use a relatively short duration (60 seconds) to ensure events are generated
-            // without creating excessive overhead (which 1 hour would cause).
-            // This will be regenerated as needed when BPM changes or beats are detected.
-            estimatedDuration = 60.0
-        } else {
-            // Fallback duration when no timing information is available
-            estimatedDuration = 60.0
-        }
-        
-        // Create a dummy track with current BPM and beat timestamps
-        return AudioTrack(
-            title: NSLocalizedString("session.liveAudio", comment: "Title for live audio track in microphone mode"),
-            artist: NSLocalizedString("session.microphone", comment: "Artist name for live audio track in microphone mode"),
-            duration: estimatedDuration,
-            bpm: bpm,
-            beatTimestamps: microphoneBeatTimestamps
-        )
-    }
-    
-    /// Generates a LightScript for microphone mode
-    private func generateMicrophoneLightScript(
-        mode: EntrainmentMode,
-        lightSource: LightSource,
-        screenColor: LightEvent.LightColor?,
-        bpm: Double
-    ) -> LightScript {
-        let dummyTrack = createMicrophoneDummyTrack(bpm: bpm)
-        
-        return entrainmentEngine.generateLightScript(
-            from: dummyTrack,
-            mode: mode,
-            lightSource: lightSource,
-            screenColor: lightSource == .screen ? screenColor : nil
-        )
-    }
-    
-    /// Generates a VibrationScript for microphone mode
-    /// - Throws: VibrationScriptError if validation fails
-    private func generateMicrophoneVibrationScript(
-        mode: EntrainmentMode,
-        bpm: Double,
-        intensity: Float
-    ) throws -> VibrationScript {
-        let dummyTrack = createMicrophoneDummyTrack(bpm: bpm)
-        
-        return try entrainmentEngine.generateVibrationScript(
-            from: dummyTrack,
-            mode: mode,
-            intensity: intensity
-        )
     }
     
     /// Handles fall detection event
@@ -1277,15 +881,11 @@ final class SessionViewModel: ObservableObject {
         statusMessage = nil
         state = .idle
         
-        // Cleanup microphone and fall detection
-        microphoneAnalyzer?.stop()
+        // Cleanup fall detection
         fallDetector.stopMonitoring()
-        microphoneBeatTimestamps.removeAll()
-        microphoneStartTime = nil
         pausedBySystemInterruption = false
         pausedByRouteChange = false
         pausedByBackground = false
-        pausedBySilence = false
         microphoneSilenceStart = nil
         affirmationStatus = nil
         totalPauseDuration = 0

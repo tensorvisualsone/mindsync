@@ -174,7 +174,7 @@ final class AudioPlaybackService: NSObject {
         logger.info("Audio playback resumed from position: \(pausedPosition, privacy: .public) seconds")
     }
 
-    /// Current playback time in seconds
+    /// Current playback time in seconds (based on Date() timing)
     var currentTime: TimeInterval {
         guard let startTime = playbackStartTime else { return 0 }
         
@@ -193,6 +193,41 @@ final class AudioPlaybackService: NSObject {
         }
         
         return max(0, totalElapsed)
+    }
+    
+    /// Precise audio time in seconds (derived from AVAudioPlayerNode's render time)
+    /// This provides audio-thread accurate timing, eliminating drift between audio and display threads
+    var preciseAudioTime: TimeInterval {
+        guard let node = playerNode,
+              let file = audioFile else {
+            // Fallback to currentTime if audio engine is not initialized
+            return currentTime
+        }
+        
+        guard let nodeTime = node.lastRenderTime,
+              let playerTime = node.playerTime(forNodeTime: nodeTime) else {
+            // Fallback to currentTime if render time is not available
+            return currentTime
+        }
+        
+        // Convert sample time to seconds
+        let audioTime = Double(playerTime.sampleTime) / playerTime.sampleRate
+        
+        // Account for accumulated pause time
+        let adjustedTime = audioTime - accumulatedPauseTime
+        
+        // If currently paused, don't count time since pause
+        if let pauseTime = lastPauseTime {
+            let pauseDuration = Date().timeIntervalSince(pauseTime)
+            return max(0, adjustedTime - pauseDuration)
+        }
+        
+        // Clamp to file duration if available
+        if fileDuration > 0 {
+            return min(max(0, adjustedTime), fileDuration)
+        }
+        
+        return max(0, adjustedTime)
     }
     
     private var playbackStartTime: Date?

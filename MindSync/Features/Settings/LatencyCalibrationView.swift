@@ -3,8 +3,18 @@ import SwiftUI
 /// View für die Audio-Latenz-Kalibrierung
 /// Zeigt interaktiven Kalibrierungsprozess mit Anweisungen und visuellem Feedback
 struct LatencyCalibrationView: View {
+    // MARK: - Constants
+    
+    /// Schwellenwert für signifikante Bluetooth-Latenz (in Sekunden)
+    /// Wenn der kalibrierte Offset diesen Wert überschreitet, wird eine Info-Meldung angezeigt
+    /// 0.05s (50ms) ist ein sinnvoller Schwellenwert, da kleinere Latenzen oft vernachlässigbar sind
+    private let significantLatencyThreshold: TimeInterval = 0.05
+    
+    // MARK: - State
+    
     @StateObject private var viewModel = LatencyCalibrationViewModel()
     @Environment(\.dismiss) private var dismiss
+    @State private var showSaveError = false
     
     var body: some View {
         ZStack {
@@ -26,10 +36,12 @@ struct LatencyCalibrationView: View {
             .padding()
             
             // Weißer Flash Overlay (erscheint während der Messung)
+            // WICHTIG: Keine Animation für präzises Timing
+            // Der Flash muss sofort erscheinen, um mit dem Sound synchron zu sein
             if viewModel.showFlash {
                 Color.white
                     .ignoresSafeArea()
-                    .transition(.opacity)
+                    .animation(nil, value: viewModel.showFlash) // Explizit keine Animation
             }
         }
         .navigationTitle("Latenz-Kalibrierung")
@@ -40,6 +52,11 @@ struct LatencyCalibrationView: View {
             if viewModel.state.isWaitingForTap {
                 viewModel.userTapped()
             }
+        }
+        .alert("Fehler beim Speichern", isPresented: $showSaveError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Die Kalibrierung konnte nicht gespeichert werden. Bitte versuche es erneut oder starte eine neue Kalibrierung.")
         }
     }
     
@@ -231,7 +248,7 @@ struct LatencyCalibrationView: View {
                         .foregroundColor(.secondary)
                     
                     HStack(spacing: 8) {
-                        ForEach(Array(viewModel.measurements.enumerated()), id: \.offset) { _, measurement in
+                        ForEach(viewModel.measurements, id: \.self) { measurement in
                             Text(String(format: "%.0f", measurement * 1000))
                                 .font(.caption)
                                 .padding(.horizontal, 8)
@@ -247,7 +264,7 @@ struct LatencyCalibrationView: View {
             .cornerRadius(12)
             
             // Info Text
-            if viewModel.calibratedOffset > 0.05 {
+            if viewModel.calibratedOffset > significantLatencyThreshold {
                 Label {
                     Text("Bluetooth-Latenz erkannt. Synchronisation wird automatisch angepasst.")
                         .font(.caption)
@@ -293,11 +310,31 @@ struct LatencyCalibrationView: View {
                     .fontWeight(.semibold)
             }
             
+        case .instructions, .measuring, .waitingForTap, .processing:
+            // Abbrechen-Button während aktiver Kalibrierung
+            Button {
+                viewModel.cancelCalibration()
+                dismiss()
+            } label: {
+                Text("Abbrechen")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color(.systemGray5))
+                    .foregroundColor(.primary)
+                    .cornerRadius(12)
+            }
+            
         case .completed:
             VStack(spacing: 12) {
                 Button {
-                    viewModel.saveCalibration()
-                    dismiss()
+                    // Prüfe ob Speichern erfolgreich war
+                    if viewModel.saveCalibration() {
+                        // Erfolgreich gespeichert: View schließen
+                        dismiss()
+                    } else {
+                        // Fehler beim Speichern: Zeige Alert
+                        showSaveError = true
+                    }
                 } label: {
                     Label("Speichern und schließen", systemImage: "checkmark")
                         .frame(maxWidth: .infinity)

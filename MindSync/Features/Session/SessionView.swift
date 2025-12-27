@@ -7,7 +7,6 @@ struct SessionView: View {
     
     let mediaItem: MPMediaItem?
     let audioFileURL: URL?
-    let isMicrophoneMode: Bool
     
     /// Height of the status banner including padding (used for offset calculations)
     /// Calculated from: top padding (8) + banner vertical padding (sm + xs = 12) + content height (icon ~24 or text ~20)
@@ -23,10 +22,9 @@ struct SessionView: View {
         return topPadding + bannerVerticalPadding + contentHeight // 8 + 12 + 24 = 44
     }
     
-    init(song: MPMediaItem? = nil, audioFileURL: URL? = nil, isMicrophoneMode: Bool = false) {
+    init(song: MPMediaItem? = nil, audioFileURL: URL? = nil) {
         self.mediaItem = song
         self.audioFileURL = audioFileURL
-        self.isMicrophoneMode = isMicrophoneMode
     }
     
     var body: some View {
@@ -85,9 +83,7 @@ struct SessionView: View {
         }
         .preferredColorScheme(.dark)
         .task {
-            if isMicrophoneMode {
-                await viewModel.startMicrophoneSession()
-            } else if let mediaItem = mediaItem {
+            if let mediaItem = mediaItem {
                 await viewModel.startSession(with: mediaItem)
             } else if let audioFileURL = audioFileURL {
                 await viewModel.startSession(with: audioFileURL)
@@ -240,22 +236,18 @@ private struct SessionTrackInfoView: View {
     var body: some View {
         VStack(spacing: AppConstants.Spacing.sm) {
             HStack(spacing: AppConstants.Spacing.sm) {
-                Image(systemName: session.audioSource == .microphone ? "waveform" : "music.note")
+                Image(systemName: "music.note")
                     .font(.system(size: AppConstants.IconSize.medium, weight: .semibold))
-                    .foregroundStyle(session.audioSource == .microphone ? Color.mindSyncWarning : Color.mindSyncAccent)
+                    .foregroundStyle(Color.mindSyncAccent)
                 
                 VStack(alignment: .leading, spacing: AppConstants.Spacing.xs) {
-                    Text(track?.title ?? NSLocalizedString("session.liveAudio", comment: ""))
+                    Text(track?.title ?? "")
                         .font(AppConstants.Typography.title2)
                         .foregroundStyle(.white)
                         .lineLimit(2)
                     
                     if let artist = track?.artist {
                         Text(artist)
-                            .font(AppConstants.Typography.subheadline)
-                            .foregroundStyle(.white.opacity(AppConstants.Opacity.secondary))
-                    } else if session.audioSource == .microphone {
-                        Text(NSLocalizedString("session.microphone", comment: ""))
                             .font(AppConstants.Typography.subheadline)
                             .foregroundStyle(.white.opacity(AppConstants.Opacity.secondary))
                     }
