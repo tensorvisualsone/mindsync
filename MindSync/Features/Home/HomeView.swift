@@ -83,6 +83,14 @@ struct HomeView: View {
                         showingSession = true
                     }
                 )
+                .onDisappear {
+                    // Reset selectedMediaItem if source selection was dismissed without selection
+                    // This prevents showing "noMediaItem" error if user cancels or dismisses
+                    if !showingSession {
+                        selectedMediaItem = nil
+                        isMicrophoneSession = false
+                    }
+                }
             }
             .sheet(isPresented: $showingModeSelection) {
                 ModeSelectionView(

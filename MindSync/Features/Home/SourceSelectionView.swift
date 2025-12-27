@@ -167,6 +167,7 @@ struct SourceSelectionView: View {
             do {
                 _ = try await mediaLibraryService.assetURLForAnalysis(of: item)
                 await MainActor.run {
+                    // Only call onSongSelected if validation succeeds
                     selectedItem = item
                     onSongSelected(item)
                     showingMediaPicker = false
@@ -182,6 +183,8 @@ struct SourceSelectionView: View {
                         // Fallback for other error types
                         errorMessage = error.localizedDescription
                     }
+                    // Keep media picker open so user can select another song
+                    // Don't call onSongSelected - this ensures selectedMediaItem in HomeView stays nil
                     showingError = true
                 }
             }
