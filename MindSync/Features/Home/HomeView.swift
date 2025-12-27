@@ -1,12 +1,27 @@
 import SwiftUI
 import MediaPlayer
 
+/// Represents the type of session to start
+enum SessionType: Identifiable {
+    case microphone
+    case mediaItem(MPMediaItem)
+    case audioFile(URL)
+    
+    var id: String {
+        switch self {
+        case .microphone:
+            return "microphone"
+        case .mediaItem(let item):
+            return "media-\(item.persistentID)"
+        case .audioFile(let url):
+            return "file-\(url.absoluteString)"
+        }
+    }
+}
+
 struct HomeView: View {
     @State private var showingSourceSelection = false
-    @State private var selectedMediaItem: MPMediaItem?
-    @State private var selectedAudioURL: URL?
-    @State private var showingSession = false
-    @State private var isMicrophoneSession = false
+    @State private var sessionToStart: SessionType?
     @State private var showingModeSelection = false
     @State private var showingSettings = false
     @State private var preferences = UserPreferences.load()
@@ -72,25 +87,23 @@ struct HomeView: View {
             .sheet(isPresented: $showingSourceSelection) {
                 SourceSelectionView(
                     onSongSelected: { item in
-                        selectedMediaItem = item
-                        selectedAudioURL = nil
-                        isMicrophoneSession = false
-                        showingSession = true
                         showingSourceSelection = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            sessionToStart = .mediaItem(item)
+                        }
                     },
                     onFileSelected: { url in
-                        selectedMediaItem = nil
-                        selectedAudioURL = url
-                        isMicrophoneSession = false
-                        showingSession = true
+                        print("HomeView: onFileSelected called with: \(url.lastPathComponent)")
                         showingSourceSelection = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            sessionToStart = .audioFile(url)
+                        }
                     },
                     onMicrophoneSelected: {
-                        selectedMediaItem = nil
-                        selectedAudioURL = nil
-                        isMicrophoneSession = true
-                        showingSession = true
                         showingSourceSelection = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            sessionToStart = .microphone
+                        }
                     }
                 )
             }
@@ -116,26 +129,14 @@ struct HomeView: View {
                         preferences = UserPreferences.load()
                     }
             }
-            .fullScreenCover(isPresented: $showingSession) {
-                if isMicrophoneSession {
+            .fullScreenCover(item: $sessionToStart) { session in
+                switch session {
+                case .microphone:
                     SessionView(song: nil, isMicrophoneMode: true)
-                } else if let mediaItem = selectedMediaItem {
-                    SessionView(song: mediaItem, isMicrophoneMode: false)
-                } else if let audioURL = selectedAudioURL {
-                    SessionView(audioFileURL: audioURL, isMicrophoneMode: false)
-                } else {
-                    VStack(spacing: 16) {
-                        Text(NSLocalizedString("session.unableToStart", comment: ""))
-                            .font(.headline)
-                        Text(NSLocalizedString("session.noMediaItem", comment: ""))
-                            .multilineTextAlignment(.center)
-                            .foregroundStyle(.secondary)
-                        Button(NSLocalizedString("common.dismiss", comment: "")) {
-                            showingSession = false
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding()
+                case .mediaItem(let item):
+                    SessionView(song: item, isMicrophoneMode: false)
+                case .audioFile(let url):
+                    SessionView(audioFileURL: url, isMicrophoneMode: false)
                 }
             }
         }

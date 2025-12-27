@@ -16,7 +16,7 @@ struct SourceSelectionView: View {
     @State private var errorMessage = ""
     
     let onSongSelected: (MPMediaItem) -> Void
-    let onFileSelected: ((URL) -> Void)?
+    let onFileSelected: (URL) -> Void
     let onMicrophoneSelected: (() -> Void)?
     
     var body: some View {
@@ -155,7 +155,7 @@ struct SourceSelectionView: View {
             } message: {
                 Text(errorMessage)
             }
-            .fileImporter(isPresented: $showingFilePicker, allowedContentTypes: [.audio, .mp3, .mpeg4Audio, .wav, .aiff]) { result in
+            .fileImporter(isPresented: $showingFilePicker, allowedContentTypes: [.audio]) { result in
                 handleFileImport(result)
             }
             .task {
@@ -237,9 +237,12 @@ struct SourceSelectionView: View {
     private func handleFileImport(_ result: Result<URL, Error>) {
         switch result {
         case .success(let url):
+            print("File picker returned URL: \(url.path)")
+            
             Task {
                 // Start accessing the security-scoped resource
                 let hasAccess = url.startAccessingSecurityScopedResource()
+                print("Security scoped access: \(hasAccess)")
                 
                 defer {
                     if hasAccess {
@@ -249,6 +252,7 @@ struct SourceSelectionView: View {
                 
                 // Copy file to app's documents directory for persistent access
                 guard let copiedURL = copyAudioToDocuments(from: url) else {
+                    print("ERROR: Failed to copy file to documents")
                     await MainActor.run {
                         errorMessage = "Datei konnte nicht kopiert werden. Bitte versuche es erneut."
                         showingError = true
@@ -256,16 +260,22 @@ struct SourceSelectionView: View {
                     return
                 }
                 
+                print("File copied successfully to: \(copiedURL.path)")
+                
                 // Validate that the file is playable
                 let asset = AVURLAsset(url: copiedURL)
                 do {
                     let isPlayable = try await asset.load(.isPlayable)
                     
-                    await MainActor.run {
-                        if isPlayable {
-                            onFileSelected?(copiedURL)
-                        } else {
-                            try? FileManager.default.removeItem(at: copiedURL)
+                    if isPlayable {
+                        // Call callback on main actor - this triggers navigation
+                        await MainActor.run {
+                            print("File import successful, calling onFileSelected with: \(copiedURL.lastPathComponent)")
+                            onFileSelected(copiedURL)
+                        }
+                    } else {
+                        try? FileManager.default.removeItem(at: copiedURL)
+                        await MainActor.run {
                             errorMessage = "Die Datei ist keine gültige Audiodatei."
                             showingError = true
                         }
@@ -402,4 +412,5 @@ struct MediaPickerView: UIViewControllerRepresentable {
         }
     )
 }
+
 
