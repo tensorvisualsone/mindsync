@@ -4,6 +4,7 @@ import MediaPlayer
 struct HomeView: View {
     @State private var showingSourceSelection = false
     @State private var selectedMediaItem: MPMediaItem?
+    @State private var selectedAudioURL: URL?
     @State private var showingSession = false
     @State private var isMicrophoneSession = false
     @State private var showingModeSelection = false
@@ -72,12 +73,21 @@ struct HomeView: View {
                 SourceSelectionView(
                     onSongSelected: { item in
                         selectedMediaItem = item
+                        selectedAudioURL = nil
+                        isMicrophoneSession = false
+                        showingSession = true
+                        showingSourceSelection = false
+                    },
+                    onFileSelected: { url in
+                        selectedMediaItem = nil
+                        selectedAudioURL = url
                         isMicrophoneSession = false
                         showingSession = true
                         showingSourceSelection = false
                     },
                     onMicrophoneSelected: {
                         selectedMediaItem = nil
+                        selectedAudioURL = nil
                         isMicrophoneSession = true
                         showingSession = true
                         showingSourceSelection = false
@@ -111,6 +121,8 @@ struct HomeView: View {
                     SessionView(song: nil, isMicrophoneMode: true)
                 } else if let mediaItem = selectedMediaItem {
                     SessionView(song: mediaItem, isMicrophoneMode: false)
+                } else if let audioURL = selectedAudioURL {
+                    SessionView(audioFileURL: audioURL, isMicrophoneMode: false)
                 } else {
                     VStack(spacing: 16) {
                         Text(NSLocalizedString("session.unableToStart", comment: ""))
