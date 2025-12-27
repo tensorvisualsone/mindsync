@@ -40,18 +40,6 @@ final class FlashlightController: BaseLightController, LightControlling {
         super.init()
         // Device is now lazy-initialized when first accessed
     }
-    
-    deinit {
-        // Ensure display link is properly cleaned up
-        invalidateDisplayLink()
-        displayLinkTarget = nil
-        
-        // Also ensure torch is turned off
-        if let device = device, isLocked {
-            device.torchMode = .off
-            device.unlockForConfiguration()
-        }
-    }
 
     func start() async throws {
         guard let device = device, device.hasTorch else {

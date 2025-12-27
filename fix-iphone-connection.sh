@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Prüfen, ob sudo verfügbar/autorisiert ist
-if ! sudo -n true 2>/dev/null; then
+# Prüfen, ob sudo verfügbar/autorisiert ist (mit Passwort-Prompt falls nötig)
+if ! sudo -v 2>/dev/null; then
     echo "❌ Fehler: Dieses Skript benötigt sudo-Rechte."
     echo "Bitte führen Sie das Skript mit sudo aus oder stellen Sie sicher, dass Sie sudo-Rechte haben."
     exit 1
