@@ -247,6 +247,7 @@ private struct SessionTrackInfoView: View {
                 Spacer(minLength: 0)
             }
         }
+        .padding(AppConstants.Spacing.md)
         .mindSyncCardStyle()
     }
 }

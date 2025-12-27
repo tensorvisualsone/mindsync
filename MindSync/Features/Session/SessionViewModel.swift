@@ -97,11 +97,11 @@ final class SessionViewModel: ObservableObject {
     private var playbackProgressTimer: Timer?
     private var activeTask: Task<Void, Never>?
     
-    init(historyService: SessionHistoryServiceProtocol = ServiceContainer.shared.sessionHistoryService) {
+    init(historyService: SessionHistoryServiceProtocol? = nil) {
         self.audioAnalyzer = services.audioAnalyzer
         self.audioPlayback = services.audioPlayback
         self.cachedPreferences = UserPreferences.load()
-        self.historyService = historyService
+        self.historyService = historyService ?? ServiceContainer.shared.sessionHistoryService
         
         // Load microphone monitoring configuration from UserDefaults
         // Note: We validate that values are positive (> 0) to ensure sensible behavior.
@@ -419,7 +419,9 @@ final class SessionViewModel: ObservableObject {
         
         let timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             guard let self = self else { return }
-            self.updatePlaybackProgress(duration: duration)
+            Task { @MainActor in
+                self.updatePlaybackProgress(duration: duration)
+            }
         }
         playbackProgressTimer = timer
     }
@@ -450,7 +452,9 @@ final class SessionViewModel: ObservableObject {
     deinit {
         // Skip resetting published properties during deallocation to avoid issues with
         // potentially active observers. The properties will be cleaned up with the view model.
-        stopPlaybackProgressUpdates(reset: false)
+        // Only invalidate the timer (non-MainActor operation) to avoid Swift 6 concurrency errors.
+        playbackProgressTimer?.invalidate()
+        playbackProgressTimer = nil
         // Note: Cleanup is handled by stopSession() which should be called before deallocation.
         // The AudioPlaybackService handles its own lifecycle and will stop when deallocated.
         // We intentionally don't call MainActor-isolated methods from deinit to avoid
@@ -526,7 +530,7 @@ final class SessionViewModel: ObservableObject {
             }
             
             // Start playback and light
-            try startPlaybackAndLight(url: assetURL, script: script)
+            try await startPlaybackAndLight(url: assetURL, script: script)
             
             // If cinematic mode, start audio energy tracking and attach to light controller
             if mode == .cinematic {
@@ -956,7 +960,7 @@ final class SessionViewModel: ObservableObject {
     }
     
     /// Starts audio playback and light synchronization
-    private func startPlaybackAndLight(url: URL, script: LightScript) throws {
+    private func startPlaybackAndLight(url: URL, script: LightScript) async throws {
         guard let lightController = lightController else {
             throw LightControlError.configurationFailed
         }

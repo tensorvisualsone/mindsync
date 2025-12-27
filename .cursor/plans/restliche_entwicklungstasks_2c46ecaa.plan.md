@@ -540,5 +540,3 @@ Phase 1 → Phase 2 → Phase 3
 ```
 
 **Parallele Arbeit möglich:**
-
-- Phase 4 (Lokalisierung) kann parallel zu Phase 3 laufen

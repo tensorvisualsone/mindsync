@@ -10,7 +10,7 @@ final class SessionHistoryViewModel: ObservableObject {
     private let historyService: SessionHistoryServiceProtocol
     private var cancellables = Set<AnyCancellable>()
     
-    private static let durationFormatter: DateComponentsFormatter = {
+    nonisolated private static let durationFormatter: DateComponentsFormatter = {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.hour, .minute]
         formatter.unitsStyle = .abbreviated
@@ -18,8 +18,8 @@ final class SessionHistoryViewModel: ObservableObject {
         return formatter
     }()
     
-    init(historyService: SessionHistoryServiceProtocol = ServiceContainer.shared.sessionHistoryService) {
-        self.historyService = historyService
+    init(historyService: SessionHistoryServiceProtocol? = nil) {
+        self.historyService = historyService ?? ServiceContainer.shared.sessionHistoryService
         loadSessions()
         
         $selectedModeFilter
