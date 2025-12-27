@@ -74,10 +74,12 @@ final class LatencyCalibrationViewModel: ObservableObject {
     /// HINWEIS: calibrationTask und tapTimeoutWorkItem werden automatisch
     /// gecancelt wenn die Klasse deallokiert wird (Swift's Task/WorkItem cleanup).
     nonisolated deinit {
-        // Deaktiviere Audio-Session auf MainActor
-        // Nutze Task um auf MainActor zu wechseln, da deinit nonisolated ist
-        Task { @MainActor in
-            try? AVAudioSession.sharedInstance().setActive(false)
+        // Deaktiviere Audio-Session synchron im Deinitializer
+        do {
+            try AVAudioSession.sharedInstance().setActive(false)
+        } catch {
+            // Im Deinitializer können wir keinen UI-Fehlerzustand mehr setzen,
+            // daher behandeln wir den Fehler still (Best-Effort-Cleanup).
         }
     }
     
@@ -186,7 +188,7 @@ final class LatencyCalibrationViewModel: ObservableObject {
     /// Cancelt alle laufenden Kalibrierungs-Tasks bevor eine neue gestartet wird,
     /// um zu verhindern, dass mehrere Kalibrierungen parallel laufen.
     func startCalibration() {
-        // Cancle vorherige Kalibrierung falls vorhanden
+        // Cancel vorherige Kalibrierung falls vorhanden
         calibrationTask?.cancel()
         tapTimeoutWorkItem?.cancel()
         tapTimeoutWorkItem = nil
@@ -283,7 +285,7 @@ final class LatencyCalibrationViewModel: ObservableObject {
             return
         }
         
-        // Cancle Timeout da User getippt hat
+        // Cancel Timeout da User getippt hat
         tapTimeoutWorkItem?.cancel()
         tapTimeoutWorkItem = nil
         
@@ -357,9 +359,9 @@ final class LatencyCalibrationViewModel: ObservableObject {
         }
         
         // Guard: Prüfe ob calibratedOffset gültig ist
-        // - Muss > 0 sein (0 bedeutet keine Latenz, wäre ungewöhnlich nach Kalibrierung)
+        // - Muss >= 0 sein (0 bedeutet keine Latenz, möglich bei Kabelkopfhörern)
         // - Muss innerhalb der UserPreferences-Grenzen sein (0.0 - 0.5s)
-        guard calibratedOffset > 0.0,
+        guard calibratedOffset >= 0.0,
               calibratedOffset <= 0.5 else {
             // Ungültiger Offset-Wert, nichts speichern
             return false
@@ -376,7 +378,7 @@ final class LatencyCalibrationViewModel: ObservableObject {
     /// Bricht die laufende Kalibrierung ab und setzt sie zurück
     /// Wird verwendet wenn User die Kalibrierung während des Prozesses abbricht
     func cancelCalibration() {
-        // Cancle alle laufenden Tasks und Timeouts
+        // Cancel alle laufenden Tasks und Timeouts
         calibrationTask?.cancel()
         calibrationTask = nil
         tapTimeoutWorkItem?.cancel()
@@ -396,7 +398,7 @@ final class LatencyCalibrationViewModel: ObservableObject {
     
     /// Setzt die Kalibrierung zurück (für "Erneut kalibrieren" nach Abschluss)
     func reset() {
-        // Cancle alle laufenden Tasks und Timeouts
+        // Cancel alle laufenden Tasks und Timeouts
         calibrationTask?.cancel()
         calibrationTask = nil
         tapTimeoutWorkItem?.cancel()

@@ -111,7 +111,7 @@ class BaseLightController: NSObject {
         // Use precise audio time if available (audio-thread accurate), otherwise fall back to Date()
         // This eliminates drift between audio and display threads
         let currentTime: TimeInterval
-        if let audioPlayback = audioPlayback, audioPlayback.isPlaying {
+        if let audioPlayback = audioPlayback {
             // Use audio-thread precise timing
             currentTime = audioPlayback.preciseAudioTime
         } else {

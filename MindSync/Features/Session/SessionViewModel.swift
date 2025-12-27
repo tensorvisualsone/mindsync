@@ -545,11 +545,12 @@ final class SessionViewModel: ObservableObject {
             
             // Start vibration if enabled (using same startTime for synchronization)
             if cachedPreferences.vibrationEnabled, let vibrationController = vibrationController, let vibrationScript = currentVibrationScript {
-                try await vibrationController.start()
                 // Apply audio latency offset for Bluetooth compensation
                 vibrationController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
                 // Set audio playback reference for precise audio-thread timing
                 vibrationController.audioPlayback = audioPlayback
+                
+                try await vibrationController.start()
                 vibrationController.execute(script: vibrationScript, syncedTo: startTime)
             }
             
@@ -688,11 +689,12 @@ final class SessionViewModel: ObservableObject {
             
             // Start vibration if enabled (using same startTime for synchronization)
             if cachedPreferences.vibrationEnabled, let vibrationController = vibrationController, let vibrationScript = currentVibrationScript {
-                try await vibrationController.start()
                 // Apply audio latency offset for Bluetooth compensation
                 vibrationController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
                 // Set audio playback reference for precise audio-thread timing
                 vibrationController.audioPlayback = audioPlayback
+                
+                try await vibrationController.start()
                 vibrationController.execute(script: vibrationScript, syncedTo: startTime)
             }
             
@@ -886,7 +888,6 @@ final class SessionViewModel: ObservableObject {
         pausedBySystemInterruption = false
         pausedByRouteChange = false
         pausedByBackground = false
-        microphoneSilenceStart = nil
         affirmationStatus = nil
         totalPauseDuration = 0
         pauseStartTime = nil
