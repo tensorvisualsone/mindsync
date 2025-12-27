@@ -208,6 +208,121 @@ final class AudioAnalyzer {
         return track
     }
     
+    /// Analyzes a local audio file directly from URL (no caching)
+    /// Used for files selected via Document Picker
+    func analyze(url: URL, title: String? = nil, artist: String? = nil) async throws -> AudioTrack {
+        isCancelled = false
+        
+        let analysisStart = Date()
+        
+        let resolvedTitle = title ?? url.deletingPathExtension().lastPathComponent
+        logger.info("Starting analysis for file: \(resolvedTitle, privacy: .public)")
+
+        // Progress: Load audio
+        progressPublisher.send(AnalysisProgress(
+            phase: .loading,
+            progress: 0.1,
+            message: "Loading audio..."
+        ))
+
+        // Read PCM data
+        progressPublisher.send(AnalysisProgress(
+            phase: .extracting,
+            progress: 0.3,
+            message: "Extracting PCM data..."
+        ))
+
+        let samples = try await fileReader.readPCM(from: url)
+        try validateSamples(samples)
+        try checkForTimeout(startDate: analysisStart)
+
+        guard !isCancelled else {
+            throw AudioAnalysisError.cancelled
+        }
+        
+        // Calculate duration from samples since we don't have metadata
+        let duration = Double(samples.count) / targetSampleRate
+
+        // Progress: Analyze frequencies
+        progressPublisher.send(AnalysisProgress(
+            phase: .analyzing,
+            progress: 0.6,
+            message: "Analyzing frequencies..."
+        ))
+
+        // Beat detection
+        progressPublisher.send(AnalysisProgress(
+            phase: .detecting,
+            progress: 0.8,
+            message: "Detecting beats..."
+        ))
+
+        var beatTimestamps: [TimeInterval]
+        if let beatDetector = beatDetector {
+            beatTimestamps = await beatDetector.detectBeats(in: samples)
+        } else {
+            beatTimestamps = []
+        }
+        var bpm = tempoEstimator.estimateBPM(from: beatTimestamps)
+        
+        if beatTimestamps.count < minimumDetectedBeats {
+            let fallbackBeats = generateEnergyDrivenBeats(
+                from: samples,
+                windowDuration: fallbackWindowDuration,
+                sampleRate: targetSampleRate,
+                trackDuration: duration
+            )
+            
+            if !fallbackBeats.isEmpty && fallbackBeats.count > beatTimestamps.count {
+                beatTimestamps = fallbackBeats
+                bpm = tempoEstimator.estimateBPM(from: beatTimestamps)
+                logger.info("Energy-based beat fallback used for file: \(resolvedTitle, privacy: .public)")
+            }
+        }
+        
+        if beatTimestamps.count < 2 {
+            let isValidBPM = bpm.isFinite && bpm > 0
+            
+            if isValidBPM {
+                let uniformBeats = generateUniformBeats(
+                    duration: duration,
+                    bpm: bpm
+                )
+                if !uniformBeats.isEmpty {
+                    beatTimestamps = uniformBeats
+                    logger.info("Uniform beat fallback used for file: \(resolvedTitle, privacy: .public) with BPM: \(bpm, privacy: .public)")
+                }
+            }
+        }
+        
+        try checkForTimeout(startDate: analysisStart)
+
+        guard !isCancelled else {
+            logger.warning("Analysis cancelled for file: \(resolvedTitle, privacy: .public)")
+            throw AudioAnalysisError.cancelled
+        }
+
+        // Progress: Complete
+        progressPublisher.send(AnalysisProgress(
+            phase: .complete,
+            progress: 1.0,
+            message: "Complete!"
+        ))
+
+        logger.info("Analysis complete for file: \(resolvedTitle, privacy: .public), BPM: \(bpm, privacy: .public), Beats: \(beatTimestamps.count, privacy: .public)")
+
+        // Create AudioTrack (no caching for file-based analysis)
+        return AudioTrack(
+            title: resolvedTitle,
+            artist: artist,
+            albumTitle: nil,
+            duration: duration,
+            assetURL: url,
+            bpm: bpm,
+            beatTimestamps: beatTimestamps
+        )
+    }
+    
     /// Cancels the running analysis
     func cancel() {
         isCancelled = true

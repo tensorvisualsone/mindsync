@@ -1,5 +1,7 @@
 import SwiftUI
 import MediaPlayer
+import UniformTypeIdentifiers
+import AVFoundation
 
 /// View for audio source selection
 struct SourceSelectionView: View {
@@ -8,11 +10,13 @@ struct SourceSelectionView: View {
     @State private var authorizationStatus: MPMediaLibraryAuthorizationStatus = .notDetermined
     @State private var microphoneStatus: MicrophonePermissionStatus = .undetermined
     @State private var showingMediaPicker = false
+    @State private var showingFilePicker = false
     @State private var selectedItem: MPMediaItem?
     @State private var showingError = false
     @State private var errorMessage = ""
     
     let onSongSelected: (MPMediaItem) -> Void
+    let onFileSelected: (URL) -> Void
     let onMicrophoneSelected: (() -> Void)?
     
     var body: some View {
@@ -21,6 +25,35 @@ struct SourceSelectionView: View {
                 Text(NSLocalizedString("sourceSelection.title", comment: ""))
                     .font(AppConstants.Typography.title)
                     .accessibilityIdentifier("sourceSelection.title")
+                
+                // Direct file selection (RECOMMENDED)
+                Button(action: {
+                    HapticFeedback.light()
+                    showingFilePicker = true
+                }) {
+                    VStack(spacing: AppConstants.Spacing.md) {
+                        Image(systemName: "folder.fill")
+                            .font(.system(size: AppConstants.IconSize.extraLarge))
+                            .foregroundColor(.mindSyncSuccess)
+                        Text(NSLocalizedString("sourceSelection.filePicker.title", comment: ""))
+                            .font(AppConstants.Typography.headline)
+                        Text(NSLocalizedString("sourceSelection.filePicker.description", comment: ""))
+                            .font(AppConstants.Typography.caption)
+                            .foregroundColor(.mindSyncSecondaryText)
+                            .multilineTextAlignment(.center)
+                        
+                        Text(NSLocalizedString("sourceSelection.filePicker.advantage", comment: ""))
+                            .font(AppConstants.Typography.caption2)
+                            .foregroundColor(.mindSyncSuccess)
+                            .multilineTextAlignment(.center)
+                            .padding(.top, AppConstants.Spacing.xs)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(AppConstants.Spacing.md)
+                    .mindSyncCardStyle()
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("sourceSelection.filePickerButton")
                 
                 // Local music library
                 Button(action: {
@@ -37,6 +70,13 @@ struct SourceSelectionView: View {
                             .font(AppConstants.Typography.caption)
                             .foregroundColor(.mindSyncSecondaryText)
                             .multilineTextAlignment(.center)
+                        
+                        // Warning about DRM
+                        Text(NSLocalizedString("sourceSelection.musicLibrary.drmWarning", comment: ""))
+                            .font(AppConstants.Typography.caption2)
+                            .foregroundColor(.mindSyncWarning)
+                            .multilineTextAlignment(.center)
+                            .padding(.top, AppConstants.Spacing.xs)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(AppConstants.Spacing.md)
@@ -115,6 +155,9 @@ struct SourceSelectionView: View {
             } message: {
                 Text(errorMessage)
             }
+            .fileImporter(isPresented: $showingFilePicker, allowedContentTypes: [.audio]) { result in
+                handleFileImport(result)
+            }
             .task {
                 // Initialize services on Main Actor to avoid crashes
                 let services = ServiceContainer.shared
@@ -167,15 +210,123 @@ struct SourceSelectionView: View {
             do {
                 _ = try await mediaLibraryService.assetURLForAnalysis(of: item)
                 await MainActor.run {
+                    // Only call onSongSelected if validation succeeds
                     selectedItem = item
                     onSongSelected(item)
                     showingMediaPicker = false
                 }
             } catch {
                 await MainActor.run {
-                    errorMessage = error.localizedDescription
+                    // MediaLibraryValidationError implements LocalizedError with proper localization
+                    // Use errorDescription directly for MediaLibraryValidationError to ensure proper formatting
+                    if let mediaError = error as? MediaLibraryValidationError,
+                       let description = mediaError.errorDescription {
+                        errorMessage = description
+                    } else {
+                        // Fallback for other error types
+                        errorMessage = error.localizedDescription
+                    }
+                    // Keep media picker open so user can select another song
+                    // Don't call onSongSelected - this ensures selectedMediaItem in HomeView stays nil
                     showingError = true
                 }
+            }
+        }
+    }
+    
+    private func handleFileImport(_ result: Result<URL, Error>) {
+        switch result {
+        case .success(let url):
+            print("File picker returned URL: \(url.path)")
+            
+            Task {
+                // Start accessing the security-scoped resource
+                let hasAccess = url.startAccessingSecurityScopedResource()
+                print("Security scoped access: \(hasAccess)")
+                
+                defer {
+                    if hasAccess {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+                
+                // Copy file to app's documents directory for persistent access
+                guard let copiedURL = copyAudioToDocuments(from: url) else {
+                    print("ERROR: Failed to copy file to documents")
+                    await MainActor.run {
+                        errorMessage = NSLocalizedString("error.file.copyFailed", comment: "")
+                        showingError = true
+                    }
+                    return
+                }
+                
+                print("File copied successfully to: \(copiedURL.path)")
+                
+                // Validate that the file is playable
+                let asset = AVURLAsset(url: copiedURL)
+                do {
+                    let isPlayable = try await asset.load(.isPlayable)
+                    
+                    if isPlayable {
+                        // Call callback on main actor - this triggers navigation
+                        await MainActor.run {
+                            print("File import successful, calling onFileSelected with: \(copiedURL.lastPathComponent)")
+                            onFileSelected(copiedURL)
+                        }
+                    } else {
+                        try? FileManager.default.removeItem(at: copiedURL)
+                        await MainActor.run {
+                            errorMessage = NSLocalizedString("error.file.invalidAudio", comment: "")
+                            showingError = true
+                        }
+                    }
+                } catch {
+                    try? FileManager.default.removeItem(at: copiedURL)
+                    await MainActor.run {
+                        errorMessage = String(format: NSLocalizedString("error.file.validationFailed", comment: ""), error.localizedDescription)
+                        showingError = true
+                    }
+                }
+            }
+            
+        case .failure(let error):
+            errorMessage = String(format: NSLocalizedString("error.file.selectionFailed", comment: ""), error.localizedDescription)
+            showingError = true
+        }
+    }
+    
+    /// Copies the audio file to the app's documents directory
+    private func copyAudioToDocuments(from sourceURL: URL) -> URL? {
+        let fileManager = FileManager.default
+        
+        guard let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        
+        // Create Music subdirectory if needed
+        let musicDir = documentsURL.appendingPathComponent("Music", isDirectory: true)
+        try? fileManager.createDirectory(at: musicDir, withIntermediateDirectories: true)
+        
+        // Generate unique filename with timestamp
+        let timestamp = Int(Date().timeIntervalSince1970)
+        let originalName = sourceURL.deletingPathExtension().lastPathComponent
+        let fileExtension = sourceURL.pathExtension.isEmpty ? "mp3" : sourceURL.pathExtension
+        let fileName = "\(originalName)_\(timestamp).\(fileExtension)"
+        let destinationURL = musicDir.appendingPathComponent(fileName)
+        
+        // Copy file using Data for security-scoped resource compatibility
+        do {
+            let data = try Data(contentsOf: sourceURL)
+            try data.write(to: destinationURL)
+            return destinationURL
+        } catch {
+            // Fallback: try FileManager copy
+            do {
+                try fileManager.copyItem(at: sourceURL, to: destinationURL)
+                return destinationURL
+            } catch {
+                print("Error copying audio file: \(error.localizedDescription)")
+                return nil
             }
         }
     }
@@ -253,9 +404,13 @@ struct MediaPickerView: UIViewControllerRepresentable {
         onSongSelected: { item in
             print("Selected: \(item.title ?? "Unknown")")
         },
+        onFileSelected: { url in
+            print("File selected: \(url.lastPathComponent)")
+        },
         onMicrophoneSelected: {
             print("Microphone selected")
         }
     )
 }
+
 

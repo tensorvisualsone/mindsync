@@ -45,6 +45,10 @@
 "sourceSelection.microphoneNote" = "Note: Microphone mode is less precise than local analysis (~100 ms latency)";
 "sourceSelection.musicLibraryDenied" = "Access to the music library was denied. Please enable it in Settings.";
 "sourceSelection.microphoneDenied" = "Microphone access was denied. Please enable it in Settings.";
+"sourceSelection.filePicker.title" = "Select File";
+"sourceSelection.filePicker.description" = "Choose MP3/M4A from Files (recommended)";
+"sourceSelection.filePicker.advantage" = "✓ Works with all local audio files";
+"sourceSelection.musicLibrary.drmWarning" = "⚠️ Apple Music songs are DRM-protected";
 
 // MARK: - Session
 "session.pause" = "Pause";
@@ -165,7 +169,8 @@
 "error.light.torchUnavailable" = "This device has no flashlight. Please select the screen as light source.";
 "error.light.configurationFailed" = "Flashlight could not be initialized. Please try again or switch to screen.";
 "error.light.thermalShutdown" = "iOS disabled the flashlight to protect the device. MindSync switches to the screen automatically.";
-"error.media.cloudItem" = "This song is not stored locally. Please download it first or use microphone mode.";
+"error.media.cloudItem" = "This track is an Apple Music cloud item and cannot be analyzed. Apple Music songs are DRM-protected, even after download. Please use microphone mode or choose an imported/purchased track.";
+"error.media.missingAsset" = "This track cannot be accessed. Please use microphone mode or choose another track.";
 "error.media.unreadable" = "This song is currently unavailable. Please try again later.";
 "error.media.unknown" = "The song could not be validated (%@). Please try again or choose another track.";
 "error.audio.fileNotFound" = "Audio file not found.";
@@ -175,6 +180,11 @@
 "error.audio.fileTooLong" = "Audio file is too long (%d minutes). Maximum supported length is 30 minutes.";
 "error.audio.corruptedData" = "Audio data appears to be corrupted or empty. Please choose another track.";
 "error.audio.timeout" = "Audio analysis took too long and was stopped. Please choose a shorter track or try again.";
+"error.file.copyFailed" = "File could not be copied. Please try again.";
+"error.file.invalidAudio" = "The file is not a valid audio file.";
+"error.file.validationFailed" = "Error validating audio file: %@";
+"error.file.selectionFailed" = "Error selecting file: %@";
+"error.file.saveFailed" = "File could not be saved. Please make sure you have access to the file.";
 
 // MARK: - Frequency Validation
 "frequency.tooLow" = "Frequency too low (minimum: %d Hz)";

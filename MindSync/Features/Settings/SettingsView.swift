@@ -21,6 +21,67 @@ struct SettingsView: View {
         _preferences = State(initialValue: UserPreferences.load())
     }
     
+    // MARK: - Helper Methods
+    
+    /// Copies the affirmation file to the app's documents directory
+    /// - Parameters:
+    ///   - sourceURL: The source URL from the file picker
+    ///   - oldAffirmationURL: The old affirmation URL to remove (optional)
+    /// - Returns: The URL in the documents directory, or nil if copy failed
+    private func copyAffirmationToDocuments(from sourceURL: URL, oldAffirmationURL: URL? = nil) -> URL? {
+        let fileManager = FileManager.default
+        
+        // Get documents directory
+        guard let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            print("Error: Could not get documents directory")
+            return nil
+        }
+        
+        // Create affirmations subdirectory if needed
+        let affirmationsDir = documentsURL.appendingPathComponent("Affirmations", isDirectory: true)
+        do {
+            try fileManager.createDirectory(at: affirmationsDir, withIntermediateDirectories: true)
+        } catch {
+            print("Error creating Affirmations directory: \(error.localizedDescription)")
+            return nil
+        }
+        
+        // Remove old affirmation file if exists
+        if let oldURL = oldAffirmationURL {
+            try? fileManager.removeItem(at: oldURL)
+        }
+        
+        // Generate unique filename with timestamp to avoid conflicts
+        let timestamp = Int(Date().timeIntervalSince1970)
+        let fileExtension = sourceURL.pathExtension.isEmpty ? "m4a" : sourceURL.pathExtension
+        let fileName = "affirmation_\(timestamp).\(fileExtension)"
+        let destinationURL = affirmationsDir.appendingPathComponent(fileName)
+        
+        // Try to copy file using Data (more reliable for security-scoped resources)
+        do {
+            // Read data from source (works with security-scoped resources)
+            let data = try Data(contentsOf: sourceURL)
+            
+            // Write to destination
+            try data.write(to: destinationURL)
+            
+            print("Successfully copied affirmation to: \(destinationURL.path)")
+            return destinationURL
+        } catch {
+            print("Error copying affirmation file: \(error.localizedDescription)")
+            
+            // Fallback: try FileManager copy
+            do {
+                try fileManager.copyItem(at: sourceURL, to: destinationURL)
+                print("Successfully copied affirmation (fallback) to: \(destinationURL.path)")
+                return destinationURL
+            } catch {
+                print("Fallback copy also failed: \(error.localizedDescription)")
+                return nil
+            }
+        }
+    }
+    
     var body: some View {
         NavigationStack {
             Form {
@@ -131,6 +192,10 @@ struct SettingsView: View {
                     
                     if preferences.selectedAffirmationURL != nil {
                         Button(NSLocalizedString("settings.affirmationRemove", comment: ""), role: .destructive) {
+                            // Remove the file from documents directory
+                            if let url = preferences.selectedAffirmationURL {
+                                try? FileManager.default.removeItem(at: url)
+                            }
                             preferences.selectedAffirmationURL = nil
                             preferences.save()
                         }
@@ -218,28 +283,64 @@ struct SettingsView: View {
             
             switch result {
             case .success(let url):
-                // Validate that the file is playable before saving (async load for consistency)
+                // Handle file import in a Task to properly manage security-scoped resource
+                // Capture current old URL before async work
+                let oldAffirmationURL = preferences.selectedAffirmationURL
+                
                 Task {
-                    let asset = AVURLAsset(url: url)
-                    do {
-                        let isPlayable = try await asset.load(.isPlayable)
-                        
-                        if isPlayable {
-                            preferences.selectedAffirmationURL = url
-                            preferences.save()
-                        } else {
+                    // Start accessing the security-scoped resource
+                    let hasAccess = url.startAccessingSecurityScopedResource()
+                    
+                    // Always stop access when done (even if we didn't get access, it's safe to call)
+                    defer { 
+                        if hasAccess {
+                            url.stopAccessingSecurityScopedResource() 
+                        }
+                    }
+                    
+                    // First, copy the file to app's documents directory
+                    // This must happen while we have security-scoped access
+                    guard let copiedURL = copyAffirmationToDocuments(from: url, oldAffirmationURL: oldAffirmationURL) else {
+                        await MainActor.run {
                             importError = NSError(
                                 domain: ValidationError.domain,
                                 code: ValidationError.invalidAudioFileCode,
-                                userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("settings.invalidAudioFile",
-                                                                                       value: "The selected file is not a valid or playable audio file",
-                                                                                       comment: "Error shown when imported audio file cannot be played")]
+                                userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("error.file.saveFailed", comment: "")]
                             )
                             showingImportError = true
                         }
+                        return
+                    }
+                    
+                    // Now validate the copied file (we now have permanent access to it)
+                    let asset = AVURLAsset(url: copiedURL)
+                    do {
+                        let isPlayable = try await asset.load(.isPlayable)
+                        
+                        await MainActor.run {
+                            if isPlayable {
+                                preferences.selectedAffirmationURL = copiedURL
+                                preferences.save()
+                            } else {
+                                // Remove invalid file
+                                try? FileManager.default.removeItem(at: copiedURL)
+                                importError = NSError(
+                                    domain: ValidationError.domain,
+                                    code: ValidationError.invalidAudioFileCode,
+                                    userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("settings.invalidAudioFile",
+                                                                                           value: "The selected file is not a valid or playable audio file",
+                                                                                           comment: "Error shown when imported audio file cannot be played")]
+                                )
+                                showingImportError = true
+                            }
+                        }
                     } catch {
-                        importError = error
-                        showingImportError = true
+                        // Remove file on error
+                        try? FileManager.default.removeItem(at: copiedURL)
+                        await MainActor.run {
+                            importError = error
+                            showingImportError = true
+                        }
                     }
                 }
             case .failure(let error):

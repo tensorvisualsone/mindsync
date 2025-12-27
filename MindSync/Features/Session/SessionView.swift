@@ -6,10 +6,12 @@ struct SessionView: View {
     @Environment(\.dismiss) private var dismiss
     
     let mediaItem: MPMediaItem?
+    let audioFileURL: URL?
     let isMicrophoneMode: Bool
     
-    init(song: MPMediaItem? = nil, isMicrophoneMode: Bool = false) {
+    init(song: MPMediaItem? = nil, audioFileURL: URL? = nil, isMicrophoneMode: Bool = false) {
         self.mediaItem = song
+        self.audioFileURL = audioFileURL
         self.isMicrophoneMode = isMicrophoneMode
     }
     
@@ -58,6 +60,8 @@ struct SessionView: View {
                 await viewModel.startMicrophoneSession()
             } else if let mediaItem = mediaItem {
                 await viewModel.startSession(with: mediaItem)
+            } else if let audioFileURL = audioFileURL {
+                await viewModel.startSession(with: audioFileURL)
             }
         }
     }

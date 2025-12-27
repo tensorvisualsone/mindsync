@@ -567,6 +567,99 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
+    /// Starts a session with a local audio file URL (from Document Picker)
+    func startSession(with audioFileURL: URL) async {
+        guard state == .idle else { 
+            logger.warning("Attempted to start session while state is \(String(describing: self.state))")
+            return 
+        }
+        
+        logger.info("Starting session with audio file: \(audioFileURL.lastPathComponent)")
+        state = .analyzing
+        stopPlaybackProgressUpdates()
+        
+        // Refresh cached preferences to ensure we use current user settings
+        cachedPreferences = UserPreferences.load()
+        
+        // Set the light controller based on current preferences
+        switch cachedPreferences.preferredLightSource {
+        case .flashlight:
+            lightController = services.flashlightController
+        case .screen:
+            lightController = services.screenController
+        }
+        
+        do {
+            // Analyze audio directly from URL (no MediaItem required)
+            let track = try await audioAnalyzer.analyze(url: audioFileURL)
+            currentTrack = track
+            startPlaybackProgressUpdates(for: track.duration)
+            
+            // Generate LightScript using cached preferences
+            let mode = cachedPreferences.preferredMode
+            let lightSource = cachedPreferences.preferredLightSource
+            let screenColor = cachedPreferences.screenColor
+            
+            let script = entrainmentEngine.generateLightScript(
+                from: track,
+                mode: mode,
+                lightSource: lightSource,
+                screenColor: lightSource == .screen ? screenColor : nil
+            )
+            currentScript = script
+            
+            // Create session
+            let session = Session(
+                mode: mode,
+                lightSource: lightSource,
+                audioSource: .localFile,
+                trackTitle: track.title,
+                trackArtist: track.artist,
+                trackBPM: track.bpm
+            )
+            currentSession = session
+            updateAffirmationStatusForCurrentPreferences()
+            
+            // Set custom color RGB if screen mode and custom color is selected
+            if lightSource == .screen, screenColor == .custom,
+               let screenController = lightController as? ScreenController {
+                screenController.setCustomColorRGB(cachedPreferences.customColorRGB)
+            }
+            
+            // Start playback and light
+            try await startPlaybackAndLight(url: audioFileURL, script: script)
+            
+            // If cinematic mode, start audio energy tracking and attach to light controller
+            if mode == .cinematic {
+                if let mixerNode = audioPlayback.getMainMixerNode() {
+                    audioEnergyTracker.startTracking(mixerNode: mixerNode)
+                }
+                lightController?.audioEnergyTracker = audioEnergyTracker
+            }
+            
+            state = .running
+            sessionStartTime = Date()
+            affirmationPlayed = false
+            
+            // Start observing for affirmation trigger
+            startAffirmationObserver()
+            
+            // Haptic feedback for session start (if enabled)
+            if cachedPreferences.hapticFeedbackEnabled {
+                HapticFeedback.medium()
+            }
+            
+        } catch {
+            logger.error("Session start (file) failed: \(error.localizedDescription, privacy: .public)")
+            errorMessage = error.localizedDescription
+            state = .error
+            
+            audioPlayback.stop()
+            lightController?.stop()
+            stopPlaybackProgressUpdates()
+        }
+    }
+    
     /// Pauses the current session
     func pauseSession() {
         guard state == .running else { return }
