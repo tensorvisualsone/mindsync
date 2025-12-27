@@ -623,6 +623,9 @@ final class SessionViewModel: ObservableObject {
                 screenController.setCustomColorRGB(cachedPreferences.customColorRGB)
             }
             
+            // Apply audio latency offset from user preferences for Bluetooth compensation
+            lightController?.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+            
             // Start playback and light (this sets the startTime)
             let startTime = Date()
             sessionStartTime = startTime
@@ -633,6 +636,8 @@ final class SessionViewModel: ObservableObject {
             // Start vibration if enabled (using same startTime for synchronization)
             if cachedPreferences.vibrationEnabled, let vibrationController = vibrationController, let vibrationScript = currentVibrationScript {
                 try await vibrationController.start()
+                // Apply audio latency offset for Bluetooth compensation
+                vibrationController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
                 vibrationController.execute(script: vibrationScript, syncedTo: startTime)
             }
             
@@ -754,6 +759,9 @@ final class SessionViewModel: ObservableObject {
                 screenController.setCustomColorRGB(cachedPreferences.customColorRGB)
             }
             
+            // Apply audio latency offset from user preferences for Bluetooth compensation
+            lightController?.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+            
             // Start playback and light (this sets the startTime)
             let startTime = Date()
             sessionStartTime = startTime
@@ -764,6 +772,8 @@ final class SessionViewModel: ObservableObject {
             // Start vibration if enabled (using same startTime for synchronization)
             if cachedPreferences.vibrationEnabled, let vibrationController = vibrationController, let vibrationScript = currentVibrationScript {
                 try await vibrationController.start()
+                // Apply audio latency offset for Bluetooth compensation
+                vibrationController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
                 vibrationController.execute(script: vibrationScript, syncedTo: startTime)
             }
             
@@ -1038,6 +1048,9 @@ final class SessionViewModel: ObservableObject {
                 screenController.setCustomColorRGB(cachedPreferences.customColorRGB)
             }
             
+            // Apply audio latency offset from user preferences for Bluetooth compensation
+            lightController?.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+
             // Start light controller
             try await lightController?.start()
             
@@ -1053,6 +1066,8 @@ final class SessionViewModel: ObservableObject {
             // Start vibration if enabled
             if cachedPreferences.vibrationEnabled, let vibrationController = vibrationController, let vibrationScript = currentVibrationScript {
                 try await vibrationController.start()
+                // Apply audio latency offset for Bluetooth compensation
+                vibrationController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
                 vibrationController.execute(script: vibrationScript, syncedTo: startTime)
             }
             

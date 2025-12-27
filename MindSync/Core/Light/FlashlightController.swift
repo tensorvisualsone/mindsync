@@ -202,8 +202,13 @@ final class FlashlightController: BaseLightController, LightControlling {
     ) -> Float {
         switch event.waveform {
         case .square:
-            // Hard on/off based on intensity
-            return event.intensity
+            // Hard on/off with frequency-dependent duty cycle for crisp flashes
+            // At high frequencies (>20Hz), LED rise/fall times cause blur
+            // Shorter duty cycle = sharper perceived flashes = better entrainment
+            let dutyCycle = calculateDutyCycle(for: targetFrequency)
+            let period = 1.0 / max(0.0001, targetFrequency)
+            let phase = timeWithinEvent.truncatingRemainder(dividingBy: period) / period
+            return phase < dutyCycle ? event.intensity : 0.0
             
         case .sine:
             // Smooth sine wave pulsation with time-based frequency
@@ -231,6 +236,24 @@ final class FlashlightController: BaseLightController, LightControlling {
                 : Float(2.0 - (phase * 2.0))      // 1 to 0
             return event.intensity * triangleValue
         }
+    }
+    
+    /// Calculates optimal duty cycle based on frequency to compensate for LED rise/fall times
+    /// At high frequencies, the LED doesn't fully turn off between pulses, causing blur
+    /// Reducing duty cycle creates sharper, more distinct flashes for better cortical evoked potentials
+    private func calculateDutyCycle(for frequency: Double) -> Double {
+        // High frequency (Gamma): Very short pulses for maximum crispness
+        // The LED barely turns on, but the brain detects the rapid transitions
+        if frequency > 20.0 {
+            return 0.20  // 20% on, 80% off - sharp gamma flashes
+        }
+        // Medium frequency (Alpha): Moderate pulse width
+        else if frequency > 10.0 {
+            return 0.35  // 35% on, 65% off - balanced alpha waves
+        }
+        // Low frequency (Theta): Standard pulse width
+        // LED has time to fully turn on/off, no compensation needed
+        return 0.50  // 50% on, 50% off - standard square wave
     }
     
     // MARK: - Helpers

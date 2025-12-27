@@ -43,6 +43,11 @@ final class VibrationController: NSObject {
     private var displayLinkTarget: WeakVibrationDisplayLinkTarget?
     private let logger = Logger(subsystem: "com.mindsync", category: "VibrationController")
     
+    /// Audio latency offset from user preferences (in seconds)
+    /// This value compensates for Bluetooth audio delay by delaying vibration output
+    /// to ensure audio and vibration arrive at the user simultaneously
+    var audioLatencyOffset: TimeInterval = 0.0
+    
     /// Optional callback invoked when engine restart fails after a reset
     var onRestartFailure: ((Error) -> Void)?
     
@@ -326,9 +331,20 @@ final class VibrationController: NSObject {
         // Calculate elapsed time accounting for pauses
         let realElapsed = Date().timeIntervalSince(startTime) - totalPauseDuration
         
-        // Check if script is finished
-        if realElapsed >= script.duration {
-            return CurrentVibrationEventResult(event: nil, elapsed: realElapsed, isComplete: true)
+        // Apply audio latency compensation: Delay vibration to match audio arrival time
+        // Formula: adjustedTime = realElapsed - audioLatencyOffset
+        // Example: If audio has 200ms delay and player is at 10.2s,
+        //          the user hears 10.0s, so we trigger vibration for 10.0s
+        let adjustedElapsed = realElapsed - audioLatencyOffset
+        
+        // Safety: Don't go negative (at start of session before latency compensation kicks in)
+        guard adjustedElapsed >= 0 else {
+            return CurrentVibrationEventResult(event: nil, elapsed: 0, isComplete: false)
+        }
+        
+        // Check if script is finished (use adjusted time)
+        if adjustedElapsed >= script.duration {
+            return CurrentVibrationEventResult(event: nil, elapsed: adjustedElapsed, isComplete: true)
         }
         
         // Skip past events to find current event using index tracking
@@ -337,14 +353,14 @@ final class VibrationController: NSObject {
             let event = script.events[foundEventIndex]
             let eventEnd = event.timestamp + event.duration
             
-            if realElapsed < eventEnd {
-                if realElapsed >= event.timestamp {
+            if adjustedElapsed < eventEnd {
+                if adjustedElapsed >= event.timestamp {
                     // Current event is active
                     currentEventIndex = foundEventIndex
-                    return CurrentVibrationEventResult(event: event, elapsed: realElapsed, isComplete: false)
+                    return CurrentVibrationEventResult(event: event, elapsed: adjustedElapsed, isComplete: false)
                 } else {
                     // Between events
-                    return CurrentVibrationEventResult(event: nil, elapsed: realElapsed, isComplete: false)
+                    return CurrentVibrationEventResult(event: nil, elapsed: adjustedElapsed, isComplete: false)
                 }
             } else {
                 // Move to next event
@@ -353,7 +369,7 @@ final class VibrationController: NSObject {
         }
         
         // Passed all events
-        return CurrentVibrationEventResult(event: nil, elapsed: realElapsed, isComplete: true)
+        return CurrentVibrationEventResult(event: nil, elapsed: adjustedElapsed, isComplete: true)
     }
 }
 

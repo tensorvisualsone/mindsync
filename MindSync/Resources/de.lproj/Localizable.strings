@@ -120,6 +120,10 @@
 "settings.duration.5min" = "5 Min";
 "settings.duration.10min" = "10 Min";
 "settings.duration.15min" = "15 Min";
+"settings.audio" = "Audio-Synchronisation";
+"settings.audioDescription" = "Kalibriere die Audio-Latenz für perfekte Synchronisation zwischen Ton und Licht, besonders wichtig bei Bluetooth-Kopfhörern.";
+"settings.latencyCalibration" = "Latenz-Kalibrierung";
+"settings.latencyCalibration.current" = "Aktuell: %d ms";
 "settings.history" = "Sitzungshistorie";
 "settings.invalidAudioFile" = "Die ausgewählte Datei ist keine gültige oder abspielbare Audiodatei";
 "settings.importError" = "Fehler beim Importieren der Datei";
