@@ -252,18 +252,7 @@ struct SettingsView: View {
         } message: { error in
             Text(NSLocalizedString("settings.importError", comment: "") + ": " + error.localizedDescription)
         }
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(red: 0.02, green: 0.02, blue: 0.08),
-                    Color(red: 0.06, green: 0.02, blue: 0.12),
-                    Color(red: 0.01, green: 0.06, blue: 0.12)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-        )
+        .mindSyncBackground()
     }
 }
 
