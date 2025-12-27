@@ -20,13 +20,13 @@ echo "✓ Dienste beendet"
 echo ""
 
 echo "2️⃣ Lösche Xcode Cache..."
-rm -rf ~/Library/Developer/Xcode/iOS\ DeviceSupport/* 2>/dev/null
-rm -rf ~/Library/Developer/Xcode/DerivedData/* 2>/dev/null
+rm -rf "$HOME/Library/Developer/Xcode/iOS DeviceSupport"/* 2>/dev/null
+rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/* 2>/dev/null
 echo "✓ Cache gelöscht"
 echo ""
 
 echo "3️⃣ Lösche Device Support Dateien..."
-rm -rf ~/Library/Developer/Xcode/iOS\ Device\ Logs/* 2>/dev/null
+rm -rf "$HOME/Library/Developer/Xcode/iOS Device Logs"/* 2>/dev/null
 echo "✓ Logs gelöscht"
 echo ""
 
