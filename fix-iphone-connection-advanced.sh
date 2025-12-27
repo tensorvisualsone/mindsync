@@ -9,29 +9,54 @@ echo "Drücken Sie Ctrl+C zum Abbrechen oder warten Sie 5 Sekunden..."
 sleep 5
 echo ""
 
+# Helper Funktion: Sicheres Beenden von Prozessen mit Warnungen
+safe_killall() {
+    local output
+    output=$("$@" 2>&1)
+    local status=$?
+    
+    # Prüfe auf Fehler (Ignoriere "Keine passenden Prozesse")
+    if [ $status -ne 0 ]; then
+        if ! echo "$output" | grep -qE "No matching processes|no process found|Keine passenden Prozesse"; then
+            echo "⚠️  Warnung: Fehler beim Befehl '$*': $output"
+        fi
+    fi
+}
+
+# Helper Funktion: Sicheres Löschen mit Existenzprüfung
+safe_rm() {
+    for target in "$@"; do
+        if [ -e "$target" ]; then
+            if ! rm -rf "$target" 2>&1; then
+                 echo "⚠️  Fehler beim Löschen von: $target"
+            fi
+        fi
+    done
+}
+
 echo "1️⃣ Beende Xcode und alle iOS-Dienste..."
-killall Xcode 2>/dev/null
-sudo killall -9 usbmuxd 2>/dev/null
-sudo killall -9 lockdownd 2>/dev/null  
-sudo killall -9 com.apple.CoreDevice.coredeviced 2>/dev/null
-sudo killall -9 AMPDevicesAgent 2>/dev/null
-sudo killall -9 AMPDeviceDiscoveryAgent 2>/dev/null
+safe_killall killall Xcode
+safe_killall sudo killall -9 usbmuxd
+safe_killall sudo killall -9 lockdownd  
+safe_killall sudo killall -9 com.apple.CoreDevice.coredeviced
+safe_killall sudo killall -9 AMPDevicesAgent
+safe_killall sudo killall -9 AMPDeviceDiscoveryAgent
 echo "✓ Dienste beendet"
 echo ""
 
 echo "2️⃣ Lösche Xcode Cache..."
-rm -rf ~/Library/Developer/Xcode/iOS\ DeviceSupport/* 2>/dev/null
-rm -rf ~/Library/Developer/Xcode/DerivedData/* 2>/dev/null
+safe_rm ~/Library/Developer/Xcode/iOS\ DeviceSupport/*
+safe_rm ~/Library/Developer/Xcode/DerivedData/*
 echo "✓ Cache gelöscht"
 echo ""
 
 echo "3️⃣ Lösche Device Support Dateien..."
-rm -rf ~/Library/Developer/Xcode/iOS\ Device\ Logs/* 2>/dev/null
+safe_rm ~/Library/Developer/Xcode/iOS\ Device\ Logs/*
 echo "✓ Logs gelöscht"
 echo ""
 
 echo "4️⃣ Setze Lockdown zurück..."
-rm ~/Library/Lockdown/*.plist 2>/dev/null
+safe_rm ~/Library/Lockdown/*.plist
 echo "✓ Lockdown zurückgesetzt"
 echo ""
 
@@ -50,4 +75,3 @@ echo "   6. Öffnen Sie Ihr Projekt"
 echo "   7. Wählen Sie das iPhone 15 Pro als Target"
 echo "   8. Klicken Sie auf Build & Run"
 echo ""
-
