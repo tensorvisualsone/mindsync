@@ -31,7 +31,9 @@ struct SessionView: View {
                 
             case .analyzing:
                 if let progress = viewModel.analysisProgress {
-                    AnalysisProgressView(progress: progress)
+                    AnalysisProgressView(progress: progress) {
+                        viewModel.cancelAnalysis()
+                    }
                 }
                 
             case .running:
@@ -206,7 +208,7 @@ private struct SessionTrackInfoView: View {
     let track: AudioTrack?
     let script: LightScript?
     let session: Session
-    let currentFrequency: Double
+    let currentFrequency: Double?
     
     var body: some View {
         VStack(spacing: AppConstants.Spacing.sm) {
@@ -243,7 +245,7 @@ private struct SessionTrackInfoView: View {
                 )
                 
                 if let script = script, let bpm = track?.bpm {
-                    let frequency = currentFrequency > 0 ? currentFrequency : script.targetFrequency
+                    let frequency = currentFrequency ?? script.targetFrequency
                     let frequencyText = String(format: NSLocalizedString("session.frequencyBpm", comment: ""), Int(frequency), Int(bpm))
                     ModeChip(
                         icon: "metronome.fill",

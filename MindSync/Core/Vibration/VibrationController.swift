@@ -19,7 +19,10 @@ private final class WeakVibrationDisplayLinkTarget {
     }
     
     @objc func updateVibration() {
-        target?.updateVibration()
+        // CADisplayLink runs on main run loop, so we can assume MainActor isolation
+        MainActor.assumeIsolated {
+            target?.updateVibration()
+        }
     }
 }
 
@@ -36,9 +39,12 @@ final class VibrationController: NSObject {
     private var pauseStartTime: Date?
     private var isPaused: Bool = false
     private var currentEventIndex: Int = 0
-    nonisolated(unsafe) private var displayLink: CADisplayLink?
+    private var displayLink: CADisplayLink?
     private var displayLinkTarget: WeakVibrationDisplayLinkTarget?
     private let logger = Logger(subsystem: "com.mindsync", category: "VibrationController")
+    
+    /// Optional callback invoked when engine restart fails after a reset
+    var onRestartFailure: ((Error) -> Void)?
     
     // MARK: - Display Link Management
     
@@ -52,7 +58,7 @@ final class VibrationController: NSObject {
         displayLink?.add(to: .main, forMode: .common)
     }
     
-    nonisolated func invalidateDisplayLink() {
+    func invalidateDisplayLink() {
         displayLink?.invalidate()
         displayLink = nil
     }
@@ -73,8 +79,15 @@ final class VibrationController: NSObject {
             engine.resetHandler = { [weak self] in
                 Task { @MainActor in
                     self?.logger.warning("Haptic engine reset")
-                    // Try to restart engine
-                    try? await self?.restartEngine()
+                    // Restart engine with proper error handling
+                    do {
+                        try await self?.restartEngine()
+                    } catch {
+                        self?.logger.error("Failed to restart haptic engine after reset: \(error.localizedDescription, privacy: .public)")
+                        if let self = self, let failureCallback = self.onRestartFailure {
+                            failureCallback(error)
+                        }
+                    }
                 }
             }
             
@@ -210,6 +223,10 @@ final class VibrationController: NSObject {
         case .triangle:
             // Triangle wave based on absolute elapsed time, independent of event duration
             // One full cycle (0 -> 1 -> 0) per period based on target frequency for consistent timing
+            guard targetFrequency > 0 else {
+                // Return zero intensity if frequency is not valid to avoid division-by-zero
+                return 0.0
+            }
             let period: TimeInterval = 1.0 / targetFrequency
             let phase = (eventElapsed.truncatingRemainder(dividingBy: period)) / period  // [0, 1)
             let triangleValue = phase < 0.5
@@ -246,6 +263,8 @@ final class VibrationController: NSObject {
         guard let engine = hapticEngine else { return }
         
         // Create a continuous haptic event with the specified intensity
+        // Use longer duration (1.0s) with loopEnabled = true so the pattern continues
+        // between display-link updates, preventing gaps if updates are delayed
         let hapticEvent = CHHapticEvent(
             eventType: .hapticContinuous,
             parameters: [
@@ -253,13 +272,13 @@ final class VibrationController: NSObject {
                 CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5)
             ],
             relativeTime: 0,
-            duration: 0.1 // Short duration, will be updated continuously
+            duration: 1.0 // Longer duration with loop enabled prevents gaps
         )
         
         do {
             let pattern = try CHHapticPattern(events: [hapticEvent], parameters: [])
             let player = try engine.makeAdvancedPlayer(with: pattern)
-            player.loopEnabled = false
+            player.loopEnabled = true // Enable looping so pattern continues between updates
             try player.start(atTime: 0)
             hapticPlayer = player
         } catch {

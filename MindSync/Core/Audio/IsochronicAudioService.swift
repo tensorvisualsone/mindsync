@@ -56,7 +56,7 @@ final class IsochronicAudioService {
                 let currentTime = sampleTime / sampleRate
 
                 let progress = rampDuration > 0 ? min(currentTime / rampDuration, 1.0) : 1.0
-                let smooth = progress * progress * (3.0 - 2.0 * progress)
+                let smooth = MathHelpers.smoothstep(progress)
                 let currentEntrainmentFreq = startFreq + (targetFreq - startFreq) * smooth
 
                 carrierPhase += 2.0 * .pi * carrierFreq / sampleRate

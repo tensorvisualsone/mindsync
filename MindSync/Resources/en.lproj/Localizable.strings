@@ -70,6 +70,7 @@
 "session.pauseAccessibility" = "Pause session";
 "session.resumeAccessibility" = "Resume session";
 "session.stopAccessibility" = "Stop session";
+"session.frequencyBpm" = "%d Hz • %d BPM";
 
 // MARK: - Analysis Progress
 "analysis.loading" = "Loading audio...";
@@ -78,6 +79,10 @@
 "analysis.detecting" = "Detecting beats...";
 "analysis.mapping" = "Creating LightScript...";
 "analysis.complete" = "Analysis complete!";
+"analysis.cancel" = "Cancel";
+"analysis.cancelHint" = "Cancels the running analysis";
+"analysis.warning.medium" = "Analysis taking longer than expected. About %d seconds remaining...";
+"analysis.warning.long" = "Analysis needs about %d more seconds. Please wait...";
 
 // MARK: - Settings
 "settings.title" = "Settings";
@@ -91,9 +96,10 @@
 "settings.fallDetection" = "Fall Detection";
 "settings.thermalProtection" = "Thermal Protection";
 "settings.hapticFeedback" = "Haptic Feedback";
-"settings.vibration" = "Vibration";
-"settings.vibrationDescription" = "Vibration feedback synchronized with audio and light";
-"settings.vibrationEnabled" = "Enable Vibration";
+"settings.hapticFeedbackDescription" = "Short haptic feedback for UI interactions (buttons, start/stop)";
+"settings.vibration" = "Session Vibration";
+"settings.vibrationDescription" = "Continuous vibration synchronized with audio and light during sessions";
+"settings.vibrationEnabled" = "Enable Session Vibration";
 "settings.vibrationIntensity" = "Vibration Intensity";
 "settings.intensity" = "Intensity";
 "settings.defaultIntensity" = "Default Intensity";
@@ -110,7 +116,6 @@
 "settings.duration.5min" = "5 min";
 "settings.duration.10min" = "10 min";
 "settings.duration.15min" = "15 min";
-"session.frequencyBpm" = "%d Hz • %d BPM";
 "settings.history" = "Session History";
 "settings.invalidAudioFile" = "The selected file is not a valid or playable audio file";
 "settings.importError" = "Import error";
@@ -193,8 +198,11 @@
 "error.file.validationFailed" = "Error validating audio file: %@";
 "error.file.selectionFailed" = "Error selecting file: %@";
 "error.file.saveFailed" = "File could not be saved. Please make sure you have access to the file.";
-"error.vibration.hapticsUnavailable" = "This device does not support haptics. Vibration is not available.";
-"error.vibration.engineCreationFailed" = "Haptic engine could not be initialized. Vibration is not available.";
+"error.vibration.hapticsUnavailable" = "This device does not support vibration. Vibration is not available.";
+"error.vibration.engineCreationFailed" = "Vibration engine could not be initialized. Vibration is not available.";
+"error.vibration.scriptGenerationFailed" = "Failed to generate vibration script. Please try again.";
+"error.vibrationScript.invalidTargetFrequency" = "Invalid target frequency: %f Hz. Frequency must be finite and greater than zero.";
+"error.vibrationScript.invalidMultiplier" = "Invalid multiplier: %d. Multiplier must be greater than zero.";
 
 // MARK: - Frequency Validation
 "frequency.tooLow" = "Frequency too low (minimum: %d Hz)";

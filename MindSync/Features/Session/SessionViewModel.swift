@@ -41,7 +41,7 @@ final class SessionViewModel: ObservableObject {
     @Published var playbackProgress: Double = 0.0
     @Published var playbackTimeLabel: String = "0:00 / 0:00"
     @Published var affirmationStatus: String?
-    @Published var currentFrequency: Double = 0.0
+    @Published var currentFrequency: Double? = nil
     
     // Screen controller for UI binding (only published when screen mode is active)
     var screenController: ScreenController? {
@@ -454,7 +454,7 @@ final class SessionViewModel: ObservableObject {
         guard let script = currentScript,
               let session = currentSession,
               let startTime = sessionStartTime else {
-            currentFrequency = 0.0
+            currentFrequency = nil
             return
         }
         
@@ -465,8 +465,8 @@ final class SessionViewModel: ObservableObject {
         let rampTime = mode.rampDuration
         let progress = rampTime > 0 ? min(elapsed / rampTime, 1.0) : 1.0
         
-        // Smoothstep interpolation (same as in EntrainmentEngine)
-        let smooth = progress * progress * (3.0 - 2.0 * progress)
+        // Smoothstep interpolation
+        let smooth = MathHelpers.smoothstep(progress)
         
         // Interpolate from startFrequency to targetFrequency
         let startFreq = mode.startFrequency
@@ -499,6 +499,16 @@ final class SessionViewModel: ObservableObject {
         stopSession()
     }
     
+    /// Cancels the current analysis
+    func cancelAnalysis() {
+        guard state == .analyzing else { return }
+        logger.info("User cancelled analysis")
+        audioAnalyzer.cancel()
+        state = .idle
+        analysisProgress = nil
+        errorMessage = NSLocalizedString("error.audio.cancelled", comment: "")
+    }
+    
     /// Starts a session with a selected media item
     func startSession(with mediaItem: MPMediaItem) async {
         guard state == .idle else { 
@@ -525,8 +535,8 @@ final class SessionViewModel: ObservableObject {
             // Check if item can be analyzed
             let assetURL = try await services.mediaLibraryService.assetURLForAnalysis(of: mediaItem)
             
-            // Analyze audio
-            let track = try await audioAnalyzer.analyze(url: assetURL, mediaItem: mediaItem)
+            // Analyze audio (use quick mode if enabled in preferences)
+            let track = try await audioAnalyzer.analyze(url: assetURL, mediaItem: mediaItem, quickMode: cachedPreferences.quickAnalysisEnabled)
             currentTrack = track
             startPlaybackProgressUpdates(for: track.duration)
             
@@ -542,6 +552,27 @@ final class SessionViewModel: ObservableObject {
                 screenColor: lightSource == .screen ? screenColor : nil
             )
             currentScript = script
+            
+            // Generate VibrationScript if vibration is enabled
+            if cachedPreferences.vibrationEnabled {
+                do {
+                    let vibrationScript = try entrainmentEngine.generateVibrationScript(
+                        from: track,
+                        mode: mode,
+                        intensity: cachedPreferences.vibrationIntensity
+                    )
+                    currentVibrationScript = vibrationScript
+                    vibrationController = services.vibrationController
+                } catch {
+                    logger.error("Failed to generate vibration script: \(error.localizedDescription, privacy: .public)")
+                    errorMessage = NSLocalizedString("error.vibration.scriptGenerationFailed", comment: "")
+                    state = .idle
+                    return
+                }
+            } else {
+                vibrationController = nil
+                currentVibrationScript = nil
+            }
             
             // Create session
             let session = Session(
@@ -563,6 +594,7 @@ final class SessionViewModel: ObservableObject {
             
             // Start playback and light (this sets the startTime)
             let startTime = Date()
+            sessionStartTime = startTime
             try await startPlaybackAndLight(url: assetURL, script: script, startTime: startTime)
             
             // Start vibration if enabled (using same startTime for synchronization)
@@ -581,7 +613,6 @@ final class SessionViewModel: ObservableObject {
             }
             
             state = .running
-            sessionStartTime = Date()
             affirmationPlayed = false
             
             // Start observing for affirmation trigger
@@ -630,8 +661,8 @@ final class SessionViewModel: ObservableObject {
         }
         
         do {
-            // Analyze audio directly from URL (no MediaItem required)
-            let track = try await audioAnalyzer.analyze(url: audioFileURL)
+            // Analyze audio directly from URL (no MediaItem required, use quick mode if enabled)
+            let track = try await audioAnalyzer.analyze(url: audioFileURL, quickMode: cachedPreferences.quickAnalysisEnabled)
             currentTrack = track
             startPlaybackProgressUpdates(for: track.duration)
             
@@ -650,13 +681,20 @@ final class SessionViewModel: ObservableObject {
             
             // Generate VibrationScript if vibration is enabled
             if cachedPreferences.vibrationEnabled {
-                let vibrationScript = entrainmentEngine.generateVibrationScript(
-                    from: track,
-                    mode: mode,
-                    intensity: cachedPreferences.vibrationIntensity
-                )
-                currentVibrationScript = vibrationScript
-                vibrationController = services.vibrationController
+                do {
+                    let vibrationScript = try entrainmentEngine.generateVibrationScript(
+                        from: track,
+                        mode: mode,
+                        intensity: cachedPreferences.vibrationIntensity
+                    )
+                    currentVibrationScript = vibrationScript
+                    vibrationController = services.vibrationController
+                } catch {
+                    logger.error("Failed to generate vibration script: \(error.localizedDescription, privacy: .public)")
+                    errorMessage = NSLocalizedString("error.vibration.scriptGenerationFailed", comment: "")
+                    state = .idle
+                    return
+                }
             } else {
                 vibrationController = nil
                 currentVibrationScript = nil
@@ -682,6 +720,7 @@ final class SessionViewModel: ObservableObject {
             
             // Start playback and light (this sets the startTime)
             let startTime = Date()
+            sessionStartTime = startTime
             try await startPlaybackAndLight(url: audioFileURL, script: script, startTime: startTime)
             
             // Start vibration if enabled (using same startTime for synchronization)
@@ -699,7 +738,6 @@ final class SessionViewModel: ObservableObject {
             }
             
             state = .running
-            sessionStartTime = Date()
             affirmationPlayed = false
             
             // Start observing for affirmation trigger
@@ -914,13 +952,20 @@ final class SessionViewModel: ObservableObject {
             
             // Generate initial VibrationScript if vibration is enabled
             if cachedPreferences.vibrationEnabled {
-                let initialVibrationScript = generateMicrophoneVibrationScript(
-                    mode: mode,
-                    bpm: microphoneBPM,
-                    intensity: cachedPreferences.vibrationIntensity
-                )
-                currentVibrationScript = initialVibrationScript
-                vibrationController = services.vibrationController
+                do {
+                    let initialVibrationScript = try generateMicrophoneVibrationScript(
+                        mode: mode,
+                        bpm: microphoneBPM,
+                        intensity: cachedPreferences.vibrationIntensity
+                    )
+                    currentVibrationScript = initialVibrationScript
+                    vibrationController = services.vibrationController
+                } catch {
+                    logger.error("Failed to generate initial vibration script: \(error.localizedDescription, privacy: .public)")
+                    errorMessage = NSLocalizedString("error.vibration.scriptGenerationFailed", comment: "")
+                    state = .idle
+                    return
+                }
             } else {
                 vibrationController = nil
                 currentVibrationScript = nil
@@ -967,7 +1012,7 @@ final class SessionViewModel: ObservableObject {
             // as it requires audio file playback with mixer node access
             
             state = .running
-            sessionStartTime = Date()
+            sessionStartTime = startTime
             affirmationPlayed = false
             
             // Start observing for affirmation trigger
@@ -1051,24 +1096,24 @@ final class SessionViewModel: ObservableObject {
         
         // Update vibration script if enabled
         if cachedPreferences.vibrationEnabled {
-            let updatedVibrationScript = generateMicrophoneVibrationScript(
-                mode: mode,
-                bpm: bpm,
-                intensity: cachedPreferences.vibrationIntensity
-            )
-            currentVibrationScript = updatedVibrationScript
-            vibrationController?.cancelExecution()
-            vibrationController?.execute(script: updatedVibrationScript, syncedTo: startTime)
+            do {
+                let updatedVibrationScript = try generateMicrophoneVibrationScript(
+                    mode: mode,
+                    bpm: bpm,
+                    intensity: cachedPreferences.vibrationIntensity
+                )
+                currentVibrationScript = updatedVibrationScript
+                vibrationController?.cancelExecution()
+                vibrationController?.execute(script: updatedVibrationScript, syncedTo: startTime)
+            } catch {
+                logger.error("Failed to update vibration script: \(error.localizedDescription, privacy: .public)")
+                // Don't stop the session, just log the error and continue without vibration
+            }
         }
     }
     
-    /// Generates a LightScript for microphone mode
-    private func generateMicrophoneLightScript(
-        mode: EntrainmentMode,
-        lightSource: LightSource,
-        screenColor: LightEvent.LightColor?,
-        bpm: Double
-    ) -> LightScript {
+    /// Creates a dummy AudioTrack for microphone mode with estimated duration
+    private func createMicrophoneDummyTrack(bpm: Double) -> AudioTrack {
         // Estimate a non-zero duration for the dummy track based on live analysis
         let estimatedDuration: TimeInterval
         if let lastBeat = microphoneBeatTimestamps.last {
@@ -1085,13 +1130,23 @@ final class SessionViewModel: ObservableObject {
         }
         
         // Create a dummy track with current BPM and beat timestamps
-        let dummyTrack = AudioTrack(
+        return AudioTrack(
             title: NSLocalizedString("session.liveAudio", comment: "Title for live audio track in microphone mode"),
             artist: NSLocalizedString("session.microphone", comment: "Artist name for live audio track in microphone mode"),
             duration: estimatedDuration,
             bpm: bpm,
             beatTimestamps: microphoneBeatTimestamps
         )
+    }
+    
+    /// Generates a LightScript for microphone mode
+    private func generateMicrophoneLightScript(
+        mode: EntrainmentMode,
+        lightSource: LightSource,
+        screenColor: LightEvent.LightColor?,
+        bpm: Double
+    ) -> LightScript {
+        let dummyTrack = createMicrophoneDummyTrack(bpm: bpm)
         
         return entrainmentEngine.generateLightScript(
             from: dummyTrack,
@@ -1102,36 +1157,15 @@ final class SessionViewModel: ObservableObject {
     }
     
     /// Generates a VibrationScript for microphone mode
+    /// - Throws: VibrationScriptError if validation fails
     private func generateMicrophoneVibrationScript(
         mode: EntrainmentMode,
         bpm: Double,
         intensity: Float
-    ) -> VibrationScript {
-        // Estimate a non-zero duration for the dummy track based on live analysis
-        let estimatedDuration: TimeInterval
-        if let lastBeat = microphoneBeatTimestamps.last {
-            let beatDuration = bpm > 0 ? 60.0 / bpm : 0
-            // Extend duration one beat beyond the last detected beat
-            estimatedDuration = lastBeat + beatDuration
-        } else if bpm > 0 {
-            // No beats yet: assume a short window of several beats
-            let beatDuration = 60.0 / bpm
-            estimatedDuration = beatDuration * 8.0
-        } else {
-            // Fallback duration when no timing information is available
-            estimatedDuration = 60.0
-        }
+    ) throws -> VibrationScript {
+        let dummyTrack = createMicrophoneDummyTrack(bpm: bpm)
         
-        // Create a dummy track with current BPM and beat timestamps
-        let dummyTrack = AudioTrack(
-            title: NSLocalizedString("session.liveAudio", comment: "Title for live audio track in microphone mode"),
-            artist: NSLocalizedString("session.microphone", comment: "Artist name for live audio track in microphone mode"),
-            duration: estimatedDuration,
-            bpm: bpm,
-            beatTimestamps: microphoneBeatTimestamps
-        )
-        
-        return entrainmentEngine.generateVibrationScript(
+        return try entrainmentEngine.generateVibrationScript(
             from: dummyTrack,
             mode: mode,
             intensity: intensity

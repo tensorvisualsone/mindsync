@@ -18,7 +18,17 @@ struct VibrationScript: Codable, Identifiable {
         multiplier: Int,
         events: [VibrationEvent],
         createdAt: Date = Date()
-    ) {
+    ) throws {
+        // Validate targetFrequency: must be finite and positive
+        guard targetFrequency.isFinite && targetFrequency > 0 else {
+            throw VibrationScriptError.invalidTargetFrequency(targetFrequency)
+        }
+        
+        // Validate multiplier: must be positive
+        guard multiplier > 0 else {
+            throw VibrationScriptError.invalidMultiplier(multiplier)
+        }
+        
         self.id = id
         self.trackId = trackId
         self.mode = mode
@@ -28,12 +38,30 @@ struct VibrationScript: Codable, Identifiable {
         self.createdAt = createdAt
     }
 
-    /// Gesamtdauer in Sekunden
+    /// Gesamtdauer in Sekunden (berechnet aus dem Maximum von timestamp + duration über alle Events)
     var duration: TimeInterval {
-        events.last.map { $0.timestamp + $0.duration } ?? 0
+        events.map { $0.timestamp + $0.duration }.max() ?? 0
     }
 
     /// Anzahl der Events
     var eventCount: Int { events.count }
+}
+
+// MARK: - VibrationScript Errors
+
+enum VibrationScriptError: Error {
+    case invalidTargetFrequency(Double)
+    case invalidMultiplier(Int)
+}
+
+extension VibrationScriptError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .invalidTargetFrequency(let frequency):
+            return String(format: NSLocalizedString("error.vibrationScript.invalidTargetFrequency", comment: ""), frequency)
+        case .invalidMultiplier(let multiplier):
+            return String(format: NSLocalizedString("error.vibrationScript.invalidMultiplier", comment: ""), multiplier)
+        }
+    }
 }
 

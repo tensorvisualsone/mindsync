@@ -41,10 +41,21 @@ struct UserPreferences: Codable {
     
     // Vibration
     var vibrationEnabled: Bool
-    var vibrationIntensity: Float  // 0.1 - 1.0
+    private var _vibrationIntensity: Float  // Backing property
+    var vibrationIntensity: Float {  // 0.1 - 1.0
+        get {
+            _vibrationIntensity
+        }
+        set {
+            _vibrationIntensity = max(0.1, min(1.0, newValue))
+        }
+    }
     
     // Affirmationen
     var selectedAffirmationURL: URL? // URL zum Sprachmemo des Users
+    
+    // Audio Analysis
+    var quickAnalysisEnabled: Bool // Schnellanalyse mit reduzierter Genauigkeit
 
     static var `default`: UserPreferences {
         UserPreferences(
@@ -60,9 +71,69 @@ struct UserPreferences: Codable {
             maxSessionDuration: nil,
             hapticFeedbackEnabled: true,
             vibrationEnabled: false,
-            vibrationIntensity: 0.5,
-            selectedAffirmationURL: nil
+            _vibrationIntensity: 0.5,
+            selectedAffirmationURL: nil,
+            quickAnalysisEnabled: false
         )
+    }
+    
+    // MARK: - Codable
+    
+    enum CodingKeys: String, CodingKey {
+        case epilepsyDisclaimerAccepted
+        case epilepsyDisclaimerAcceptedAt
+        case preferredMode
+        case preferredLightSource
+        case defaultIntensity
+        case screenColor
+        case customColorRGB
+        case fallDetectionEnabled
+        case thermalProtectionEnabled
+        case maxSessionDuration
+        case hapticFeedbackEnabled
+        case vibrationEnabled
+        case _vibrationIntensity = "vibrationIntensity"  // Map private property to JSON key "vibrationIntensity"
+        case selectedAffirmationURL
+        case quickAnalysisEnabled
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        epilepsyDisclaimerAccepted = try container.decode(Bool.self, forKey: .epilepsyDisclaimerAccepted)
+        epilepsyDisclaimerAcceptedAt = try container.decodeIfPresent(Date.self, forKey: .epilepsyDisclaimerAcceptedAt)
+        preferredMode = try container.decode(EntrainmentMode.self, forKey: .preferredMode)
+        preferredLightSource = try container.decode(LightSource.self, forKey: .preferredLightSource)
+        defaultIntensity = try container.decode(Float.self, forKey: .defaultIntensity)
+        screenColor = try container.decode(LightEvent.LightColor.self, forKey: .screenColor)
+        customColorRGB = try container.decodeIfPresent(CustomColorRGB.self, forKey: .customColorRGB)
+        fallDetectionEnabled = try container.decode(Bool.self, forKey: .fallDetectionEnabled)
+        thermalProtectionEnabled = try container.decode(Bool.self, forKey: .thermalProtectionEnabled)
+        maxSessionDuration = try container.decodeIfPresent(TimeInterval.self, forKey: .maxSessionDuration)
+        hapticFeedbackEnabled = try container.decode(Bool.self, forKey: .hapticFeedbackEnabled)
+        vibrationEnabled = try container.decode(Bool.self, forKey: .vibrationEnabled)
+        let decodedIntensity = try container.decode(Float.self, forKey: ._vibrationIntensity)
+        _vibrationIntensity = max(0.1, min(1.0, decodedIntensity))  // Clamp during decoding
+        selectedAffirmationURL = try container.decodeIfPresent(URL.self, forKey: .selectedAffirmationURL)
+        quickAnalysisEnabled = try container.decode(Bool.self, forKey: .quickAnalysisEnabled)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(epilepsyDisclaimerAccepted, forKey: .epilepsyDisclaimerAccepted)
+        try container.encodeIfPresent(epilepsyDisclaimerAcceptedAt, forKey: .epilepsyDisclaimerAcceptedAt)
+        try container.encode(preferredMode, forKey: .preferredMode)
+        try container.encode(preferredLightSource, forKey: .preferredLightSource)
+        try container.encode(defaultIntensity, forKey: .defaultIntensity)
+        try container.encode(screenColor, forKey: .screenColor)
+        try container.encodeIfPresent(customColorRGB, forKey: .customColorRGB)
+        try container.encode(fallDetectionEnabled, forKey: .fallDetectionEnabled)
+        try container.encode(thermalProtectionEnabled, forKey: .thermalProtectionEnabled)
+        try container.encodeIfPresent(maxSessionDuration, forKey: .maxSessionDuration)
+        try container.encode(hapticFeedbackEnabled, forKey: .hapticFeedbackEnabled)
+        try container.encode(vibrationEnabled, forKey: .vibrationEnabled)
+        try container.encode(_vibrationIntensity, forKey: ._vibrationIntensity)
+        try container.encodeIfPresent(selectedAffirmationURL, forKey: .selectedAffirmationURL)
+        try container.encode(quickAnalysisEnabled, forKey: .quickAnalysisEnabled)
     }
     
     // MARK: - Persistence

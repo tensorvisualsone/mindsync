@@ -80,6 +80,10 @@
 "analysis.detecting" = "Beats werden erkannt...";
 "analysis.mapping" = "LightScript wird erstellt...";
 "analysis.complete" = "Analyse abgeschlossen!";
+"analysis.cancel" = "Abbrechen";
+"analysis.cancelHint" = "Bricht die laufende Analyse ab";
+"analysis.warning.medium" = "Analyse dauert länger als erwartet. Noch ca. %d Sekunden...";
+"analysis.warning.long" = "Analyse benötigt noch ca. %d Sekunden. Bitte warten...";
 
 // MARK: - Settings
 "settings.title" = "Einstellungen";
@@ -93,6 +97,11 @@
 "settings.fallDetection" = "Sturzerkennung";
 "settings.thermalProtection" = "Thermischer Schutz";
 "settings.hapticFeedback" = "Haptisches Feedback";
+"settings.hapticFeedbackDescription" = "Kurzes haptisches Feedback für UI-Interaktionen (Buttons, Start/Stop)";
+"settings.vibration" = "Session-Vibration";
+"settings.vibrationDescription" = "Kontinuierliche Vibration synchron mit Audio und Licht während der Session";
+"settings.vibrationEnabled" = "Session-Vibration aktivieren";
+"settings.vibrationIntensity" = "Vibrations-Intensität";
 "settings.intensity" = "Intensität";
 "settings.defaultIntensity" = "Standard-Intensität";
 "settings.intensityDescription" = "Standard-Helligkeit für Stroboskoplicht (betrifft nur Taschenlampe).";
