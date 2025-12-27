@@ -114,7 +114,7 @@ struct UserPreferences: Codable {
         let decodedIntensity = try container.decode(Float.self, forKey: ._vibrationIntensity)
         _vibrationIntensity = max(0.1, min(1.0, decodedIntensity))  // Clamp during decoding
         selectedAffirmationURL = try container.decodeIfPresent(URL.self, forKey: .selectedAffirmationURL)
-        quickAnalysisEnabled = try container.decode(Bool.self, forKey: .quickAnalysisEnabled)
+        quickAnalysisEnabled = try container.decodeIfPresent(Bool.self, forKey: .quickAnalysisEnabled) ?? false
     }
     
     func encode(to encoder: Encoder) throws {

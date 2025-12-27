@@ -109,8 +109,10 @@
 "settings.affirmationSelect" = "Choose affirmation";
 "settings.affirmationRemove" = "Remove affirmation";
 "settings.affirmationNone" = "No affirmation selected.";
-"settings.session" = "Session Duration";
-"settings.sessionDescription" = "Limits maximum flashlight session duration to avoid overheating.";
+"settings.session" = "Session & Analysis";
+"settings.sessionDescription" = "Limits maximum flashlight session duration to avoid overheating. Quick analysis reduces analysis time for audio tracks (tracks over 10 minutes automatically use quick analysis).";
+"settings.quickAnalysis" = "Quick Analysis";
+"settings.quickAnalysisDescription" = "Reduces analysis time for audio tracks with faster beat detection. Tracks over 10 minutes automatically use quick analysis.";
 "settings.maxDuration" = "Maximum duration";
 "settings.duration.unlimited" = "No limit";
 "settings.duration.5min" = "5 min";
@@ -190,6 +192,7 @@
 "error.audio.unsupportedFormat" = "Audio format is not supported.";
 "error.audio.analysisFailure" = "Analysis failed: %@";
 "error.audio.cancelled" = "Analysis cancelled.";
+"status.audio.cancelled" = "Analysis was cancelled.";
 "error.audio.fileTooLong" = "Audio file is too long (%d minutes). Maximum supported length is 120 minutes.";
 "error.audio.corruptedData" = "Audio data appears to be corrupted or empty. Please choose another track.";
 "error.audio.timeout" = "Audio analysis took too long and was stopped. Please choose a shorter track or try again.";

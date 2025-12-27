@@ -37,6 +37,44 @@ struct VibrationScript: Codable, Identifiable {
         self.events = events
         self.createdAt = createdAt
     }
+    
+    // MARK: - Codable
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // Decode all properties
+        let id = try container.decode(UUID.self, forKey: .id)
+        let trackId = try container.decode(UUID.self, forKey: .trackId)
+        let mode = try container.decode(EntrainmentMode.self, forKey: .mode)
+        let targetFrequency = try container.decode(Double.self, forKey: .targetFrequency)
+        let multiplier = try container.decode(Int.self, forKey: .multiplier)
+        let events = try container.decode([VibrationEvent].self, forKey: .events)
+        let createdAt = try container.decode(Date.self, forKey: .createdAt)
+        
+        // Call the throwing initializer to run validation
+        try self.init(
+            id: id,
+            trackId: trackId,
+            mode: mode,
+            targetFrequency: targetFrequency,
+            multiplier: multiplier,
+            events: events,
+            createdAt: createdAt
+        )
+    }
+    
+    // Encodable synthesis is used (default implementation)
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case trackId
+        case mode
+        case targetFrequency
+        case multiplier
+        case events
+        case createdAt
+    }
 
     /// Gesamtdauer in Sekunden (berechnet aus dem Maximum von timestamp + duration über alle Events)
     var duration: TimeInterval {

@@ -37,7 +37,7 @@ struct AnalysisProgressView: View {
                         .foregroundColor(.mindSyncWarning)
                 }
                 .padding(.top, AppConstants.Spacing.md)
-                .accessibilityLabel(NSLocalizedString("analysis.cancelHint", comment: ""))
+                .accessibilityHint(NSLocalizedString("analysis.cancelHint", comment: ""))
                 .accessibilityIdentifier("analysis.cancelButton")
             }
         }

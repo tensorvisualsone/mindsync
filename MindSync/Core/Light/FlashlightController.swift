@@ -221,8 +221,8 @@ final class FlashlightController: BaseLightController, LightControlling {
             // Triangle wave based on absolute elapsed time, independent of event duration
             // One full cycle (0 -> 1 -> 0) per period based on target frequency for consistent strobe timing
             guard targetFrequency > 0 else {
-                // Fallback: return 0 intensity if frequency is not valid to avoid division by zero
-                return 0.0
+                // Fallback: constant intensity if frequency is not valid (to avoid division by zero)
+                return event.intensity
             }
             let period: TimeInterval = 1.0 / targetFrequency
             let phase = (timeWithinEvent.truncatingRemainder(dividingBy: period)) / period  // [0, 1)

@@ -375,7 +375,7 @@ final class EntrainmentEngine {
         let targetFrequency = (track.bpm / 60.0) * Double(multiplier)
         
         // Generate vibration events based on beat timestamps
-        let events = generateVibrationEvents(
+        let events = try generateVibrationEvents(
             beatTimestamps: track.beatTimestamps,
             targetFrequency: targetFrequency,
             mode: mode,
@@ -399,10 +399,10 @@ final class EntrainmentEngine {
         mode: EntrainmentMode,
         trackDuration: TimeInterval,
         intensity: Float
-    ) -> [VibrationEvent] {
+    ) throws -> [VibrationEvent] {
         guard !beatTimestamps.isEmpty else {
             // Fallback: uniform pulsation if no beats detected
-            return generateFallbackVibrationEvents(
+            return try generateFallbackVibrationEvents(
                 frequency: targetFrequency,
                 duration: trackDuration,
                 mode: mode,
@@ -438,22 +438,56 @@ final class EntrainmentEngine {
             }
         }
         
-        return generateEvents(
+        // Use throwing version of generateEvents for VibrationEvent
+        return try generateVibrationEventsWithValidation(
             timestamps: beatTimestamps,
             targetFrequency: targetFrequency,
             mode: mode,
             baseIntensity: baseIntensity,
             waveformSelector: waveformSelector,
-            durationMultiplier: durationMultiplier,
-            eventFactory: { timestamp, intensity, duration, waveform in
-                VibrationEvent(
-                    timestamp: timestamp,
-                    intensity: intensity,
-                    duration: duration,
-                    waveform: waveform
-                )
-            }
+            durationMultiplier: durationMultiplier
         )
+    }
+    
+    /// Helper for generating VibrationEvents with validation (throws on invalid values)
+    private func generateVibrationEventsWithValidation(
+        timestamps: [TimeInterval],
+        targetFrequency: Double,
+        mode: EntrainmentMode,
+        baseIntensity: Float,
+        waveformSelector: (EntrainmentMode) -> VibrationEvent.Waveform,
+        durationMultiplier: (EntrainmentMode, VibrationEvent.Waveform, TimeInterval) -> TimeInterval
+    ) throws -> [VibrationEvent] {
+        var events: [VibrationEvent] = []
+        
+        // Ramping: start from mode.startFrequency and interpolate to targetFrequency over mode.rampDuration
+        let startFreq = mode.startFrequency
+        let rampTime = mode.rampDuration
+        
+        for timestamp in timestamps {
+            // Calculate progress for ramp at this timestamp
+            let progress = rampTime > 0 ? min(timestamp / rampTime, 1.0) : 1.0
+            let smooth = MathHelpers.smoothstep(progress)
+            let currentFreq = startFreq + (targetFrequency - startFreq) * smooth
+            let period = 1.0 / max(0.0001, currentFreq) // avoid div by zero
+            
+            // Select waveform based on mode
+            let waveform = waveformSelector(mode)
+            
+            // Calculate duration based on waveform and mode
+            let eventDuration = durationMultiplier(mode, waveform, period)
+            
+            // Create event with validation (throws on invalid values)
+            let event = try VibrationEvent(
+                timestamp: timestamp,
+                intensity: baseIntensity,
+                duration: eventDuration,
+                waveform: waveform
+            )
+            events.append(event)
+        }
+        
+        return events
     }
     
     /// Fallback: Generates uniform pulsation if no beats were detected
@@ -462,7 +496,7 @@ final class EntrainmentEngine {
         duration: TimeInterval,
         mode: EntrainmentMode,
         intensity: Float
-    ) -> [VibrationEvent] {
+    ) throws -> [VibrationEvent] {
         // Waveform selector for fallback based on mode
         let waveformSelector: (EntrainmentMode) -> VibrationEvent.Waveform = { mode in
             switch mode {
@@ -485,21 +519,63 @@ final class EntrainmentEngine {
             (waveform == .square) ? (period / 2.0) : period
         }
         
-        return generateUniformEvents(
+        // Use throwing version of generateUniformEvents for VibrationEvent
+        return try generateUniformVibrationEventsWithValidation(
             frequency: frequency,
             duration: duration,
             mode: mode,
             baseIntensity: baseIntensity,
             waveformSelector: waveformSelector,
-            durationCalculator: durationCalculator,
-            eventFactory: { timestamp, intensity, duration, waveform in
-                VibrationEvent(
-                    timestamp: timestamp,
-                    intensity: intensity,
-                    duration: duration,
-                    waveform: waveform
-                )
-            }
+            durationCalculator: durationCalculator
         )
+    }
+    
+    /// Helper for generating uniform VibrationEvents with validation (throws on invalid values)
+    private func generateUniformVibrationEventsWithValidation(
+        frequency: Double,
+        duration: TimeInterval,
+        mode: EntrainmentMode,
+        baseIntensity: Float,
+        waveformSelector: (EntrainmentMode) -> VibrationEvent.Waveform,
+        durationCalculator: (VibrationEvent.Waveform, TimeInterval) -> TimeInterval
+    ) throws -> [VibrationEvent] {
+        var events: [VibrationEvent] = []
+        
+        // Ramping: start from mode.startFrequency and interpolate to provided frequency
+        let startFreq = mode.startFrequency
+        let targetFreq = frequency
+        let rampTime = mode.rampDuration
+        
+        var currentTime: TimeInterval = 0
+        
+        while currentTime < duration {
+            // Calculate progress for ramp [0..1]
+            let progress = rampTime > 0 ? min(currentTime / rampTime, 1.0) : 1.0
+            
+            // Smoothstep for nicer transitions
+            let smooth = MathHelpers.smoothstep(progress)
+            
+            let currentFreq = startFreq + (targetFreq - startFreq) * smooth
+            let period = 1.0 / max(0.0001, currentFreq)
+            
+            // Select waveform based on mode
+            let waveform = waveformSelector(mode)
+            
+            // Calculate duration based on waveform
+            let eventDuration = durationCalculator(waveform, period)
+            
+            // Create event with validation (throws on invalid values)
+            let event = try VibrationEvent(
+                timestamp: currentTime,
+                intensity: baseIntensity,
+                duration: eventDuration,
+                waveform: waveform
+            )
+            events.append(event)
+            
+            currentTime += period
+        }
+        
+        return events
     }
 }

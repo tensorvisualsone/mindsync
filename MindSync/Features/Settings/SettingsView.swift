@@ -246,6 +246,15 @@ struct SettingsView: View {
                 }
                 
                 Section {
+                    Toggle(NSLocalizedString("settings.quickAnalysis", comment: ""), isOn: Binding(
+                        get: { preferences.quickAnalysisEnabled },
+                        set: { newValue in
+                            preferences.quickAnalysisEnabled = newValue
+                            preferences.save()
+                        }
+                    ))
+                    .accessibilityIdentifier("settings.quickAnalysisToggle")
+                    
                     Picker(NSLocalizedString("settings.maxDuration", comment: ""), selection: Binding(
                         get: { preferences.maxSessionDuration },
                         set: { newValue in

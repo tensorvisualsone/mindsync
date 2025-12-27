@@ -46,11 +46,24 @@ struct SessionView: View {
                 errorView
             }
             
+            // Status message banner overlay (non-error notifications)
+            if let statusMessage = viewModel.statusMessage {
+                VStack {
+                    StatusBanner(message: statusMessage)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                    
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.statusMessage)
+            }
+            
             // Thermal warning banner overlay
             VStack {
                 SafetyBanner(warningLevel: viewModel.thermalWarningLevel)
                     .padding(.horizontal)
-                    .padding(.top, 8)
+                    .padding(.top, viewModel.statusMessage != nil ? 56 : 8)  // Offset if status banner is shown
                 
                 Spacer()
             }
@@ -245,8 +258,14 @@ private struct SessionTrackInfoView: View {
                 )
                 
                 if let script = script, let bpm = track?.bpm {
-                    let frequency = currentFrequency ?? script.targetFrequency
-                    let frequencyText = String(format: NSLocalizedString("session.frequencyBpm", comment: ""), Int(frequency), Int(bpm))
+                    // Use currentFrequency only if it's non-nil AND > 0, otherwise fall back to script.targetFrequency
+                    let validatedFrequency: Double
+                    if let freq = currentFrequency, freq > 0 {
+                        validatedFrequency = freq
+                    } else {
+                        validatedFrequency = script.targetFrequency
+                    }
+                    let frequencyText = String(format: NSLocalizedString("session.frequencyBpm", comment: ""), Int(validatedFrequency), Int(bpm))
                     ModeChip(
                         icon: "metronome.fill",
                         text: frequencyText,
@@ -296,6 +315,36 @@ private struct AffirmationStatusView: View {
         }
         .padding(AppConstants.Spacing.md)
         .mindSyncCardStyle()
+    }
+}
+
+private struct StatusBanner: View {
+    let message: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Info icon (non-error)
+            Image(systemName: "info.circle.fill")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(.mindSyncInfo)
+                .accessibilityHidden(true)
+            
+            // Status message
+            Text(message)
+                .font(AppConstants.Typography.subheadline)
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.leading)
+            
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(Color.mindSyncInfo.opacity(0.2))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.mindSyncInfo.opacity(0.3), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 

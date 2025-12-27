@@ -12,26 +12,38 @@ final class AudioAnalyzer {
     
     /// Base timeout per minute of track duration (in seconds per minute).
     /// Runtime grows approximately linearly with track duration.
-    private let timeoutPerMinute: TimeInterval = 0.6
+    /// Typical analysis time: ~10-15 seconds per minute of audio.
+    /// Set to 18 seconds per minute to provide buffer for slower devices.
+    private let timeoutPerMinute: TimeInterval = 18.0
     
     /// Maximum timeout cap to prevent excessive wait times even for very long tracks.
-    /// This ensures analysis never takes longer than 60 seconds, improving UX.
+    /// Long tracks (>10 min) use quick analysis mode for faster results.
     private let maxTimeout: TimeInterval = 60.0
     
     /// Minimum timeout to ensure short tracks have reasonable analysis time.
     private let minTimeout: TimeInterval = 10.0
     
+    /// Track duration threshold (in minutes) for automatic quick analysis mode.
+    /// Tracks longer than this will automatically use quick analysis for faster results.
+    private let autoQuickAnalysisThresholdMinutes: Double = 10.0
+    
     /// Warning thresholds as percentages of timeout (for user notifications).
     private let warningThreshold50: Double = 0.5
     private let warningThreshold75: Double = 0.75
     
-    /// Tracks whether warnings have been shown to avoid duplicate notifications.
-    private var warning50Shown = false
-    private var warning75Shown = false
-    
-    /// Quick analysis mode: reduces accuracy for faster results.
-    /// When enabled, uses lower resolution and skips some analysis passes.
-    var quickAnalysisMode: Bool = false
+    /// Context for a single analysis operation to ensure thread-safety.
+    /// All mutable state is kept local to each analyze() call.
+    private struct AnalysisContext {
+        var warning50Shown: Bool = false
+        var warning75Shown: Bool = false
+        let quickAnalysisMode: Bool
+        let isCancelled: Bool
+        
+        init(quickAnalysisMode: Bool, isCancelled: Bool = false) {
+            self.quickAnalysisMode = quickAnalysisMode
+            self.isCancelled = isCancelled
+        }
+    }
     private let targetSampleRate: Double = 44_100.0
     private let fallbackWindowDuration: Double = 0.35
     private let minimumDetectedBeats = 4
@@ -65,18 +77,29 @@ final class AudioAnalyzer {
     }
 
     /// Calculates dynamic timeout based on track duration.
+    /// Formula: (duration in minutes) * timeoutPerMinute
     /// Uses linear scaling with min/max bounds for better UX.
+    /// For very long tracks (>10 minutes), timeout is capped at maxTimeout.
     private func calculateTimeout(for duration: TimeInterval) -> TimeInterval {
-        let calculatedTimeout = duration * timeoutPerMinute / 60.0
+        let durationMinutes = duration / 60.0
+        let calculatedTimeout = durationMinutes * timeoutPerMinute
         return max(minTimeout, min(maxTimeout, calculatedTimeout))
+    }
+    
+    /// Determines if quick analysis should be used automatically for long tracks.
+    private func shouldUseAutoQuickAnalysis(for duration: TimeInterval) -> Bool {
+        let durationMinutes = duration / 60.0
+        return durationMinutes > autoQuickAnalysisThresholdMinutes
     }
     
     /// Analyzes a local audio track
     func analyze(url: URL, mediaItem: MPMediaItem, quickMode: Bool = false) async throws -> AudioTrack {
+        // Reset cancellation flag for this analysis
         isCancelled = false
-        quickAnalysisMode = quickMode
-        warning50Shown = false
-        warning75Shown = false
+        
+        // Create analysis context with local state to ensure thread-safety
+        // Each analyze() call has its own context, preventing race conditions
+        var context = AnalysisContext(quickAnalysisMode: quickMode)
         
         // Check cache first
         if let cachedTrack = loadFromCache(for: mediaItem) {
@@ -101,13 +124,21 @@ final class AudioAnalyzer {
         let analysisStart = Date()
         
         let title = mediaItem.title ?? "Unknown"
-        logger.info("Starting analysis for track: \(title, privacy: .public) (quickMode: \(quickMode, privacy: .public))")
-
+        
         // Extract metadata
         let artist = mediaItem.artist
         let albumTitle = mediaItem.albumTitle
         let duration = mediaItem.playbackDuration
         
+        // Auto-enable quick analysis for long tracks if not explicitly disabled
+        let effectiveQuickMode = quickMode || shouldUseAutoQuickAnalysis(for: duration)
+        context = AnalysisContext(quickAnalysisMode: effectiveQuickMode)
+        
+        if effectiveQuickMode && !quickMode {
+            logger.info("Auto-enabling quick analysis for long track: \(title, privacy: .public) (duration: \(duration / 60.0, privacy: .public) minutes)")
+        }
+        logger.info("Starting analysis for track: \(title, privacy: .public) (quickMode: \(effectiveQuickMode, privacy: .public))")
+
         // Calculate dynamic timeout based on track duration
         let analysisTimeout = calculateTimeout(for: duration)
         logger.info("Analysis timeout set to \(analysisTimeout, privacy: .public) seconds for track duration \(duration, privacy: .public) seconds")
@@ -119,7 +150,7 @@ final class AudioAnalyzer {
             message: "Loading audio..."
         ))
 
-        // Read PCM data
+        // Read PCM data with progress updates
         progressPublisher.send(AnalysisProgress(
             phase: .extracting,
             progress: 0.3,
@@ -128,7 +159,15 @@ final class AudioAnalyzer {
 
         let samples = try await fileReader.readPCM(from: url)
         try validateSamples(samples)
-        try checkForTimeout(startDate: analysisStart, timeout: analysisTimeout)
+        
+        // Progress update after PCM extraction
+        progressPublisher.send(AnalysisProgress(
+            phase: .extracting,
+            progress: 0.4,
+            message: "Extracting PCM data..."
+        ))
+        
+        try checkForTimeout(startDate: analysisStart, timeout: analysisTimeout, context: &context)
 
         guard !isCancelled else {
             throw AudioAnalysisError.cancelled
@@ -156,12 +195,14 @@ final class AudioAnalyzer {
 
         var beatTimestamps: [TimeInterval]
         if let beatDetector = beatDetector {
-            // In quick mode, use faster but less accurate beat detection
-            if quickAnalysisMode {
-                // Use energy-based detection directly (faster than full beat detection)
+            // In quick mode, bypass the expensive full beat detector and use simpler energy-based detection
+            // This trades granularity/accuracy for performance (main speed gain)
+            if context.quickAnalysisMode {
+                // Use energy-based detection to avoid the full BeatDetector pipeline
+                // Larger window (1.5x) reduces granularity/stability but improves processing speed
                 beatTimestamps = generateEnergyDrivenBeats(
                     from: samples,
-                    windowDuration: fallbackWindowDuration * 1.5, // Larger windows = faster
+                    windowDuration: fallbackWindowDuration * 1.5,
                     sampleRate: targetSampleRate,
                     trackDuration: resolvedDuration
                 )
@@ -210,7 +251,7 @@ final class AudioAnalyzer {
             }
         }
         
-        try checkForTimeout(startDate: analysisStart, timeout: analysisTimeout)
+        try checkForTimeout(startDate: analysisStart, timeout: analysisTimeout, context: &context)
 
         guard !isCancelled else {
             logger.warning("Analysis cancelled for track: \(title, privacy: .public)")
@@ -246,15 +287,15 @@ final class AudioAnalyzer {
     /// Analyzes a local audio file directly from URL (no caching)
     /// Used for files selected via Document Picker
     func analyze(url: URL, title: String? = nil, artist: String? = nil, quickMode: Bool = false) async throws -> AudioTrack {
+        // Reset cancellation flag for this analysis
         isCancelled = false
-        quickAnalysisMode = quickMode
-        warning50Shown = false
-        warning75Shown = false
+        
+        // Create analysis context with local state to ensure thread-safety
+        var context = AnalysisContext(quickAnalysisMode: quickMode)
         
         let analysisStart = Date()
         
         let resolvedTitle = title ?? url.deletingPathExtension().lastPathComponent
-        logger.info("Starting analysis for file: \(resolvedTitle, privacy: .public) (quickMode: \(quickMode, privacy: .public))")
 
         // Progress: Load audio
         progressPublisher.send(AnalysisProgress(
@@ -276,11 +317,20 @@ final class AudioAnalyzer {
         // Calculate duration from samples since we don't have metadata
         let duration = Double(samples.count) / targetSampleRate
         
+        // Auto-enable quick analysis for long tracks if not explicitly disabled
+        let effectiveQuickMode = quickMode || shouldUseAutoQuickAnalysis(for: duration)
+        context = AnalysisContext(quickAnalysisMode: effectiveQuickMode)
+        
+        if effectiveQuickMode && !quickMode {
+            logger.info("Auto-enabling quick analysis for long file: \(resolvedTitle, privacy: .public) (duration: \(duration / 60.0, privacy: .public) minutes)")
+        }
+        logger.info("Starting analysis for file: \(resolvedTitle, privacy: .public) (quickMode: \(effectiveQuickMode, privacy: .public))")
+        
         // Calculate dynamic timeout based on track duration
         let analysisTimeout = calculateTimeout(for: duration)
         logger.info("Analysis timeout set to \(analysisTimeout, privacy: .public) seconds for track duration \(duration, privacy: .public) seconds")
         
-        try checkForTimeout(startDate: analysisStart, timeout: analysisTimeout)
+        try checkForTimeout(startDate: analysisStart, timeout: analysisTimeout, context: &context)
 
         guard !isCancelled else {
             throw AudioAnalysisError.cancelled
@@ -302,12 +352,14 @@ final class AudioAnalyzer {
 
         var beatTimestamps: [TimeInterval]
         if let beatDetector = beatDetector {
-            // In quick mode, use faster but less accurate beat detection
-            if quickAnalysisMode {
-                // Use energy-based detection directly (faster than full beat detection)
+            // In quick mode, bypass the expensive full beat detector and use simpler energy-based detection
+            // This trades granularity/accuracy for performance (main speed gain)
+            if context.quickAnalysisMode {
+                // Use energy-based detection to avoid the full BeatDetector pipeline
+                // Larger window (1.5x) reduces granularity/stability but improves processing speed
                 beatTimestamps = generateEnergyDrivenBeats(
                     from: samples,
-                    windowDuration: fallbackWindowDuration * 1.5, // Larger windows = faster
+                    windowDuration: fallbackWindowDuration * 1.5,
                     sampleRate: targetSampleRate,
                     trackDuration: duration
                 )
@@ -350,7 +402,7 @@ final class AudioAnalyzer {
             }
         }
         
-        try checkForTimeout(startDate: analysisStart, timeout: analysisTimeout)
+        try checkForTimeout(startDate: analysisStart, timeout: analysisTimeout, context: &context)
 
         guard !isCancelled else {
             logger.warning("Analysis cancelled for file: \(resolvedTitle, privacy: .public)")
@@ -424,29 +476,32 @@ final class AudioAnalyzer {
     
     // MARK: - Helpers
     
-    private func checkForTimeout(startDate: Date, timeout: TimeInterval) throws {
+    private func checkForTimeout(startDate: Date, timeout: TimeInterval, context: inout AnalysisContext) throws {
         let elapsed = Date().timeIntervalSince(startDate)
         let progress = elapsed / timeout
         
-        // Check for timeout warnings (50% and 75%)
-        if progress >= warningThreshold75 && !warning75Shown {
-            warning75Shown = true
-            let remaining = timeout - elapsed
-            progressPublisher.send(AnalysisProgress(
-                phase: .analyzing,
-                progress: 0.85,
-                message: String(format: NSLocalizedString("analysis.warning.long", comment: ""), Int(remaining))
-            ))
-            logger.warning("Analysis at 75% of timeout, remaining: \(remaining, privacy: .public) seconds")
-        } else if progress >= warningThreshold50 && !warning50Shown {
-            warning50Shown = true
-            let remaining = timeout - elapsed
+        // Check for timeout warnings (50% and 75%) independently
+        // This ensures both warnings can be triggered even if progress jumps from <50% to ≥75%
+        if progress >= warningThreshold50 && !context.warning50Shown {
+            context.warning50Shown = true
+            let remaining = max(1, Int(timeout - elapsed))
             progressPublisher.send(AnalysisProgress(
                 phase: .analyzing,
                 progress: 0.70,
-                message: String(format: NSLocalizedString("analysis.warning.medium", comment: ""), Int(remaining))
+                message: String(format: NSLocalizedString("analysis.warning.medium", comment: ""), remaining)
             ))
             logger.info("Analysis at 50% of timeout, remaining: \(remaining, privacy: .public) seconds")
+        }
+        
+        if progress >= warningThreshold75 && !context.warning75Shown {
+            context.warning75Shown = true
+            let remaining = max(1, Int(timeout - elapsed))
+            progressPublisher.send(AnalysisProgress(
+                phase: .analyzing,
+                progress: 0.85,
+                message: String(format: NSLocalizedString("analysis.warning.long", comment: ""), remaining)
+            ))
+            logger.warning("Analysis at 75% of timeout, remaining: \(remaining, privacy: .public) seconds")
         }
         
         // Check for actual timeout

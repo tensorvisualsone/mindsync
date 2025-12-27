@@ -36,6 +36,7 @@ final class SessionViewModel: ObservableObject {
     @Published var currentScript: LightScript?
     @Published var analysisProgress: AnalysisProgress?
     @Published var errorMessage: String?
+    @Published var statusMessage: String?  // Non-error status notifications (e.g., cancellation)
     @Published var currentSession: Session?
     @Published var thermalWarningLevel: ThermalWarningLevel = .none
     @Published var playbackProgress: Double = 0.0
@@ -506,7 +507,7 @@ final class SessionViewModel: ObservableObject {
         audioAnalyzer.cancel()
         state = .idle
         analysisProgress = nil
-        errorMessage = NSLocalizedString("error.audio.cancelled", comment: "")
+        statusMessage = NSLocalizedString("status.audio.cancelled", comment: "")
     }
     
     /// Starts a session with a selected media item
@@ -565,9 +566,10 @@ final class SessionViewModel: ObservableObject {
                     vibrationController = services.vibrationController
                 } catch {
                     logger.error("Failed to generate vibration script: \(error.localizedDescription, privacy: .public)")
+                    // Degrade gracefully: continue without vibration instead of blocking session start
+                    vibrationController = nil
+                    currentVibrationScript = nil
                     errorMessage = NSLocalizedString("error.vibration.scriptGenerationFailed", comment: "")
-                    state = .idle
-                    return
                 }
             } else {
                 vibrationController = nil
@@ -1011,9 +1013,9 @@ final class SessionViewModel: ObservableObject {
             // Note: Cinematic mode is not supported for microphone sessions
             // as it requires audio file playback with mixer node access
             
-            state = .running
             sessionStartTime = startTime
             affirmationPlayed = false
+            state = .running
             
             // Start observing for affirmation trigger
             startAffirmationObserver()
@@ -1107,6 +1109,9 @@ final class SessionViewModel: ObservableObject {
                 vibrationController?.execute(script: updatedVibrationScript, syncedTo: startTime)
             } catch {
                 logger.error("Failed to update vibration script: \(error.localizedDescription, privacy: .public)")
+                // Stop any active vibration and clear state to prevent stale script execution
+                vibrationController?.cancelExecution()
+                currentVibrationScript = nil
                 // Don't stop the session, just log the error and continue without vibration
             }
         }
@@ -1204,6 +1209,7 @@ final class SessionViewModel: ObservableObject {
     /// Resets the session state (called when view is dismissed)
     func reset() {
         errorMessage = nil
+        statusMessage = nil
         state = .idle
         
         // Cleanup microphone and fall detection
