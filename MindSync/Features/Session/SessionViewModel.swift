@@ -426,13 +426,14 @@ final class SessionViewModel: ObservableObject {
         }
         
         updatePlaybackProgress(duration: duration)
-        updateCurrentFrequency()
+        // Note: updateCurrentFrequency() is called in the timer below, not here,
+        // because sessionStartTime may not be set yet when this method is called
         
         let timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             Task { @MainActor in
                 self.updatePlaybackProgress(duration: duration)
-                self.updateCurrentFrequency()
+                self.updateCurrentFrequency()  // Will update once sessionStartTime is set
             }
         }
         playbackProgressTimer = timer
@@ -445,6 +446,30 @@ final class SessionViewModel: ObservableObject {
             playbackProgress = 0
             playbackTimeLabel = "0:00 / 0:00"
         }
+    }
+    
+    /// Starts frequency updates for microphone mode
+    private func startFrequencyUpdates() {
+        // Stop any existing timer first
+        playbackProgressTimer?.invalidate()
+        
+        // Initial update
+        updateCurrentFrequency()
+        
+        // Start timer for regular updates
+        let timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            Task { @MainActor in
+                self.updateCurrentFrequency()
+            }
+        }
+        playbackProgressTimer = timer
+    }
+    
+    /// Stops frequency updates (called from stopSession to ensure cleanup)
+    private func stopFrequencyUpdates() {
+        playbackProgressTimer?.invalidate()
+        playbackProgressTimer = nil
     }
     
     private func updatePlaybackProgress(duration: TimeInterval) {
@@ -604,6 +629,8 @@ final class SessionViewModel: ObservableObject {
             // Start playback and light (this sets the startTime)
             let startTime = Date()
             sessionStartTime = startTime
+            // Update frequency now that sessionStartTime is set (timer will continue updating)
+            updateCurrentFrequency()
             try await startPlaybackAndLight(url: assetURL, script: script, startTime: startTime)
             
             // Start vibration if enabled (using same startTime for synchronization)
@@ -733,6 +760,8 @@ final class SessionViewModel: ObservableObject {
             // Start playback and light (this sets the startTime)
             let startTime = Date()
             sessionStartTime = startTime
+            // Update frequency now that sessionStartTime is set (timer will continue updating)
+            updateCurrentFrequency()
             try await startPlaybackAndLight(url: audioFileURL, script: script, startTime: startTime)
             
             // Start vibration if enabled (using same startTime for synchronization)
@@ -881,7 +910,7 @@ final class SessionViewModel: ObservableObject {
         
         // Stop affirmation if playing
         affirmationService.stop()
-        stopPlaybackProgressUpdates()
+        stopPlaybackProgressUpdates()  // Stops both playback progress and frequency updates (both use playbackProgressTimer)
         affirmationStatus = nil
         
         // Haptic feedback for session stop (if enabled)
@@ -1037,6 +1066,9 @@ final class SessionViewModel: ObservableObject {
             affirmationPlayed = false
             state = .running
             
+            // Start frequency updates for UI display
+            startFrequencyUpdates()
+            
             // Start observing for affirmation trigger
             startAffirmationObserver()
             
@@ -1146,12 +1178,13 @@ final class SessionViewModel: ObservableObject {
             // Extend duration one beat beyond the last detected beat
             estimatedDuration = lastBeat + beatDuration
         } else if bpm > 0 {
-            // No beats yet: assume a short window of several beats
-            let beatDuration = 60.0 / bpm
-            estimatedDuration = beatDuration * 8.0
+            // No beats yet: use a long duration (1 hour) to ensure events are generated
+            // for the entire session duration, since microphone sessions have unknown length
+            estimatedDuration = 3600.0  // 1 hour
         } else {
             // Fallback duration when no timing information is available
-            estimatedDuration = 60.0
+            // Use long duration to ensure events are generated
+            estimatedDuration = 3600.0  // 1 hour
         }
         
         // Create a dummy track with current BPM and beat timestamps

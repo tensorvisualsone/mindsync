@@ -294,7 +294,7 @@ final class EntrainmentEngine {
             }
         }
         
-        // Duration multiplier for cinematic mode
+        // Duration multiplier for cinematic mode and sine waveform
         let durationMultiplier: (EntrainmentMode, LightEvent.Waveform, TimeInterval) -> TimeInterval = { mode, waveform, period in
             if mode == .cinematic {
                 // Use 1.5x period for cinematic to ensure events overlap and create continuous wave
@@ -302,8 +302,8 @@ final class EntrainmentEngine {
             }
             switch waveform {
             case .square: return period / 2.0  // Short for hard blink
-            case .sine: return period         // Longer for soft pulse
-            case .triangle: return period
+            case .sine: return period * 1.5   // Overlap events to prevent gaps when beats are far apart
+            case .triangle: return period * 1.5  // Overlap events for smooth transitions
             }
         }
         
@@ -354,9 +354,12 @@ final class EntrainmentEngine {
             }
         }
         
-        // Duration calculator: half period for square, full period for sine/triangle
+        // Duration calculator: half period for square, 1.5x period for sine/triangle to ensure overlap
         let durationCalculator: (LightEvent.Waveform, TimeInterval) -> TimeInterval = { waveform, period in
-            (waveform == .square) ? (period / 2.0) : period
+            switch waveform {
+            case .square: return period / 2.0  // Short for hard blink
+            case .sine, .triangle: return period * 1.5  // Overlap events to prevent gaps
+            }
         }
         
         return generateUniformEvents(
