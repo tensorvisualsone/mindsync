@@ -6,6 +6,8 @@ class MockSessionHistoryService: SessionHistoryServiceProtocol {
     var saveCalled = false
     var loadAllCalled = false
     var clearAllCalled = false
+    var deleteIdsCalled = false
+    var lastDeletedIds: Set<UUID> = []
     
     func save(session: Session) {
         saveCalled = true
@@ -15,6 +17,12 @@ class MockSessionHistoryService: SessionHistoryServiceProtocol {
     func loadAll() -> [Session] {
         loadAllCalled = true
         return savedSessions
+    }
+    
+    func delete(ids: Set<UUID>) {
+        deleteIdsCalled = true
+        lastDeletedIds = ids
+        savedSessions.removeAll { ids.contains($0.id) }
     }
     
     func clearAll() {

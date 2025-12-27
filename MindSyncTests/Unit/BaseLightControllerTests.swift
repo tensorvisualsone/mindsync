@@ -3,8 +3,9 @@ import XCTest
 
 /// Tests for BaseLightController shared logic
 /// Note: Most functionality is tested through ScreenControllerTests and integration tests
+@MainActor
 final class BaseLightControllerTests: XCTestCase {
-    var baseLightController: TestBaseLightController!
+    fileprivate var baseLightController: TestBaseLightController!
     
     override func setUp() {
         super.setUp()

@@ -3,6 +3,7 @@ import Combine
 import SwiftUI
 @testable import MindSync
 
+@MainActor
 final class ScreenControllerTests: XCTestCase {
     var screenController: ScreenController!
     var cancellables: Set<AnyCancellable>!
@@ -36,17 +37,17 @@ final class ScreenControllerTests: XCTestCase {
     
     // MARK: - Start/Stop Tests
     
-    func testStart_SetsActiveToTrue() throws {
+    func testStart_SetsActiveToTrue() async throws {
         // When
-        try screenController.start()
+        try await screenController.start()
         
         // Then
         XCTAssertTrue(screenController.isActive)
     }
     
-    func testStop_SetsActiveToFalse() throws {
+    func testStop_SetsActiveToFalse() async throws {
         // Given
-        try screenController.start()
+        try await screenController.start()
         XCTAssertTrue(screenController.isActive)
         
         // When
@@ -56,9 +57,9 @@ final class ScreenControllerTests: XCTestCase {
         XCTAssertFalse(screenController.isActive)
     }
     
-    func testStop_ResetsColorToBlack() throws {
+    func testStop_ResetsColorToBlack() async throws {
         // Given
-        try screenController.start()
+        try await screenController.start()
         
         // When
         screenController.stop()

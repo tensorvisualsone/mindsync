@@ -1,5 +1,6 @@
 import XCTest
 import Combine
+import MediaPlayer
 @testable import MindSync
 
 /// Unit tests for SourceSelectionView threading scenarios

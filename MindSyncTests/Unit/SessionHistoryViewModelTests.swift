@@ -27,10 +27,22 @@ final class SessionHistoryViewModelTests: XCTestCase {
         let session = createTestSession()
         mockService.savedSessions = [session]
         
+        let expectation = XCTestExpectation(description: "Sessions loaded")
+        
+        viewModel.$sessions
+            .dropFirst()
+            .sink { sessions in
+                if sessions.count == 1 {
+                    expectation.fulfill()
+                }
+            }
+            .store(in: &cancellables)
+        
         // When
-        viewModel = SessionHistoryViewModel(historyService: mockService)
+        viewModel.loadSessions()
         
         // Then
+        wait(for: [expectation], timeout: 1.0)
         XCTAssertTrue(mockService.loadAllCalled)
         XCTAssertEqual(viewModel.sessions.count, 1)
         XCTAssertEqual(viewModel.sessions.first?.id, session.id)
@@ -53,8 +65,8 @@ final class SessionHistoryViewModelTests: XCTestCase {
     func testFilteringByMode() {
         // Given
         let thetaSession = createTestSession(mode: .theta)
-        let deltaSession = createTestSession(mode: .delta)
-        mockService.savedSessions = [thetaSession, deltaSession]
+        let gammaSession = createTestSession(mode: .gamma)
+        mockService.savedSessions = [thetaSession, gammaSession]
         viewModel.loadSessions()
         
         // When
