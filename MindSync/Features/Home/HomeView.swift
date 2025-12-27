@@ -64,6 +64,7 @@ struct HomeView: View {
                                 )
                         }
                         .padding(.top, AppConstants.Spacing.lg)
+                        .accessibilityHidden(true)
                         
                         VStack(spacing: AppConstants.Spacing.xs) {
                             Text("MindSync")

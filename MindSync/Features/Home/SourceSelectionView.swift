@@ -141,6 +141,8 @@ struct SourceSelectionView: View {
                         }
                         .padding(AppConstants.Spacing.xl)
                         .mindSyncCardStyle()
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(NSLocalizedString("analysis.loading", comment: ""))
                     }
                     .transition(.opacity)
                 }
@@ -186,9 +188,10 @@ struct SourceSelectionView: View {
         // Check if song can be analyzed
         guard let mediaLibraryService = mediaLibraryService else { return }
         
-        isLoadingSong = true
-        
         Task {
+            await MainActor.run {
+                isLoadingSong = true
+            }
             do {
                 _ = try await mediaLibraryService.assetURLForAnalysis(of: item)
                 await MainActor.run {
