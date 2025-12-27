@@ -37,6 +37,13 @@ struct SourceSelectionView: View {
                             .font(AppConstants.Typography.caption)
                             .foregroundColor(.mindSyncSecondaryText)
                             .multilineTextAlignment(.center)
+                        
+                        // Warning about DRM
+                        Text("⚠️ Apple Music Songs sind DRM-geschützt")
+                            .font(AppConstants.Typography.caption2)
+                            .foregroundColor(.mindSyncWarning)
+                            .multilineTextAlignment(.center)
+                            .padding(.top, AppConstants.Spacing.xs)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(AppConstants.Spacing.md)
