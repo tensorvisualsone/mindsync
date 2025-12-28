@@ -55,19 +55,23 @@ final class EntrainmentEngine {
         let normalizedWave = Float((cosineValue + 1.0) / 2.0)
         
         // 3. Audio Reactivity: Base intensity based on audio energy
-        // Minimum 30%, scales up to 100% with audio energy
-        let baseIntensity: Float = 0.3 + (audioEnergy * 0.7)
+        // For cinematic mode, we want more dramatic reactions to spectral flux
+        // Minimum 20%, scales up to 100% with spectral flux (more sensitive)
+        let baseIntensity: Float = 0.2 + (audioEnergy * 0.8)
         
         // 4. Mix wave with base intensity
         var output = normalizedWave * baseIntensity
         
         // 4b. Enforce a minimum dark phase to guarantee visible flicker in cinematic mode
+        // But allow audio-reactive beats to override the enforced darkness occasionally
         let cyclePhase = currentTime.truncatingRemainder(dividingBy: Self.cinematicCycleDuration)
-        if cyclePhase < Self.cinematicEnforcedOffTime {
-            // Intentionally override intensity to guarantee a dark window for visible flicker,
-            // even if the audio-reactive calculation would keep the light on.
+        let shouldForceDark = cyclePhase < Self.cinematicEnforcedOffTime
+
+        if shouldForceDark && audioEnergy < 0.4 {
+            // Only force darkness if spectral flux is not high enough to indicate a beat
             output = 0.0
         }
+        // If spectral flux is high (>= 0.4), allow the beat to show through even during dark phase
         
         // 5. Lens Flare: Gamma correction for bright areas (crispness)
         // When output > 0.8, apply inverse gamma to brighten highlights

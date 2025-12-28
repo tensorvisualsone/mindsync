@@ -134,18 +134,33 @@ final class FlashlightController: BaseLightController, LightControlling {
     
     /// Performs a brief torch activation to warm up the hardware and reduce cold-start latency.
     func prewarm() async throws {
-        guard let device = device, device.hasTorch else { return }
+        guard let device = device, device.hasTorch else {
+            logger.warning("Prewarm failed: no device or torch not available")
+            return
+        }
         guard AVCaptureDevice.authorizationStatus(for: .video) == .authorized else {
             logger.info("Skipping flashlight prewarm because camera permission is not authorized")
             return
         }
-        
-        try device.lockForConfiguration()
-        defer { device.unlockForConfiguration() }
-        
-        try device.setTorchModeOn(level: Self.prewarmTorchLevel)
-        try await Task.sleep(nanoseconds: Self.prewarmPulseDurationNs)
-        device.torchMode = .off
+
+        do {
+            try device.lockForConfiguration()
+            logger.debug("Device locked for prewarming")
+
+            try device.setTorchModeOn(level: Self.prewarmTorchLevel)
+            logger.debug("Torch activated at level \(Self.prewarmTorchLevel) for prewarming")
+
+            try await Task.sleep(nanoseconds: Self.prewarmPulseDurationNs)
+            device.torchMode = .off
+            logger.debug("Torch turned off after prewarming")
+
+            device.unlockForConfiguration()
+            logger.info("Prewarming completed successfully")
+        } catch {
+            device.unlockForConfiguration()
+            logger.error("Prewarming failed: \(error.localizedDescription)")
+            throw error
+        }
     }
 
     func setIntensity(_ intensity: Float) {
@@ -161,10 +176,10 @@ final class FlashlightController: BaseLightController, LightControlling {
             return
         }
         
-        // Gamma 2.2 Korrektur für natürliche Wahrnehmung
-        // Das menschliche Auge funktioniert logarithmisch, daher wirken 50% LED-Power
-        // wie 70-80% Helligkeit. Die Gamma-Korrektur macht Fades weicher und organischer.
-        let perceptionCorrected = pow(intensity, 2.2)
+        // Reduzierte Gamma-Korrektur für bessere Helligkeit
+        // Ursprünglich 2.2, aber das macht die LED zu dunkel bei hohen Intensitäten
+        // Verwende 1.8 für bessere Balance zwischen natürlicher Wahrnehmung und Helligkeit
+        let perceptionCorrected = pow(intensity, 1.8)
         
         // Apply thermal limits
         let maxIntensity = thermalManager.maxFlashlightIntensity

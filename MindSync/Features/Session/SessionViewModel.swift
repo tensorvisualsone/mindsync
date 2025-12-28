@@ -449,6 +449,13 @@ final class SessionViewModel: ObservableObject {
     
     /// Starts a session with a selected media item
     func startSession(with mediaItem: MPMediaItem) async {
+        // Pre-warm flashlight before starting analysis
+        do {
+            try await services.flashlightController.prewarm()
+            logger.info("Flashlight pre-warmed successfully")
+        } catch {
+            logger.warning("Flashlight pre-warming failed: \(error.localizedDescription)")
+        }
         guard state == .idle else { 
             logger.warning("Attempted to start session while state is \(String(describing: self.state))")
             return 
@@ -621,6 +628,7 @@ final class SessionViewModel: ObservableObject {
         
         logger.info("Starting session with audio file: \(audioFileURL.lastPathComponent)")
         state = .analyzing
+        analysisProgress = AnalysisProgress(phase: .analyzing, progress: 0.0, message: "Analysiere Audio-Datei...")
         stopPlaybackProgressUpdates()
         
         // Refresh cached preferences to ensure we use current user settings

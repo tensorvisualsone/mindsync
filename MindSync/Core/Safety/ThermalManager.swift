@@ -101,13 +101,13 @@ final class ThermalManager: ObservableObject {
         case .nominal:
             return 1.0
         case .fair:
-            return 0.8
+            return 0.9  // Erhöht von 0.8 auf 0.9 für weniger Einschränkung
         case .serious:
-            return 0.5
+            return 0.6  // Erhöht von 0.5 auf 0.6 für bessere Helligkeit
         case .critical:
             return 0.0
         @unknown default:
-            return 0.5
+            return 0.6
         }
     }
     
