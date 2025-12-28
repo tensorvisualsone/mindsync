@@ -46,8 +46,7 @@ final class VibrationController: NSObject {
         
         let timer = DispatchSource.makeTimerSource(flags: .strict, queue: timerQueue)
         timer.schedule(deadline: .now(), repeating: .nanoseconds(4_000_000))
-        timer.setEventHandler { [weak self] in
-            guard self != nil else { return }
+        timer.setEventHandler {
             Task { @MainActor in
                 handler()
             }
