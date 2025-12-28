@@ -707,6 +707,15 @@ final class SessionViewModel: ObservableObject {
                 HapticFeedback.medium()
             }
             
+        } catch is CancellationError {
+            // Task was cancelled (e.g., view disappeared during startup)
+            // Clean up resources but don't set error state
+            logger.info("Session start cancelled")
+            audioPlayback.stop()
+            lightController?.stop()
+            vibrationController?.stop()
+            stopPlaybackProgressUpdates()
+            state = .idle
         } catch {
             // Set error state first to ensure it's always set, even if cleanup fails
             logger.error("Session start failed: \(error.localizedDescription, privacy: .public)")
@@ -859,6 +868,15 @@ final class SessionViewModel: ObservableObject {
                 HapticFeedback.medium()
             }
             
+        } catch is CancellationError {
+            // Task was cancelled (e.g., view disappeared during startup)
+            // Clean up resources but don't set error state
+            logger.info("Session start (file) cancelled")
+            audioPlayback.stop()
+            lightController?.stop()
+            vibrationController?.stop()
+            stopPlaybackProgressUpdates()
+            state = .idle
         } catch {
             logger.error("Session start (file) failed: \(error.localizedDescription, privacy: .public)")
             errorMessage = error.localizedDescription
