@@ -47,7 +47,8 @@ final class EntrainmentEngine {
         
         // 4b. Enforce a minimum dark phase to guarantee visible flicker in cinematic mode
         let minOffTime: TimeInterval = 0.08
-        let cycleDuration: TimeInterval = 1.0 / 8.0
+        let enforcedFlickerFrequency: Double = 8.0
+        let cycleDuration: TimeInterval = 1.0 / enforcedFlickerFrequency
         let cyclePhase = currentTime.truncatingRemainder(dividingBy: cycleDuration)
         if cyclePhase < minOffTime {
             return 0.0

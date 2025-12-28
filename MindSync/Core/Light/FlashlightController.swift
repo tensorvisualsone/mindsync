@@ -264,12 +264,12 @@ final class FlashlightController: BaseLightController, LightControlling {
     ///   This ensures that each new session can properly report torch failures, while preventing
     ///   duplicate notifications within a single session.
     ///
-        /// - Note: Thread Safety
-        ///   This method is isolated to the main actor (as is the entire `FlashlightController` class),
-        ///   ensuring that all torch operations (`setIntensity`, `start`, `stop`) and flag access
-        ///   happen on the main thread. This prevents race conditions on `torchFailureNotified` and
-        ///   ensures safe interaction with asynchronous update timers.
-        private func handleTorchSystemShutdown(error: Error?) {
+    /// - Note: Thread Safety
+    ///   This method is isolated to the main actor (as is the entire `FlashlightController` class),
+    ///   ensuring that all torch operations (`setIntensity`, `start`, `stop`) and flag access
+    ///   happen on the main thread. This prevents race conditions on `torchFailureNotified` and
+    ///   ensures safe interaction with asynchronous update timers.
+    private func handleTorchSystemShutdown(error: Error?) {
         guard !torchFailureNotified else { return }
         torchFailureNotified = true
         
