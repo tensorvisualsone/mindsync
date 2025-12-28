@@ -21,6 +21,18 @@ final class FlashlightController: BaseLightController, LightControlling {
     private let logger = Logger(subsystem: "com.mindsync", category: "FlashlightController")
     private var torchFailureNotified = false
     private let precisionInterval: DispatchTimeInterval = .nanoseconds(4_000_000) // ~250 Hz for crisp pulses
+    private static let prewarmTorchLevel: Float = 0.01
+    private static let prewarmPulseDurationNs: UInt64 = 50_000_000
+    
+    private enum DutyCycleConfig {
+        static let highThreshold: Double = 30.0
+        static let midThreshold: Double = 20.0
+        static let lowThreshold: Double = 10.0
+        static let gammaHighDuty: Double = 0.15
+        static let gammaDuty: Double = 0.20
+        static let alphaDuty: Double = 0.30
+        static let thetaDuty: Double = 0.45
+    }
 
     init(thermalManager: ThermalManager) {
         self.thermalManager = thermalManager
@@ -85,8 +97,8 @@ final class FlashlightController: BaseLightController, LightControlling {
         try device.lockForConfiguration()
         defer { device.unlockForConfiguration() }
         
-        try device.setTorchModeOn(level: 0.01)
-        try await Task.sleep(nanoseconds: 50_000_000) // 50ms pulse
+        try device.setTorchModeOn(level: Self.prewarmTorchLevel)
+        try await Task.sleep(nanoseconds: Self.prewarmPulseDurationNs)
         device.torchMode = .off
     }
 
@@ -233,16 +245,16 @@ final class FlashlightController: BaseLightController, LightControlling {
         // High frequency (Gamma): Very short pulses for maximum crispness
         // The LED barely turns on, but the brain detects the rapid transitions
         let baseDuty: Double
-        if frequency > 30.0 {
-            baseDuty = 0.15  // 15% on for >30Hz
-        } else if frequency > 20.0 {
-            baseDuty = 0.20  // 20% on for 20-30Hz
-        } else if frequency > 10.0 {
-            baseDuty = 0.30  // 30% on for 10-20Hz
+        if frequency > DutyCycleConfig.highThreshold {
+            baseDuty = DutyCycleConfig.gammaHighDuty  // 15% on for >30Hz
+        } else if frequency > DutyCycleConfig.midThreshold {
+            baseDuty = DutyCycleConfig.gammaDuty  // 20% on for 20-30Hz
+        } else if frequency > DutyCycleConfig.lowThreshold {
+            baseDuty = DutyCycleConfig.alphaDuty  // 30% on for 10-20Hz
         } else {
             // Low frequency (Theta): Standard pulse width
             // LED has time to fully turn on/off, no compensation needed
-            baseDuty = 0.45  // 45% on, 55% off
+            baseDuty = DutyCycleConfig.thetaDuty  // 45% on, 55% off
         }
 
         return baseDuty * thermalManager.recommendedDutyCycleMultiplier

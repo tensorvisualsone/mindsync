@@ -19,8 +19,8 @@ class BaseLightController: NSObject {
     @MainActor private(set) var pauseStartTime: Date?
     @MainActor private(set) var isPaused: Bool = false
     nonisolated(unsafe) private(set) var displayLink: CADisplayLink?
-    nonisolated(unsafe) private var precisionTimer: DispatchSourceTimer?
-    nonisolated(unsafe) private let timerQueue = DispatchQueue(label: "com.mindsync.entrainment", qos: .userInteractive)
+    private var precisionTimer: DispatchSourceTimer?
+    private let timerQueue = DispatchQueue(label: "com.mindsync.entrainment", qos: .userInteractive)
     @MainActor private(set) var currentEventIndex: Int = 0
     
     /// AudioEnergyTracker for cinematic mode dynamic intensity modulation (optional)
