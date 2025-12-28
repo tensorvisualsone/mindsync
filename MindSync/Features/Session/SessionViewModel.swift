@@ -231,7 +231,7 @@ final class SessionViewModel: ObservableObject {
         
         // Guard against duplicate calls to prevent multiple taps on mixer node
         // This can happen during session restart, error recovery, or rapid mode switching
-        guard !audioEnergyTracker.isTracking else {
+        guard !audioEnergyTracker.isActive else {
             logger.debug("Spectral flux tracking already active, skipping duplicate setup")
             return
         }
