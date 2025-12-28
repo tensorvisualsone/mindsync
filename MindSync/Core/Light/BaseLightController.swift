@@ -71,8 +71,7 @@ class BaseLightController: NSObject {
         
         let timer = DispatchSource.makeTimerSource(flags: .strict, queue: timerQueue)
         timer.schedule(deadline: .now(), repeating: interval)
-        timer.setEventHandler { [weak self] in
-            guard self != nil else { return }
+        timer.setEventHandler {
             Task { @MainActor in
                 handler()
             }
