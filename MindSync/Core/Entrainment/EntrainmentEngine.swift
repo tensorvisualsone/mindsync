@@ -64,6 +64,8 @@ final class EntrainmentEngine {
         // 4b. Enforce a minimum dark phase to guarantee visible flicker in cinematic mode
         let cyclePhase = currentTime.truncatingRemainder(dividingBy: Self.cinematicCycleDuration)
         if cyclePhase < Self.cinematicEnforcedOffTime {
+            // Intentionally override intensity to guarantee a dark window for visible flicker,
+            // even if the audio-reactive calculation would keep the light on.
             output = 0.0
         }
         

@@ -93,7 +93,10 @@ final class FlashlightController: BaseLightController, LightControlling {
     /// Performs a brief torch activation to warm up the hardware and reduce cold-start latency.
     func prewarm() async throws {
         guard let device = device, device.hasTorch else { return }
-        guard AVCaptureDevice.authorizationStatus(for: .video) == .authorized else { return }
+        guard AVCaptureDevice.authorizationStatus(for: .video) == .authorized else {
+            logger.info("Skipping flashlight prewarm because camera permission is not authorized")
+            return
+        }
         
         try device.lockForConfiguration()
         defer { device.unlockForConfiguration() }
@@ -259,7 +262,9 @@ final class FlashlightController: BaseLightController, LightControlling {
         }
 
         let adjustedDuty = baseDuty * thermalManager.recommendedDutyCycleMultiplier
-        guard adjustedDuty > 0 else { return 0 }
+        if adjustedDuty <= 0 {
+            return 0
+        }
         return max(adjustedDuty, DutyCycleConfig.minimumDutyFloor)
     }
     
