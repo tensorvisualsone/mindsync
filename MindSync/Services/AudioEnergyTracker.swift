@@ -4,13 +4,17 @@ import Accelerate
 import Combine
 import os.log
 
-/// Service for real-time audio energy tracking using RMS calculation
+/// Service for real-time audio energy tracking using RMS calculation and spectral flux
 /// Installs a tap on the audio engine's mixer node to calculate energy values
+/// Supports both RMS (for general energy) and Spectral Flux (for cinematic mode beat detection)
 final class AudioEnergyTracker {
     private let logger = Logger(subsystem: "com.mindsync", category: "AudioEnergyTracker")
     
     /// Publisher for real-time energy values (0.0 - 1.0)
     let energyPublisher = PassthroughSubject<Float, Never>()
+    
+    /// Publisher for spectral flux values (0.0 - 1.0) - bass-focused for cinematic mode
+    let spectralFluxPublisher = PassthroughSubject<Float, Never>()
     
     private var mixerNode: AVAudioMixerNode?
     private var isTracking = false
@@ -20,8 +24,26 @@ final class AudioEnergyTracker {
     private let smoothingFactor: Float = 0.95  // 95% old, 5% new
     private let bufferSize: AVAudioFrameCount = 4096
     
-    /// Current energy value (0.0 - 1.0)
+    /// Current energy value (0.0 - 1.0) - RMS-based
     private(set) var currentEnergy: Float = 0.0
+    
+    /// Current spectral flux value (0.0 - 1.0) - bass-focused for cinematic mode
+    private(set) var currentSpectralFlux: Float = 0.0
+    
+    /// Spectral flux detector for bass isolation
+    private let spectralFluxDetector: SpectralFluxDetector?
+    
+    /// Whether to use spectral flux instead of RMS for cinematic mode
+    var useSpectralFlux: Bool = false
+    
+    init() {
+        if let detector = SpectralFluxDetector() {
+            self.spectralFluxDetector = detector
+        } else {
+            self.spectralFluxDetector = nil
+            logger.error("Failed to initialize SpectralFluxDetector; spectral flux will be unavailable. This may degrade cinematic mode functionality.")
+        }
+    }
     
     /// Starts tracking audio energy from the mixer node
     /// - Parameter mixerNode: The mixer node to install the tap on
@@ -60,11 +82,13 @@ final class AudioEnergyTracker {
         // Reset state
         averageEnergy = 0.0
         currentEnergy = 0.0
+        currentSpectralFlux = 0.0
+        spectralFluxDetector?.reset()
         
         logger.info("AudioEnergyTracker stopped tracking")
     }
     
-    /// Processes audio buffer to calculate RMS energy
+    /// Processes audio buffer to calculate RMS energy and/or spectral flux
     /// - Parameters:
     ///   - buffer: The audio buffer to process
     ///   - timestamp: The timestamp of the buffer
@@ -80,13 +104,31 @@ final class AudioEnergyTracker {
             averageEnergy = (averageEnergy * smoothingFactor) + (rms * (1.0 - smoothingFactor))
         }
         
-        // Update current energy
-        currentEnergy = averageEnergy
+        // Calculate spectral flux if detector is available
+        var flux: Float = 0.0
+        if let detector = spectralFluxDetector {
+            flux = detector.calculateBassFlux(from: buffer)
+        }
         
-        // Publish on main thread (audio callbacks run on audio thread)
+        // Update on main thread (audio callbacks run on audio thread)
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            self.energyPublisher.send(self.currentEnergy)
+            
+            // Update current energy
+            self.currentEnergy = averageEnergy
+            self.currentSpectralFlux = flux
+            
+            // Always publish raw spectral flux for subscribers interested in beat detection
+            self.spectralFluxPublisher.send(flux)
+            
+            // Publish active energy metric based on mode
+            if self.useSpectralFlux {
+                // Use spectral flux for cinematic mode (better beat detection)
+                self.energyPublisher.send(flux)
+            } else {
+                // Use RMS for general energy tracking
+                self.energyPublisher.send(averageEnergy)
+            }
         }
     }
     

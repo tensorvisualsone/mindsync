@@ -2,24 +2,6 @@ import Foundation
 import SwiftUI
 import Combine
 
-/// Weak reference wrapper for CADisplayLink target to avoid retain cycles.
-///
-/// CADisplayLink retains its target strongly, which would create a retain cycle if we passed
-/// ScreenController directly (ScreenController -> displayLink -> ScreenController).
-/// This wrapper breaks the cycle by holding only a weak reference to ScreenController,
-/// allowing proper deallocation when the controller is no longer needed.
-private final class WeakDisplayLinkTarget {
-    weak var target: ScreenController?
-    
-    init(target: ScreenController) {
-        self.target = target
-    }
-    
-    @objc func updateScreen() {
-        target?.updateScreen()
-    }
-}
-
 /// Controller for screen strobe control using fullscreen color flashing
 @MainActor
 final class ScreenController: BaseLightController, LightControlling, ObservableObject {
@@ -29,9 +11,11 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
     @Published var currentColor: Color = .black
     @Published var isActive: Bool = false
     
-    private var displayLinkTarget: WeakDisplayLinkTarget?
     private var defaultColor: LightEvent.LightColor = .white
     private var customColorRGB: CustomColorRGB?
+    
+    /// Precision timer interval shared across light controllers (250 Hz)
+    private let precisionInterval: DispatchTimeInterval = .nanoseconds(FlashlightController.precisionIntervalNanoseconds)
     
     override init() {
         super.init()
@@ -69,42 +53,37 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
     func execute(script: LightScript, syncedTo startTime: Date) {
         initializeScriptExecution(script: script, startTime: startTime)
 
-        // CADisplayLink for precise timing with weak reference wrapper to avoid retain cycle
-        let target = WeakDisplayLinkTarget(target: self)
-        displayLinkTarget = target
-        setupDisplayLink(target: target, selector: #selector(WeakDisplayLinkTarget.updateScreen))
+        setupPrecisionTimer(interval: precisionInterval) { [weak self] in
+            self?.updateScreen()
+        }
     }
 
     func cancelExecution() {
-        invalidateDisplayLink()
-        displayLinkTarget = nil
+        invalidatePrecisionTimer()
         resetScriptExecution()
         currentColor = .black
     }
     
     func pauseExecution() {
         pauseScriptExecution()
-        invalidateDisplayLink()
-        displayLinkTarget = nil
+        invalidatePrecisionTimer()
         currentColor = .black
     }
     
     func resumeExecution() {
         guard let _ = currentScript, let _ = scriptStartTime else { return }
         resumeScriptExecution()
-        // Re-setup display link
-        let target = WeakDisplayLinkTarget(target: self)
-        displayLinkTarget = target
-        setupDisplayLink(target: target, selector: #selector(WeakDisplayLinkTarget.updateScreen))
+        setupPrecisionTimer(interval: precisionInterval) { [weak self] in
+            self?.updateScreen()
+        }
     }
 
     /// Updates the screen color based on the current event in the script.
-    /// `fileprivate` allows `WeakDisplayLinkTarget` in this file to call via selector without widening access.
     ///
-    /// Thread Safety: This method is called from the CADisplayLink callback on the main thread
-    /// (displayLink is added to .main run loop). All property accesses are safe because:
-    /// - @Published properties are accessed from main thread
-    /// - BaseLightController properties are only modified from main thread via UI interactions
+    /// Thread Safety: This method is invoked from the precision timer callback configured in
+    /// `execute(script:syncedTo:)` / `resumeExecution()`, which dispatches work onto the main
+    /// actor. All property accesses are therefore main-thread safe, and `fileprivate` keeps
+    /// this helper scoped to `ScreenController` while still callable from the timer closure.
     fileprivate func updateScreen() {
         let result = findCurrentEvent()
         
@@ -116,13 +95,19 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
         if let script = currentScript {
             // Check if cinematic mode - apply dynamic intensity modulation
             if script.mode == .cinematic {
-                // For cinematic mode, use continuous wave regardless of events
-                // This ensures smooth synchronization even if beat detection is imperfect
-                let audioEnergy = audioEnergyTracker?.currentEnergy ?? 0.0
+                // For cinematic mode, use spectral flux if available (better beat detection)
+                // Otherwise fall back to RMS energy
+                let audioEnergy: Float
+                if let tracker = audioEnergyTracker, tracker.useSpectralFlux {
+                    audioEnergy = tracker.currentSpectralFlux
+                } else {
+                    audioEnergy = audioEnergyTracker?.currentEnergy ?? 0.0
+                }
+                
                 let baseFreq = script.targetFrequency
                 let elapsed = result.elapsed
                 
-                // Calculate cinematic intensity (continuous wave)
+                // Calculate cinematic intensity with audio reactivity
                 let cinematicIntensity = EntrainmentEngine.calculateCinematicIntensity(
                     baseFrequency: baseFreq,
                     currentTime: elapsed,

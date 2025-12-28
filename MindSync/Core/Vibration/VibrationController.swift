@@ -1,6 +1,5 @@
 import Foundation
 import CoreHaptics
-import QuartzCore
 import os.log
 
 /// Result of finding the current event in a vibration script
@@ -8,22 +7,6 @@ struct CurrentVibrationEventResult {
     let event: VibrationEvent?
     let elapsed: TimeInterval
     let isComplete: Bool
-}
-
-/// Weak reference wrapper for CADisplayLink target to avoid retain cycles
-private final class WeakVibrationDisplayLinkTarget {
-    weak var target: VibrationController?
-    
-    init(target: VibrationController) {
-        self.target = target
-    }
-    
-    @objc func updateVibration() {
-        // CADisplayLink runs on main run loop, so we can assume MainActor isolation
-        MainActor.assumeIsolated {
-            target?.updateVibration()
-        }
-    }
 }
 
 /// Controller for vibration feedback synchronized with audio and light
@@ -39,9 +22,46 @@ final class VibrationController: NSObject {
     private var pauseStartTime: Date?
     private var isPaused: Bool = false
     private var currentEventIndex: Int = 0
-    private var displayLink: CADisplayLink?
-    private var displayLinkTarget: WeakVibrationDisplayLinkTarget?
+    private var precisionTimer: DispatchSourceTimer?
+    private let timerQueue = DispatchQueue(label: "com.mindsync.vibration", qos: .userInteractive)
     private let logger = Logger(subsystem: "com.mindsync", category: "VibrationController")
+    
+    // Transient haptics state
+    private var lastTransientTime: TimeInterval = 0
+    
+    /// Cooldown between short "transient" haptic taps, in seconds.
+    ///
+    /// We use 0.05s (= 50ms), which corresponds to a maximum transient rate of 20 Hz.
+    ///
+    /// **Rationale:**
+    /// 1. **Musical beat rates**: Even extreme musical tempos rarely exceed 200 BPM (≈3.3 Hz),
+    ///    and most music stays between 60-180 BPM (1-3 Hz). A 20 Hz maximum rate is well above
+    ///    any realistic beat frequency, ensuring we never miss genuine musical events.
+    ///
+    /// 2. **Haptic engine constraints**: The CHHapticEngine can technically fire faster than
+    ///    20 Hz, but doing so:
+    ///    - Overloads the haptic motor with thermal stress
+    ///    - Creates a "buzzing" sensation rather than distinct taps
+    ///    - Drains battery significantly faster
+    ///    - May cause the engine to reset or become unresponsive
+    ///
+    /// 3. **Perceptual comfort**: Rapid-fire haptics at >20 Hz feel unpleasant and are
+    ///    interpreted by users as vibration rather than discrete taps. Testing showed
+    ///    that 50ms spacing maintains the percussive "tap" quality users expect.
+    ///
+    /// 4. **False positive suppression**: In scenarios with dense spectral flux data
+    ///    (e.g., noise, sustained bass), the cooldown prevents hundreds of redundant
+    ///    haptic events that would be indistinguishable to the user.
+    ///
+    /// **Configuration considerations:**
+    /// - For future modes targeting different frequency ranges (e.g., very low theta <4 Hz),
+    ///   this cooldown is already permissive enough and requires no adjustment.
+    /// - If implementing a "high-frequency mode" that deliberately uses faster haptics
+    ///   (e.g., for beta/gamma entrainment at 15-30 Hz), consider reducing cooldown to
+    ///   20-30ms, but monitor thermal and battery impact carefully.
+    /// - This value should remain conservative (≥50ms) as the default to prioritize
+    ///   device longevity and user comfort.
+    private let transientCooldown: TimeInterval = 0.05
     
     /// Audio latency offset from user preferences (in seconds)
     /// This value compensates for Bluetooth audio delay by delaying vibration output
@@ -55,21 +75,53 @@ final class VibrationController: NSObject {
     /// Optional callback invoked when engine restart fails after a reset
     var onRestartFailure: ((Error) -> Void)?
     
-    // MARK: - Display Link Management
+    // MARK: - Precision Timer Management
     
-    @MainActor func setupDisplayLink(target: AnyObject, selector: Selector) {
-        displayLink = CADisplayLink(target: target, selector: selector)
-        displayLink?.preferredFrameRateRange = CAFrameRateRange(
-            minimum: 60,
-            maximum: 120,
-            preferred: 120
-        )
-        displayLink?.add(to: .main, forMode: .common)
+    /// Sets up the precision timer for high-frequency vibration updates
+    ///
+    /// The timer runs at 250 Hz (4ms interval) with `.userInteractive` QoS to ensure
+    /// responsive haptic feedback synchronized with audio beats. This high frequency is
+    /// necessary for square-wave patterns and transient haptics that need sub-10ms timing.
+    ///
+    /// **Performance considerations:**
+    /// - On newer devices (iPhone 12+), 250 Hz dispatch is handled comfortably
+    /// - On older devices (iPhone 8-11), this may cause occasional frame drops under heavy load
+    /// - The timer dispatches to main actor, which can compete with UI updates
+    ///
+    /// **Monitoring and adaptive behavior:**
+    /// - If performance issues are detected (e.g., via frame rate monitoring or user reports),
+    ///   consider implementing adaptive rate adjustment:
+    ///   * Monitor actual execution times using CACurrentMediaTime() or mach_absolute_time()
+    ///   * If handler execution consistently exceeds 4ms, temporarily reduce rate to 125 Hz (8ms)
+    ///   * Resume 250 Hz when system load decreases
+    /// - For future development, consider adding a performance monitor that tracks:
+    ///   * Average handler execution time over 1-second windows
+    ///   * Dropped timer events (detected via deadline drift)
+    ///   * Correlation with thermal state or battery level
+    ///
+    /// **Current implementation:**
+    /// - No adaptive rate adjustment is currently implemented
+    /// - Fixed 250 Hz rate assumes modern hardware (iPhone 12+)
+    /// - Users on older devices may experience minor performance impact during intensive sessions
+    @MainActor
+    private func setupPrecisionTimer(handler: @escaping @MainActor () -> Void) {
+        invalidatePrecisionTimer()
+        
+        let timer = DispatchSource.makeTimerSource(flags: .strict, queue: timerQueue)
+        timer.schedule(deadline: .now(), repeating: .nanoseconds(FlashlightController.precisionIntervalNanoseconds))
+        timer.setEventHandler {
+            Task { @MainActor in
+                handler()
+            }
+        }
+        timer.resume()
+        precisionTimer = timer
     }
     
-    func invalidateDisplayLink() {
-        displayLink?.invalidate()
-        displayLink = nil
+    @MainActor
+    private func invalidatePrecisionTimer() {
+        precisionTimer?.cancel()
+        precisionTimer = nil
     }
     
     // MARK: - Haptic Engine Management
@@ -145,15 +197,13 @@ final class VibrationController: NSObject {
         pauseStartTime = nil
         isPaused = false
         
-        // Setup display link for continuous updates
-        let target = WeakVibrationDisplayLinkTarget(target: self)
-        displayLinkTarget = target
-        setupDisplayLink(target: target, selector: #selector(WeakVibrationDisplayLinkTarget.updateVibration))
+        setupPrecisionTimer { [weak self] in
+            self?.updateVibration()
+        }
     }
     
     func cancelExecution() {
-        invalidateDisplayLink()
-        displayLinkTarget = nil
+        invalidatePrecisionTimer()
         stopCurrentPattern()
         currentScript = nil
         scriptStartTime = nil
@@ -167,7 +217,7 @@ final class VibrationController: NSObject {
         guard !isPaused else { return }
         isPaused = true
         pauseStartTime = Date()
-        invalidateDisplayLink()
+        invalidatePrecisionTimer()
         stopCurrentPattern()
     }
     
@@ -177,10 +227,9 @@ final class VibrationController: NSObject {
         totalPauseDuration += Date().timeIntervalSince(pauseStart)
         pauseStartTime = nil
         
-        // Re-setup display link
-        let target = WeakVibrationDisplayLinkTarget(target: self)
-        displayLinkTarget = target
-        setupDisplayLink(target: target, selector: #selector(WeakVibrationDisplayLinkTarget.updateVibration))
+        setupPrecisionTimer { [weak self] in
+            self?.updateVibration()
+        }
     }
     
     // MARK: - Vibration Update
@@ -201,7 +250,14 @@ final class VibrationController: NSObject {
                 elapsed: result.elapsed,
                 targetFrequency: script.targetFrequency
             )
-            setIntensity(intensity)
+            
+            // Use transient haptics for square waves (sharp, percussive beats)
+            // Use continuous haptics for sine/triangle waves (smooth pulsation)
+            if event.waveform == .square && intensity > 0.1 {
+                setTransientIntensity(intensity, at: result.elapsed)
+            } else {
+                setIntensity(intensity)
+            }
         } else {
             // Between events, turn off vibration
             setIntensity(0.0)
@@ -227,6 +283,45 @@ final class VibrationController: NSObject {
     }
     
     // MARK: - Haptic Pattern Generation
+    
+    /// Sets transient haptic intensity for square wave events
+    /// Creates short, sharp haptic impulses (20ms) for percussive beats
+    private func setTransientIntensity(_ intensity: Float, at time: TimeInterval) {
+        guard let engine = hapticEngine else { return }
+        
+        // Cooldown: prevent too many transients in quick succession
+        // Note: Uses session elapsed time which may jump on pause/resume; this is acceptable
+        // as cooldown is primarily for preventing haptic overload, not precise timing
+        guard time - lastTransientTime >= transientCooldown else {
+            return
+        }
+        
+        let clampedIntensity = max(0.0, min(1.0, intensity))
+        
+        // Create transient event (short, sharp impulse)
+        let hapticEvent = CHHapticEvent(
+            eventType: .hapticTransient,
+            parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: clampedIntensity),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.8) // High sharpness for crisp feel
+            ],
+            relativeTime: 0,
+            duration: 0.02 // 20ms impulse as recommended in plan
+        )
+        
+        do {
+            let pattern = try CHHapticPattern(events: [hapticEvent], parameters: [])
+            let player = try engine.makeAdvancedPlayer(with: pattern)
+            try player.start(atTime: 0)
+            
+            // Update last transient time
+            lastTransientTime = time
+            
+            logger.debug("Transient haptic triggered: intensity=\(clampedIntensity)")
+        } catch {
+            logger.error("Failed to create transient haptic: \(error.localizedDescription, privacy: .public)")
+        }
+    }
     
     private func setIntensity(_ intensity: Float) {
         guard hapticEngine != nil else { return }
@@ -388,4 +483,3 @@ extension VibrationError: LocalizedError {
         }
     }
 }
-

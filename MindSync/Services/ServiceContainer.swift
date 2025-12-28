@@ -55,5 +55,34 @@ final class ServiceContainer: ObservableObject {
         
         // Affirmationen
         self.affirmationService = AffirmationOverlayService()
+        
+        // Pre-warm the flashlight hardware to reduce cold-start latency
+        // Must be after all properties are initialized to avoid capturing 'self' prematurely
+        Task { [weak self] in
+            do {
+                try await self?.flashlightController.prewarm()
+            } catch {
+                // Log prewarm failure for diagnostics
+                //
+                // Failures can occur due to:
+                // - Camera permissions not granted (most common)
+                // - Device doesn't have a torch (e.g., iPad)
+                // - Torch hardware is busy or malfunctioning
+                // - App launched too early in boot sequence
+                //
+                // This is not a critical failure - the app remains functional, and users
+                // will see permission prompts when starting a session. However, logging here
+                // helps diagnose cold-start issues and device-specific problems.
+                NSLog("ServiceContainer: Failed to prewarm flashlight: \(error)")
+                
+                #if DEBUG
+                // In debug builds, set a flag that can be observed by diagnostic tools or tests
+                // This allows developers to detect prewarm failures without requiring Xcode console
+                UserDefaults.standard.set(true, forKey: "lastFlashlightPrewarmFailed")
+                UserDefaults.standard.set(error.localizedDescription, forKey: "lastFlashlightPrewarmError")
+                UserDefaults.standard.set(Date(), forKey: "lastFlashlightPrewarmErrorTime")
+                #endif
+            }
+        }
     }
 }
