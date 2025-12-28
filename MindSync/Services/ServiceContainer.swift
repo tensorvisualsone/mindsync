@@ -47,11 +47,6 @@ final class ServiceContainer: ObservableObject {
         self.entrainmentEngine = EntrainmentEngine()
         self.fallDetector = FallDetector()
         
-        // Pre-warm the flashlight hardware to reduce cold-start latency
-        Task {
-            try? await self.flashlightController.prewarm()
-        }
-        
         // Vibration
         self.vibrationController = VibrationController()
         
@@ -60,5 +55,12 @@ final class ServiceContainer: ObservableObject {
         
         // Affirmationen
         self.affirmationService = AffirmationOverlayService()
+        
+        // Pre-warm the flashlight hardware to reduce cold-start latency
+        // Must be after all properties are initialized to avoid capturing 'self' prematurely
+        let flashlight = self.flashlightController
+        Task {
+            try? await flashlight.prewarm()
+        }
     }
 }

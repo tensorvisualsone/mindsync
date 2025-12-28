@@ -20,6 +20,9 @@ final class SessionViewModel: ObservableObject {
     private let audioEnergyTracker: AudioEnergyTracker
     private let historyService: SessionHistoryServiceProtocol
     
+    // Bluetooth latency monitoring
+    private let bluetoothLatencyMonitor = BluetoothLatencyMonitor()
+    
     // Affirmation state
     private var affirmationPlayed = false
     private var sessionStartTime: Date?
@@ -560,10 +563,24 @@ final class SessionViewModel: ObservableObject {
             // If cinematic mode, start audio energy tracking and attach to light controller
             if mode == .cinematic {
                 if let mixerNode = audioPlayback.getMainMixerNode() {
+                    // Enable spectral flux for better beat detection in cinematic mode
+                    audioEnergyTracker.useSpectralFlux = true
                     audioEnergyTracker.startTracking(mixerNode: mixerNode)
                 }
                 // Attach audio energy tracker to light controller for dynamic intensity modulation
                 lightController?.audioEnergyTracker = audioEnergyTracker
+            }
+            
+            // Start Bluetooth latency monitoring for dynamic synchronization
+            bluetoothLatencyMonitor.startMonitoring(interval: 1.0)
+            
+            // Update audio latency offset from monitor
+            if let baseController = lightController as? BaseLightController {
+                // Use smoothed latency for stable synchronization
+                baseController.audioLatencyOffset = bluetoothLatencyMonitor.smoothedLatency
+            }
+            if let vibrationController = vibrationController {
+                vibrationController.audioLatencyOffset = bluetoothLatencyMonitor.smoothedLatency
             }
             
             // Prevent screen from turning off during session
@@ -707,9 +724,23 @@ final class SessionViewModel: ObservableObject {
             // If cinematic mode, start audio energy tracking and attach to light controller
             if mode == .cinematic {
                 if let mixerNode = audioPlayback.getMainMixerNode() {
+                    // Enable spectral flux for better beat detection in cinematic mode
+                    audioEnergyTracker.useSpectralFlux = true
                     audioEnergyTracker.startTracking(mixerNode: mixerNode)
                 }
                 lightController?.audioEnergyTracker = audioEnergyTracker
+            }
+            
+            // Start Bluetooth latency monitoring for dynamic synchronization
+            bluetoothLatencyMonitor.startMonitoring(interval: 1.0)
+            
+            // Update audio latency offset from monitor
+            if let baseController = lightController as? BaseLightController {
+                // Use smoothed latency for stable synchronization
+                baseController.audioLatencyOffset = bluetoothLatencyMonitor.smoothedLatency
+            }
+            if let vibrationController = vibrationController {
+                vibrationController.audioLatencyOffset = bluetoothLatencyMonitor.smoothedLatency
             }
             
             // Prevent screen from turning off during session
@@ -805,7 +836,11 @@ final class SessionViewModel: ObservableObject {
         
         // Stop audio energy tracking if active (cinematic mode)
         audioEnergyTracker.stopTracking()
+        audioEnergyTracker.useSpectralFlux = false // Reset for next session
         lightController?.audioEnergyTracker = nil
+        
+        // Stop Bluetooth latency monitoring
+        bluetoothLatencyMonitor.stopMonitoring()
         
         // Stop fall detection
         fallDetector.stopMonitoring()

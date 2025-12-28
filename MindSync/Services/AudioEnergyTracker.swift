@@ -4,13 +4,17 @@ import Accelerate
 import Combine
 import os.log
 
-/// Service for real-time audio energy tracking using RMS calculation
+/// Service for real-time audio energy tracking using RMS calculation and spectral flux
 /// Installs a tap on the audio engine's mixer node to calculate energy values
+/// Supports both RMS (for general energy) and Spectral Flux (for cinematic mode beat detection)
 final class AudioEnergyTracker {
     private let logger = Logger(subsystem: "com.mindsync", category: "AudioEnergyTracker")
     
     /// Publisher for real-time energy values (0.0 - 1.0)
     let energyPublisher = PassthroughSubject<Float, Never>()
+    
+    /// Publisher for spectral flux values (0.0 - 1.0) - bass-focused for cinematic mode
+    let spectralFluxPublisher = PassthroughSubject<Float, Never>()
     
     private var mixerNode: AVAudioMixerNode?
     private var isTracking = false
@@ -20,8 +24,21 @@ final class AudioEnergyTracker {
     private let smoothingFactor: Float = 0.95  // 95% old, 5% new
     private let bufferSize: AVAudioFrameCount = 4096
     
-    /// Current energy value (0.0 - 1.0)
+    /// Current energy value (0.0 - 1.0) - RMS-based
     private(set) var currentEnergy: Float = 0.0
+    
+    /// Current spectral flux value (0.0 - 1.0) - bass-focused for cinematic mode
+    private(set) var currentSpectralFlux: Float = 0.0
+    
+    /// Spectral flux detector for bass isolation
+    private let spectralFluxDetector: SpectralFluxDetector?
+    
+    /// Whether to use spectral flux instead of RMS for cinematic mode
+    var useSpectralFlux: Bool = false
+    
+    init() {
+        self.spectralFluxDetector = SpectralFluxDetector()
+    }
     
     /// Starts tracking audio energy from the mixer node
     /// - Parameter mixerNode: The mixer node to install the tap on
@@ -60,11 +77,13 @@ final class AudioEnergyTracker {
         // Reset state
         averageEnergy = 0.0
         currentEnergy = 0.0
+        currentSpectralFlux = 0.0
+        spectralFluxDetector?.reset()
         
         logger.info("AudioEnergyTracker stopped tracking")
     }
     
-    /// Processes audio buffer to calculate RMS energy
+    /// Processes audio buffer to calculate RMS energy and/or spectral flux
     /// - Parameters:
     ///   - buffer: The audio buffer to process
     ///   - timestamp: The timestamp of the buffer
@@ -83,10 +102,23 @@ final class AudioEnergyTracker {
         // Update current energy
         currentEnergy = averageEnergy
         
+        // Calculate spectral flux if detector is available
+        if let detector = spectralFluxDetector {
+            let flux = detector.calculateBassFlux(from: buffer)
+            currentSpectralFlux = flux
+        }
+        
         // Publish on main thread (audio callbacks run on audio thread)
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            self.energyPublisher.send(self.currentEnergy)
+            if self.useSpectralFlux {
+                // Use spectral flux for cinematic mode (better beat detection)
+                self.energyPublisher.send(self.currentSpectralFlux)
+                self.spectralFluxPublisher.send(self.currentSpectralFlux)
+            } else {
+                // Use RMS for general energy tracking
+                self.energyPublisher.send(self.currentEnergy)
+            }
         }
     }
     

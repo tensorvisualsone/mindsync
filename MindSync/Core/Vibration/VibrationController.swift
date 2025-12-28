@@ -26,6 +26,10 @@ final class VibrationController: NSObject {
     private let timerQueue = DispatchQueue(label: "com.mindsync.vibration", qos: .userInteractive)
     private let logger = Logger(subsystem: "com.mindsync", category: "VibrationController")
     
+    // Transient haptics state
+    private var lastTransientTime: TimeInterval = 0
+    private let transientCooldown: TimeInterval = 0.05 // 50ms minimum between transients
+    
     /// Audio latency offset from user preferences (in seconds)
     /// This value compensates for Bluetooth audio delay by delaying vibration output
     /// to ensure audio and vibration arrive at the user simultaneously
@@ -187,7 +191,14 @@ final class VibrationController: NSObject {
                 elapsed: result.elapsed,
                 targetFrequency: script.targetFrequency
             )
-            setIntensity(intensity)
+            
+            // Use transient haptics for square waves (sharp, percussive beats)
+            // Use continuous haptics for sine/triangle waves (smooth pulsation)
+            if event.waveform == .square && intensity > 0.1 {
+                setTransientIntensity(intensity, at: result.elapsed)
+            } else {
+                setIntensity(intensity)
+            }
         } else {
             // Between events, turn off vibration
             setIntensity(0.0)
@@ -213,6 +224,43 @@ final class VibrationController: NSObject {
     }
     
     // MARK: - Haptic Pattern Generation
+    
+    /// Sets transient haptic intensity for square wave events
+    /// Creates short, sharp haptic impulses (20ms) for percussive beats
+    private func setTransientIntensity(_ intensity: Float, at time: TimeInterval) {
+        guard hapticEngine != nil else { return }
+        
+        // Cooldown: prevent too many transients in quick succession
+        guard time - lastTransientTime >= transientCooldown else {
+            return
+        }
+        
+        let clampedIntensity = max(0.0, min(1.0, intensity))
+        
+        // Create transient event (short, sharp impulse)
+        let hapticEvent = CHHapticEvent(
+            eventType: .hapticTransient,
+            parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: clampedIntensity),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.8) // High sharpness for crisp feel
+            ],
+            relativeTime: 0,
+            duration: 0.02 // 20ms impulse as recommended in plan
+        )
+        
+        do {
+            let pattern = try CHHapticPattern(events: [hapticEvent], parameters: [])
+            let player = try hapticEngine!.makeAdvancedPlayer(with: pattern)
+            try player.start(atTime: 0)
+            
+            // Update last transient time
+            lastTransientTime = time
+            
+            logger.debug("Transient haptic triggered: intensity=\(clampedIntensity)")
+        } catch {
+            logger.error("Failed to create transient haptic: \(error.localizedDescription, privacy: .public)")
+        }
+    }
     
     private func setIntensity(_ intensity: Float) {
         guard hapticEngine != nil else { return }
