@@ -176,9 +176,10 @@ final class FlashlightController: BaseLightController, LightControlling {
             return
         }
         
-        // Reduzierte Gamma-Korrektur für bessere Helligkeit
-        // Ursprünglich 2.2, aber das macht die LED zu dunkel bei hohen Intensitäten
-        // Verwende 1.8 für bessere Balance zwischen natürlicher Wahrnehmung und Helligkeit
+        // Reduced gamma correction for better perceived brightness.
+        // Standard gamma correction for displays is ≈ 2.2, but with the iPhone LED this made
+        // higher intensities appear too dark given the limited dynamic range and our safety limits.
+        // We deliberately use 1.8 here as a compromise between perceptual linearity and usable brightness.
         let perceptionCorrected = pow(intensity, 1.8)
         
         // Apply thermal limits

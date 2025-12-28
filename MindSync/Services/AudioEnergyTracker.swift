@@ -25,10 +25,10 @@ final class AudioEnergyTracker {
     private let bufferSize: AVAudioFrameCount = 4096
     
     /// Current energy value (0.0 - 1.0) - RMS-based
-    @MainActor private(set) var currentEnergy: Float = 0.0
+    private(set) var currentEnergy: Float = 0.0
     
     /// Current spectral flux value (0.0 - 1.0) - bass-focused for cinematic mode
-    @MainActor private(set) var currentSpectralFlux: Float = 0.0
+    private(set) var currentSpectralFlux: Float = 0.0
     
     /// Spectral flux detector for bass isolation
     private let spectralFluxDetector: SpectralFluxDetector?
@@ -113,11 +113,13 @@ final class AudioEnergyTracker {
             self.currentEnergy = averageEnergy
             self.currentSpectralFlux = flux
             
-            // Publish appropriate value
+            // Always publish raw spectral flux for subscribers interested in beat detection
+            self.spectralFluxPublisher.send(flux)
+            
+            // Publish active energy metric based on mode
             if self.useSpectralFlux {
                 // Use spectral flux for cinematic mode (better beat detection)
                 self.energyPublisher.send(flux)
-                self.spectralFluxPublisher.send(flux)
             } else {
                 // Use RMS for general energy tracking
                 self.energyPublisher.send(averageEnergy)
