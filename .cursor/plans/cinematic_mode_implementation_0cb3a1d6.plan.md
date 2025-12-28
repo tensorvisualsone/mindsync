@@ -200,8 +200,6 @@ drift = sin(time * 0.2) * 1.0  // Langsame Oszillation
 currentFreq = 6.5 + drift       // 5.5 - 7.5 Hz
 ```
 
-
-
 ### Audio Reactivity Formel
 
 ```javascript
@@ -211,16 +209,12 @@ if output > 0.8:
     output = pow(output, 0.5)  // Lens Flare Crispness
 ```
 
-
-
 ### Moving Average für Audio-Energie
 
 ```javascript
 smoothingFactor = 0.95
 averageEnergy = (averageEnergy * smoothingFactor) + (currentEnergy * (1.0 - smoothingFactor))
 ```
-
-
 
 ## Testing Strategie
 
