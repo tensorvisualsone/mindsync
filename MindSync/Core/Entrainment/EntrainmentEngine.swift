@@ -15,6 +15,22 @@ final class EntrainmentEngine {
     ///   would be 0.1, which is then clamped to this minimum (0.15).
     static let minVibrationIntensity: Float = 0.15
     
+    /// Base flicker frequency (Hz) used for the enforced cinematic dark phase.
+    static let cinematicEnforcedFlickerFrequency: Double = 8.0
+    
+    /// Ratio of the cycle reserved for darkness to guarantee visible flicker (e.g. 0.64 -> 64% off).
+    static let cinematicDarkPhaseRatio: Double = 0.64
+    
+    /// Precomputed cycle duration for the enforced cinematic flicker frequency.
+    static var cinematicCycleDuration: TimeInterval {
+        1.0 / cinematicEnforcedFlickerFrequency
+    }
+    
+    /// Precomputed enforced off time per cycle based on the dark phase ratio.
+    static var cinematicEnforcedOffTime: TimeInterval {
+        cinematicCycleDuration * cinematicDarkPhaseRatio
+    }
+    
     /// Calculates cinematic intensity with frequency drift and audio reactivity
     /// - Parameters:
     ///   - baseFrequency: Base frequency in Hz (typically 6.5 for cinematic mode)
@@ -44,6 +60,14 @@ final class EntrainmentEngine {
         
         // 4. Mix wave with base intensity
         var output = normalizedWave * baseIntensity
+        
+        // 4b. Enforce a minimum dark phase to guarantee visible flicker in cinematic mode
+        let cyclePhase = currentTime.truncatingRemainder(dividingBy: Self.cinematicCycleDuration)
+        if cyclePhase < Self.cinematicEnforcedOffTime {
+            // Intentionally override intensity to guarantee a dark window for visible flicker,
+            // even if the audio-reactive calculation would keep the light on.
+            output = 0.0
+        }
         
         // 5. Lens Flare: Gamma correction for bright areas (crispness)
         // When output > 0.8, apply inverse gamma to brighten highlights

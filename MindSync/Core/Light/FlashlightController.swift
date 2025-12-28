@@ -6,19 +6,6 @@ extension Notification.Name {
     static let mindSyncTorchFailed = Notification.Name("com.mindsync.notifications.torchFailed")
 }
 
-/// Weak reference wrapper for CADisplayLink target to avoid retain cycles
-private final class WeakDisplayLinkTarget {
-    weak var target: FlashlightController?
-    
-    init(target: FlashlightController) {
-        self.target = target
-    }
-    
-    @objc func updateLight() {
-        target?.updateLight()
-    }
-}
-
 /// Controller for flashlight control
 @MainActor
 final class FlashlightController: BaseLightController, LightControlling {
@@ -30,10 +17,65 @@ final class FlashlightController: BaseLightController, LightControlling {
         return AVCaptureDevice.default(for: .video)
     }()
     private var isLocked = false
-    private var displayLinkTarget: WeakDisplayLinkTarget?
     private let thermalManager: ThermalManager
     private let logger = Logger(subsystem: "com.mindsync", category: "FlashlightController")
     private var torchFailureNotified = false
+    private let precisionInterval: DispatchTimeInterval = .nanoseconds(4_000_000) // ~250 Hz for crisp pulses
+    private static let prewarmTorchLevel: Float = 0.01
+    private static let prewarmPulseDurationNs: UInt64 = 50_000_000
+    
+    /// Duty-cycle configuration for the physical LED torch.
+    ///
+    /// These constants are tuned for a trade-off between:
+    /// - **Neural entrainment effectiveness** in the alpha / theta / gamma bands
+    /// - **Perceived pulse clarity** (sharp on/off edges instead of smeared ramps)
+    /// - **Hardware limitations** of the iPhone torch (LED rise/fall times, driver latency)
+    /// - **Thermal safety** and user comfort (avoiding sustained max brightness)
+    ///
+    /// Frequency thresholds:
+    /// - `lowThreshold` (10 Hz): below ≈10 Hz we have long periods where the LED can be fully
+    ///   off, so we allow relatively high duty cycles without smearing the pulse edges.
+    /// - `midThreshold` (20 Hz): between 10–20 Hz is the typical alpha band; we still have
+    ///   enough period length for >30% duty without the LED behaving like a constant light.
+    /// - `highThreshold` (30 Hz): above ≈30 Hz (high beta / low gamma) the effective period
+    ///   becomes short relative to LED rise/fall times, so we must keep duty cycles lower
+    ///   to preserve visible flicker and prevent the LED driver from saturating.
+    ///
+    /// Duty cycles by band:
+    /// - `gammaHighDuty = 0.15` (15%): used for the highest gamma region where the physical
+    ///   pulse width is already close to the LED’s minimum stable on-time. Empirically, this
+    ///   gives a crisp perceptual strobe while keeping thermal load manageable.
+    /// - `gammaDuty = 0.20` (20%): default gamma duty. Slightly longer pulses improve
+    ///   entrainment contrast without making the torch appear continuously on.
+    /// - `alphaDuty = 0.30` (30%): alpha has longer periods, so we can afford more “on” time
+    ///   for a smoother, brighter subjective experience without losing distinct flashes.
+    /// - `thetaDuty = 0.45` (45%): theta is very low frequency; tests show that higher duty
+    ///   cycles are perceived as pleasant and still clearly pulsatile at these periods.
+    ///
+    /// Minimum duty floor:
+    /// - `minimumDutyFloor = 0.05` (5%): below ≈5% the effective pulse width approaches the
+    ///   LED and driver’s rise/fall time, which leads to inconsistent activation, “ghost”
+    ///   pulses, or the torch not visibly turning on at all on some devices. The floor also
+    ///   prevents extreme reductions under thermal throttling, which would undermine
+    ///   entrainment effectiveness even if the frequency is technically correct.
+    private enum DutyCycleConfig {
+        /// Frequencies ≥ `highThreshold` Hz are treated as high-frequency (high beta / gamma).
+        static let highThreshold: Double = 30.0
+        /// Frequencies between `midThreshold` and `highThreshold` are mid-range (alpha / beta).
+        static let midThreshold: Double = 20.0
+        /// Frequencies ≤ `lowThreshold` Hz are low-frequency (theta / low alpha).
+        static let lowThreshold: Double = 10.0
+        /// Duty cycle for the highest gamma frequencies (shortest stable pulses).
+        static let gammaHighDuty: Double = 0.15
+        /// Default duty cycle for gamma band entrainment.
+        static let gammaDuty: Double = 0.20
+        /// Duty cycle for alpha band entrainment (longer, smoother flashes).
+        static let alphaDuty: Double = 0.30
+        /// Duty cycle for theta band entrainment (slow, bright pulses).
+        static let thetaDuty: Double = 0.45
+        /// Absolute lower bound to keep pulses above LED rise/fall time and maintain visibility.
+        static let minimumDutyFloor: Double = 0.05
+    }
 
     init(thermalManager: ThermalManager) {
         self.thermalManager = thermalManager
@@ -89,6 +131,22 @@ final class FlashlightController: BaseLightController, LightControlling {
         torchFailureNotified = false
         cancelExecution()
     }
+    
+    /// Performs a brief torch activation to warm up the hardware and reduce cold-start latency.
+    func prewarm() async throws {
+        guard let device = device, device.hasTorch else { return }
+        guard AVCaptureDevice.authorizationStatus(for: .video) == .authorized else {
+            logger.info("Skipping flashlight prewarm because camera permission is not authorized")
+            return
+        }
+        
+        try device.lockForConfiguration()
+        defer { device.unlockForConfiguration() }
+        
+        try device.setTorchModeOn(level: Self.prewarmTorchLevel)
+        try await Task.sleep(nanoseconds: Self.prewarmPulseDurationNs)
+        device.torchMode = .off
+    }
 
     func setIntensity(_ intensity: Float) {
         logger.debug("setIntensity called with \(intensity)")
@@ -133,33 +191,29 @@ final class FlashlightController: BaseLightController, LightControlling {
     func execute(script: LightScript, syncedTo startTime: Date) {
         initializeScriptExecution(script: script, startTime: startTime)
 
-        // CADisplayLink for precise timing with weak reference wrapper to avoid retain cycle
-        let target = WeakDisplayLinkTarget(target: self)
-        displayLinkTarget = target
-        setupDisplayLink(target: target, selector: #selector(WeakDisplayLinkTarget.updateLight))
+        setupPrecisionTimer(interval: precisionInterval) { [weak self] in
+            self?.updateLight()
+        }
     }
 
     func cancelExecution() {
-        invalidateDisplayLink()
-        displayLinkTarget = nil
+        invalidatePrecisionTimer()
         resetScriptExecution()
         setIntensity(0.0)
     }
     
     func pauseExecution() {
         pauseScriptExecution()
-        invalidateDisplayLink()
-        displayLinkTarget = nil
+        invalidatePrecisionTimer()
         setIntensity(0.0)
     }
     
     func resumeExecution() {
         guard let _ = currentScript, let _ = scriptStartTime else { return }
         resumeScriptExecution()
-        // Re-setup display link
-        let target = WeakDisplayLinkTarget(target: self)
-        displayLinkTarget = target
-        setupDisplayLink(target: target, selector: #selector(WeakDisplayLinkTarget.updateLight))
+        setupPrecisionTimer(interval: precisionInterval) { [weak self] in
+            self?.updateLight()
+        }
     }
 
     fileprivate func updateLight() {
@@ -236,16 +290,32 @@ final class FlashlightController: BaseLightController, LightControlling {
     private func calculateDutyCycle(for frequency: Double) -> Double {
         // High frequency (Gamma): Very short pulses for maximum crispness
         // The LED barely turns on, but the brain detects the rapid transitions
-        if frequency > 20.0 {
-            return 0.20  // 20% on, 80% off - sharp gamma flashes
+        let baseDuty: Double
+        if frequency > DutyCycleConfig.highThreshold {
+            baseDuty = DutyCycleConfig.gammaHighDuty  // 15% on for >30Hz
+        } else if frequency > DutyCycleConfig.midThreshold {
+            baseDuty = DutyCycleConfig.gammaDuty  // 20% on for 20-30Hz
+        } else if frequency > DutyCycleConfig.lowThreshold {
+            baseDuty = DutyCycleConfig.alphaDuty  // 30% on for 10-20Hz
+        } else {
+            // Low frequency (Theta): Standard pulse width
+            // LED has time to fully turn on/off, no compensation needed
+            baseDuty = DutyCycleConfig.thetaDuty  // 45% on, 55% off
         }
-        // Medium frequency (Alpha): Moderate pulse width
-        else if frequency > 10.0 {
-            return 0.35  // 35% on, 65% off - balanced alpha waves
+
+        let multiplier = thermalManager.recommendedDutyCycleMultiplier
+
+        // Critical thermal state handling:
+        // A non-positive multiplier indicates that the torch must be completely off
+        // to protect the device. In this state we intentionally bypass the
+        // `minimumDutyFloor` safety floor, because 0% duty is strictly safer than
+        // any non-zero value.
+        if multiplier <= 0 {
+            return 0
         }
-        // Low frequency (Theta): Standard pulse width
-        // LED has time to fully turn on/off, no compensation needed
-        return 0.50  // 50% on, 50% off - standard square wave
+
+        let adjustedDuty = baseDuty * multiplier
+        return max(adjustedDuty, DutyCycleConfig.minimumDutyFloor)
     }
     
     // MARK: - Helpers
@@ -267,7 +337,7 @@ final class FlashlightController: BaseLightController, LightControlling {
     ///   This method is isolated to the main actor (as is the entire `FlashlightController` class),
     ///   ensuring that all torch operations (`setIntensity`, `start`, `stop`) and flag access
     ///   happen on the main thread. This prevents race conditions on `torchFailureNotified` and
-    ///   ensures safe interaction with CADisplayLink.
+    ///   ensures safe interaction with asynchronous update timers.
     private func handleTorchSystemShutdown(error: Error?) {
         guard !torchFailureNotified else { return }
         torchFailureNotified = true

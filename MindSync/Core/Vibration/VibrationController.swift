@@ -1,6 +1,5 @@
 import Foundation
 import CoreHaptics
-import QuartzCore
 import os.log
 
 /// Result of finding the current event in a vibration script
@@ -8,22 +7,6 @@ struct CurrentVibrationEventResult {
     let event: VibrationEvent?
     let elapsed: TimeInterval
     let isComplete: Bool
-}
-
-/// Weak reference wrapper for CADisplayLink target to avoid retain cycles
-private final class WeakVibrationDisplayLinkTarget {
-    weak var target: VibrationController?
-    
-    init(target: VibrationController) {
-        self.target = target
-    }
-    
-    @objc func updateVibration() {
-        // CADisplayLink runs on main run loop, so we can assume MainActor isolation
-        MainActor.assumeIsolated {
-            target?.updateVibration()
-        }
-    }
 }
 
 /// Controller for vibration feedback synchronized with audio and light
@@ -39,8 +22,8 @@ final class VibrationController: NSObject {
     private var pauseStartTime: Date?
     private var isPaused: Bool = false
     private var currentEventIndex: Int = 0
-    private var displayLink: CADisplayLink?
-    private var displayLinkTarget: WeakVibrationDisplayLinkTarget?
+    private var precisionTimer: DispatchSourceTimer?
+    private let timerQueue = DispatchQueue(label: "com.mindsync.vibration", qos: .userInteractive)
     private let logger = Logger(subsystem: "com.mindsync", category: "VibrationController")
     
     /// Audio latency offset from user preferences (in seconds)
@@ -55,21 +38,27 @@ final class VibrationController: NSObject {
     /// Optional callback invoked when engine restart fails after a reset
     var onRestartFailure: ((Error) -> Void)?
     
-    // MARK: - Display Link Management
+    // MARK: - Precision Timer Management
     
-    @MainActor func setupDisplayLink(target: AnyObject, selector: Selector) {
-        displayLink = CADisplayLink(target: target, selector: selector)
-        displayLink?.preferredFrameRateRange = CAFrameRateRange(
-            minimum: 60,
-            maximum: 120,
-            preferred: 120
-        )
-        displayLink?.add(to: .main, forMode: .common)
+    @MainActor
+    private func setupPrecisionTimer(handler: @escaping @MainActor () -> Void) {
+        invalidatePrecisionTimer()
+        
+        let timer = DispatchSource.makeTimerSource(flags: .strict, queue: timerQueue)
+        timer.schedule(deadline: .now(), repeating: .nanoseconds(4_000_000))
+        timer.setEventHandler {
+            Task { @MainActor in
+                handler()
+            }
+        }
+        timer.resume()
+        precisionTimer = timer
     }
     
-    func invalidateDisplayLink() {
-        displayLink?.invalidate()
-        displayLink = nil
+    @MainActor
+    private func invalidatePrecisionTimer() {
+        precisionTimer?.cancel()
+        precisionTimer = nil
     }
     
     // MARK: - Haptic Engine Management
@@ -145,15 +134,13 @@ final class VibrationController: NSObject {
         pauseStartTime = nil
         isPaused = false
         
-        // Setup display link for continuous updates
-        let target = WeakVibrationDisplayLinkTarget(target: self)
-        displayLinkTarget = target
-        setupDisplayLink(target: target, selector: #selector(WeakVibrationDisplayLinkTarget.updateVibration))
+        setupPrecisionTimer { [weak self] in
+            self?.updateVibration()
+        }
     }
     
     func cancelExecution() {
-        invalidateDisplayLink()
-        displayLinkTarget = nil
+        invalidatePrecisionTimer()
         stopCurrentPattern()
         currentScript = nil
         scriptStartTime = nil
@@ -167,7 +154,7 @@ final class VibrationController: NSObject {
         guard !isPaused else { return }
         isPaused = true
         pauseStartTime = Date()
-        invalidateDisplayLink()
+        invalidatePrecisionTimer()
         stopCurrentPattern()
     }
     
@@ -177,10 +164,9 @@ final class VibrationController: NSObject {
         totalPauseDuration += Date().timeIntervalSince(pauseStart)
         pauseStartTime = nil
         
-        // Re-setup display link
-        let target = WeakVibrationDisplayLinkTarget(target: self)
-        displayLinkTarget = target
-        setupDisplayLink(target: target, selector: #selector(WeakVibrationDisplayLinkTarget.updateVibration))
+        setupPrecisionTimer { [weak self] in
+            self?.updateVibration()
+        }
     }
     
     // MARK: - Vibration Update
@@ -388,4 +374,3 @@ extension VibrationError: LocalizedError {
         }
     }
 }
-
