@@ -47,6 +47,11 @@ final class ServiceContainer: ObservableObject {
         self.entrainmentEngine = EntrainmentEngine()
         self.fallDetector = FallDetector()
         
+        // Pre-warm the flashlight hardware to reduce cold-start latency
+        Task {
+            try? await self.flashlightController.prewarm()
+        }
+        
         // Vibration
         self.vibrationController = VibrationController()
         

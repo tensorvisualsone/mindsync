@@ -19,6 +19,8 @@ class BaseLightController: NSObject {
     @MainActor private(set) var pauseStartTime: Date?
     @MainActor private(set) var isPaused: Bool = false
     nonisolated(unsafe) private(set) var displayLink: CADisplayLink?
+    nonisolated(unsafe) private var precisionTimer: DispatchSourceTimer?
+    nonisolated(unsafe) private let timerQueue = DispatchQueue(label: "com.mindsync.entrainment", qos: .userInteractive)
     @MainActor private(set) var currentEventIndex: Int = 0
     
     /// AudioEnergyTracker for cinematic mode dynamic intensity modulation (optional)
@@ -56,6 +58,36 @@ class BaseLightController: NSObject {
         displayLink?.add(to: .main, forMode: .common)
     }
     
+    /// Sets up a high-priority DispatchSourceTimer for precise timing decoupled from the display refresh rate.
+    /// - Parameters:
+    ///   - interval: Repetition interval for the timer.
+    ///   - handler: Callback executed on the main actor for UI-safe updates.
+    @MainActor
+    func setupPrecisionTimer(
+        interval: DispatchTimeInterval,
+        handler: @escaping @MainActor () -> Void
+    ) {
+        invalidatePrecisionTimer()
+        
+        let timer = DispatchSource.makeTimerSource(flags: .strict, queue: timerQueue)
+        timer.schedule(deadline: .now(), repeating: interval)
+        timer.setEventHandler { [weak self] in
+            guard self != nil else { return }
+            Task { @MainActor in
+                handler()
+            }
+        }
+        timer.resume()
+        precisionTimer = timer
+    }
+    
+    /// Invalidates and cleans up the precision timer
+    @MainActor
+    func invalidatePrecisionTimer() {
+        precisionTimer?.cancel()
+        precisionTimer = nil
+    }
+    
     /// Invalidates and cleans up the display link
     nonisolated func invalidateDisplayLink() {
         displayLink?.invalidate()
@@ -73,6 +105,7 @@ class BaseLightController: NSObject {
     
     /// Resets script execution state
     @MainActor func resetScriptExecution() {
+        invalidatePrecisionTimer()
         currentScript = nil
         scriptStartTime = nil
         currentEventIndex = 0
@@ -89,6 +122,7 @@ class BaseLightController: NSObject {
         isPaused = true
         pauseStartTime = Date()
         invalidateDisplayLink()
+        invalidatePrecisionTimer()
     }
     
     /// Resumes script execution by adjusting start time to account for pause duration

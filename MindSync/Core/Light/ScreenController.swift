@@ -2,24 +2,6 @@ import Foundation
 import SwiftUI
 import Combine
 
-/// Weak reference wrapper for CADisplayLink target to avoid retain cycles.
-///
-/// CADisplayLink retains its target strongly, which would create a retain cycle if we passed
-/// ScreenController directly (ScreenController -> displayLink -> ScreenController).
-/// This wrapper breaks the cycle by holding only a weak reference to ScreenController,
-/// allowing proper deallocation when the controller is no longer needed.
-private final class WeakDisplayLinkTarget {
-    weak var target: ScreenController?
-    
-    init(target: ScreenController) {
-        self.target = target
-    }
-    
-    @objc func updateScreen() {
-        target?.updateScreen()
-    }
-}
-
 /// Controller for screen strobe control using fullscreen color flashing
 @MainActor
 final class ScreenController: BaseLightController, LightControlling, ObservableObject {
@@ -29,9 +11,9 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
     @Published var currentColor: Color = .black
     @Published var isActive: Bool = false
     
-    private var displayLinkTarget: WeakDisplayLinkTarget?
     private var defaultColor: LightEvent.LightColor = .white
     private var customColorRGB: CustomColorRGB?
+    private let precisionInterval: DispatchTimeInterval = .nanoseconds(4_000_000) // ~250 Hz update cadence
     
     override init() {
         super.init()
@@ -69,42 +51,35 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
     func execute(script: LightScript, syncedTo startTime: Date) {
         initializeScriptExecution(script: script, startTime: startTime)
 
-        // CADisplayLink for precise timing with weak reference wrapper to avoid retain cycle
-        let target = WeakDisplayLinkTarget(target: self)
-        displayLinkTarget = target
-        setupDisplayLink(target: target, selector: #selector(WeakDisplayLinkTarget.updateScreen))
+        setupPrecisionTimer(interval: precisionInterval) { [weak self] in
+            self?.updateScreen()
+        }
     }
 
     func cancelExecution() {
-        invalidateDisplayLink()
-        displayLinkTarget = nil
+        invalidatePrecisionTimer()
         resetScriptExecution()
         currentColor = .black
     }
     
     func pauseExecution() {
         pauseScriptExecution()
-        invalidateDisplayLink()
-        displayLinkTarget = nil
+        invalidatePrecisionTimer()
         currentColor = .black
     }
     
     func resumeExecution() {
         guard let _ = currentScript, let _ = scriptStartTime else { return }
         resumeScriptExecution()
-        // Re-setup display link
-        let target = WeakDisplayLinkTarget(target: self)
-        displayLinkTarget = target
-        setupDisplayLink(target: target, selector: #selector(WeakDisplayLinkTarget.updateScreen))
+        setupPrecisionTimer(interval: precisionInterval) { [weak self] in
+            self?.updateScreen()
+        }
     }
 
     /// Updates the screen color based on the current event in the script.
-    /// `fileprivate` allows `WeakDisplayLinkTarget` in this file to call via selector without widening access.
     ///
-    /// Thread Safety: This method is called from the CADisplayLink callback on the main thread
-    /// (displayLink is added to .main run loop). All property accesses are safe because:
-    /// - @Published properties are accessed from main thread
-    /// - BaseLightController properties are only modified from main thread via UI interactions
+    /// Thread Safety: This method is invoked from a precision timer callback that dispatches
+    /// to the main actor. All property accesses are therefore main-thread safe.
     fileprivate func updateScreen() {
         let result = findCurrentEvent()
         

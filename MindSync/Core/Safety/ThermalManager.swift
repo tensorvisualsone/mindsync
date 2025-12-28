@@ -98,8 +98,10 @@ final class ThermalManager: ObservableObject {
     /// Maximum allowed flashlight intensity based on thermal state
     var maxFlashlightIntensity: Float {
         switch currentState {
-        case .nominal, .fair:
+        case .nominal:
             return 1.0
+        case .fair:
+            return 0.8
         case .serious:
             return 0.5
         case .critical:
@@ -109,9 +111,24 @@ final class ThermalManager: ObservableObject {
         }
     }
     
+    /// Recommended duty-cycle multiplier based on thermal state to proactively reduce thermal load.
+    var recommendedDutyCycleMultiplier: Double {
+        switch currentState {
+        case .nominal:
+            return 1.0
+        case .fair:
+            return 0.85
+        case .serious:
+            return 0.6
+        case .critical:
+            return 0.0
+        @unknown default:
+            return 0.7
+        }
+    }
+    
     /// Should switch to screen mode?
     var shouldSwitchToScreen: Bool {
         currentState == .serious || currentState == .critical
     }
 }
-

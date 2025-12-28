@@ -6,19 +6,6 @@ extension Notification.Name {
     static let mindSyncTorchFailed = Notification.Name("com.mindsync.notifications.torchFailed")
 }
 
-/// Weak reference wrapper for CADisplayLink target to avoid retain cycles
-private final class WeakDisplayLinkTarget {
-    weak var target: FlashlightController?
-    
-    init(target: FlashlightController) {
-        self.target = target
-    }
-    
-    @objc func updateLight() {
-        target?.updateLight()
-    }
-}
-
 /// Controller for flashlight control
 @MainActor
 final class FlashlightController: BaseLightController, LightControlling {
@@ -30,10 +17,10 @@ final class FlashlightController: BaseLightController, LightControlling {
         return AVCaptureDevice.default(for: .video)
     }()
     private var isLocked = false
-    private var displayLinkTarget: WeakDisplayLinkTarget?
     private let thermalManager: ThermalManager
     private let logger = Logger(subsystem: "com.mindsync", category: "FlashlightController")
     private var torchFailureNotified = false
+    private let precisionInterval: DispatchTimeInterval = .nanoseconds(4_000_000) // ~250 Hz for crisp pulses
 
     init(thermalManager: ThermalManager) {
         self.thermalManager = thermalManager
@@ -89,6 +76,19 @@ final class FlashlightController: BaseLightController, LightControlling {
         torchFailureNotified = false
         cancelExecution()
     }
+    
+    /// Performs a brief torch activation to warm up the hardware and reduce cold-start latency.
+    func prewarm() async throws {
+        guard let device = device, device.hasTorch else { return }
+        guard AVCaptureDevice.authorizationStatus(for: .video) == .authorized else { return }
+        
+        try device.lockForConfiguration()
+        defer { device.unlockForConfiguration() }
+        
+        try device.setTorchModeOn(level: 0.01)
+        try await Task.sleep(nanoseconds: 50_000_000) // 50ms pulse
+        device.torchMode = .off
+    }
 
     func setIntensity(_ intensity: Float) {
         logger.debug("setIntensity called with \(intensity)")
@@ -133,33 +133,29 @@ final class FlashlightController: BaseLightController, LightControlling {
     func execute(script: LightScript, syncedTo startTime: Date) {
         initializeScriptExecution(script: script, startTime: startTime)
 
-        // CADisplayLink for precise timing with weak reference wrapper to avoid retain cycle
-        let target = WeakDisplayLinkTarget(target: self)
-        displayLinkTarget = target
-        setupDisplayLink(target: target, selector: #selector(WeakDisplayLinkTarget.updateLight))
+        setupPrecisionTimer(interval: precisionInterval) { [weak self] in
+            self?.updateLight()
+        }
     }
 
     func cancelExecution() {
-        invalidateDisplayLink()
-        displayLinkTarget = nil
+        invalidatePrecisionTimer()
         resetScriptExecution()
         setIntensity(0.0)
     }
     
     func pauseExecution() {
         pauseScriptExecution()
-        invalidateDisplayLink()
-        displayLinkTarget = nil
+        invalidatePrecisionTimer()
         setIntensity(0.0)
     }
     
     func resumeExecution() {
         guard let _ = currentScript, let _ = scriptStartTime else { return }
         resumeScriptExecution()
-        // Re-setup display link
-        let target = WeakDisplayLinkTarget(target: self)
-        displayLinkTarget = target
-        setupDisplayLink(target: target, selector: #selector(WeakDisplayLinkTarget.updateLight))
+        setupPrecisionTimer(interval: precisionInterval) { [weak self] in
+            self?.updateLight()
+        }
     }
 
     fileprivate func updateLight() {
@@ -236,16 +232,21 @@ final class FlashlightController: BaseLightController, LightControlling {
     private func calculateDutyCycle(for frequency: Double) -> Double {
         // High frequency (Gamma): Very short pulses for maximum crispness
         // The LED barely turns on, but the brain detects the rapid transitions
-        if frequency > 20.0 {
-            return 0.20  // 20% on, 80% off - sharp gamma flashes
+        let baseDuty: Double
+        if frequency > 30.0 {
+            baseDuty = 0.15  // 15% on for >30Hz
+        } else if frequency > 20.0 {
+            baseDuty = 0.20  // 20% on for 20-30Hz
+        } else if frequency > 10.0 {
+            baseDuty = 0.30  // 30% on for 10-20Hz
+        } else {
+            // Low frequency (Theta): Standard pulse width
+            // LED has time to fully turn on/off, no compensation needed
+            baseDuty = 0.45  // 45% on, 55% off
         }
-        // Medium frequency (Alpha): Moderate pulse width
-        else if frequency > 10.0 {
-            return 0.35  // 35% on, 65% off - balanced alpha waves
-        }
-        // Low frequency (Theta): Standard pulse width
-        // LED has time to fully turn on/off, no compensation needed
-        return 0.50  // 50% on, 50% off - standard square wave
+        
+        let adjustedDuty = baseDuty * thermalManager.recommendedDutyCycleMultiplier
+        return max(0.0, min(1.0, adjustedDuty))
     }
     
     // MARK: - Helpers
@@ -263,12 +264,12 @@ final class FlashlightController: BaseLightController, LightControlling {
     ///   This ensures that each new session can properly report torch failures, while preventing
     ///   duplicate notifications within a single session.
     ///
-    /// - Note: Thread Safety
-    ///   This method is isolated to the main actor (as is the entire `FlashlightController` class),
-    ///   ensuring that all torch operations (`setIntensity`, `start`, `stop`) and flag access
-    ///   happen on the main thread. This prevents race conditions on `torchFailureNotified` and
-    ///   ensures safe interaction with CADisplayLink.
-    private func handleTorchSystemShutdown(error: Error?) {
+        /// - Note: Thread Safety
+        ///   This method is isolated to the main actor (as is the entire `FlashlightController` class),
+        ///   ensuring that all torch operations (`setIntensity`, `start`, `stop`) and flag access
+        ///   happen on the main thread. This prevents race conditions on `torchFailureNotified` and
+        ///   ensures safe interaction with asynchronous update timers.
+        private func handleTorchSystemShutdown(error: Error?) {
         guard !torchFailureNotified else { return }
         torchFailureNotified = true
         

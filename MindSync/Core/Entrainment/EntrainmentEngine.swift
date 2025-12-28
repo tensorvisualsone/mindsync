@@ -45,6 +45,14 @@ final class EntrainmentEngine {
         // 4. Mix wave with base intensity
         var output = normalizedWave * baseIntensity
         
+        // 4b. Enforce a minimum dark phase to guarantee visible flicker in cinematic mode
+        let minOffTime: TimeInterval = 0.08
+        let cycleDuration: TimeInterval = 1.0 / 8.0
+        let cyclePhase = currentTime.truncatingRemainder(dividingBy: cycleDuration)
+        if cyclePhase < minOffTime {
+            return 0.0
+        }
+        
         // 5. Lens Flare: Gamma correction for bright areas (crispness)
         // When output > 0.8, apply inverse gamma to brighten highlights
         if output > 0.8 {

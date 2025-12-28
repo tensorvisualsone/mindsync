@@ -115,10 +115,10 @@ final class ThermalManagerTests: XCTestCase {
     
     func testMaxFlashlightIntensity_WithFairState_Returns1() {
         // Note: This test depends on actual device thermal state
-        // If device is in fair state, intensity should be 1.0
+        // If device is in fair state, intensity should be 0.8
         if thermalManager.currentState == .fair {
-            XCTAssertEqual(thermalManager.maxFlashlightIntensity, 1.0,
-                         "Fair state should allow full intensity")
+            XCTAssertEqual(thermalManager.maxFlashlightIntensity, 0.8,
+                         "Fair state should reduce intensity slightly")
         }
     }
     
@@ -137,6 +137,20 @@ final class ThermalManagerTests: XCTestCase {
         if thermalManager.currentState == .critical {
             XCTAssertEqual(thermalManager.maxFlashlightIntensity, 0.0,
                          "Critical state should disable flashlight")
+        }
+    }
+    
+    // MARK: - Duty Cycle Multiplier Tests
+    
+    func testRecommendedDutyCycleMultiplier_IsWithinValidRange() {
+        let multiplier = thermalManager.recommendedDutyCycleMultiplier
+        XCTAssertGreaterThanOrEqual(multiplier, 0.0)
+        XCTAssertLessThanOrEqual(multiplier, 1.0)
+    }
+    
+    func testRecommendedDutyCycleMultiplier_WithFairState_IsReduced() {
+        if thermalManager.currentState == .fair {
+            XCTAssertEqual(thermalManager.recommendedDutyCycleMultiplier, 0.85, accuracy: 0.001)
         }
     }
     
@@ -174,9 +188,12 @@ final class ThermalManagerTests: XCTestCase {
         
         // Then: Values should be consistent with thermal state
         switch state {
-        case .nominal, .fair:
-            XCTAssertEqual(maxIntensity, 1.0, "Full intensity in normal thermal states")
-            XCTAssertFalse(shouldSwitch, "No need to switch in normal thermal states")
+        case .nominal:
+            XCTAssertEqual(maxIntensity, 1.0, "Full intensity in nominal state")
+            XCTAssertFalse(shouldSwitch, "No need to switch in nominal state")
+        case .fair:
+            XCTAssertEqual(maxIntensity, 0.8, "Slightly reduced intensity in fair state")
+            XCTAssertFalse(shouldSwitch, "No need to switch in fair state")
             
         case .serious:
             XCTAssertEqual(maxIntensity, 0.5, "Reduced intensity in serious state")
