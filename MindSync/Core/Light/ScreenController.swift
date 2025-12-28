@@ -78,8 +78,10 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
 
     /// Updates the screen color based on the current event in the script.
     ///
-    /// Thread Safety: This method is invoked from a precision timer callback that dispatches
-    /// to the main actor. All property accesses are therefore main-thread safe.
+    /// Thread Safety: This method is invoked from the precision timer callback configured in
+    /// `execute(script:syncedTo:)` / `resumeExecution()`, which dispatches work onto the main
+    /// actor. All property accesses are therefore main-thread safe, and `fileprivate` keeps
+    /// this helper scoped to `ScreenController` while still callable from the timer closure.
     fileprivate func updateScreen() {
         let result = findCurrentEvent()
         
