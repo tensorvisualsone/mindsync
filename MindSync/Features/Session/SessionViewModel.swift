@@ -509,7 +509,7 @@ final class SessionViewModel: ObservableObject {
         
         logger.info("Starting session with local media item")
         state = .analyzing
-        analysisProgress = AnalysisProgress(phase: .analyzing, progress: 0.0, message: "Analysiere Audio-Datei...")
+        analysisProgress = AnalysisProgress(phase: .analyzing, progress: 0.0, message: NSLocalizedString("analysis.analyzing", comment: ""))
         stopPlaybackProgressUpdates()
         
         // Refresh cached preferences to ensure we use current user settings
@@ -665,7 +665,7 @@ final class SessionViewModel: ObservableObject {
         
         logger.info("Starting session with audio file: \(audioFileURL.lastPathComponent)")
         state = .analyzing
-        analysisProgress = AnalysisProgress(phase: .analyzing, progress: 0.0, message: "Analysiere Audio-Datei...")
+        analysisProgress = AnalysisProgress(phase: .analyzing, progress: 0.0, message: NSLocalizedString("analysis.analyzing", comment: ""))
         stopPlaybackProgressUpdates()
         
         // Refresh cached preferences to ensure we use current user settings
