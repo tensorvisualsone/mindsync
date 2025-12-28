@@ -55,7 +55,7 @@ final class EntrainmentEngine {
         let cycleDuration: TimeInterval = 1.0 / Self.cinematicEnforcedFlickerFrequency
         let cyclePhase = currentTime.truncatingRemainder(dividingBy: cycleDuration)
         if cyclePhase < Self.cinematicMinOffTime {
-            return 0.0
+            output = 0.0
         }
         
         // 5. Lens Flare: Gamma correction for bright areas (crispness)

@@ -244,9 +244,8 @@ final class FlashlightController: BaseLightController, LightControlling {
             // LED has time to fully turn on/off, no compensation needed
             baseDuty = 0.45  // 45% on, 55% off
         }
-        
-        let adjustedDuty = baseDuty * thermalManager.recommendedDutyCycleMultiplier
-        return adjustedDuty
+
+        return baseDuty * thermalManager.recommendedDutyCycleMultiplier
     }
     
     // MARK: - Helpers

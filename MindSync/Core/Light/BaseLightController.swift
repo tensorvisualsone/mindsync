@@ -105,7 +105,6 @@ class BaseLightController: NSObject {
     
     /// Resets script execution state
     @MainActor func resetScriptExecution() {
-        invalidatePrecisionTimer()
         currentScript = nil
         scriptStartTime = nil
         currentEventIndex = 0
