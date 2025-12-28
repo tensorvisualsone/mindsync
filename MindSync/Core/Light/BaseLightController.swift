@@ -18,7 +18,7 @@ class BaseLightController: NSObject {
     @MainActor private(set) var totalPauseDuration: TimeInterval = 0
     @MainActor private(set) var pauseStartTime: Date?
     @MainActor private(set) var isPaused: Bool = false
-    nonisolated(unsafe) private(set) var displayLink: CADisplayLink?
+    private(set) var displayLink: CADisplayLink?
     private var precisionTimer: DispatchSourceTimer?
     private let timerQueue = DispatchQueue(label: "com.mindsync.entrainment", qos: .userInteractive)
     @MainActor private(set) var currentEventIndex: Int = 0
@@ -89,7 +89,7 @@ class BaseLightController: NSObject {
     }
     
     /// Invalidates and cleans up the display link
-    nonisolated func invalidateDisplayLink() {
+    func invalidateDisplayLink() {
         displayLink?.invalidate()
         displayLink = nil
     }

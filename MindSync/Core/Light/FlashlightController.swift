@@ -32,6 +32,7 @@ final class FlashlightController: BaseLightController, LightControlling {
         static let gammaDuty: Double = 0.20
         static let alphaDuty: Double = 0.30
         static let thetaDuty: Double = 0.45
+        static let minimumDutyFloor: Double = 0.05
     }
 
     init(thermalManager: ThermalManager) {
@@ -257,7 +258,9 @@ final class FlashlightController: BaseLightController, LightControlling {
             baseDuty = DutyCycleConfig.thetaDuty  // 45% on, 55% off
         }
 
-        return baseDuty * thermalManager.recommendedDutyCycleMultiplier
+        let adjustedDuty = baseDuty * thermalManager.recommendedDutyCycleMultiplier
+        guard adjustedDuty > 0 else { return 0 }
+        return max(adjustedDuty, DutyCycleConfig.minimumDutyFloor)
     }
     
     // MARK: - Helpers

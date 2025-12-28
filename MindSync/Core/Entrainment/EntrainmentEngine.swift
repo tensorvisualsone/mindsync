@@ -21,6 +21,16 @@ final class EntrainmentEngine {
     /// Ratio of the cycle reserved for darkness to guarantee visible flicker (e.g. 0.64 -> 64% off).
     static let cinematicDarkPhaseRatio: Double = 0.64
     
+    /// Precomputed cycle duration for the enforced cinematic flicker frequency.
+    static var cinematicCycleDuration: TimeInterval {
+        1.0 / cinematicEnforcedFlickerFrequency
+    }
+    
+    /// Precomputed enforced off time per cycle based on the dark phase ratio.
+    static var cinematicEnforcedOffTime: TimeInterval {
+        cinematicCycleDuration * cinematicDarkPhaseRatio
+    }
+    
     /// Calculates cinematic intensity with frequency drift and audio reactivity
     /// - Parameters:
     ///   - baseFrequency: Base frequency in Hz (typically 6.5 for cinematic mode)
@@ -52,10 +62,8 @@ final class EntrainmentEngine {
         var output = normalizedWave * baseIntensity
         
         // 4b. Enforce a minimum dark phase to guarantee visible flicker in cinematic mode
-        let cycleDuration: TimeInterval = 1.0 / Self.cinematicEnforcedFlickerFrequency
-        let enforcedOffTime = cycleDuration * Self.cinematicDarkPhaseRatio
-        let cyclePhase = currentTime.truncatingRemainder(dividingBy: cycleDuration)
-        if cyclePhase < enforcedOffTime {
+        let cyclePhase = currentTime.truncatingRemainder(dividingBy: Self.cinematicCycleDuration)
+        if cyclePhase < Self.cinematicEnforcedOffTime {
             output = 0.0
         }
         
