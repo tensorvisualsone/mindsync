@@ -24,14 +24,56 @@ final class FlashlightController: BaseLightController, LightControlling {
     private static let prewarmTorchLevel: Float = 0.01
     private static let prewarmPulseDurationNs: UInt64 = 50_000_000
     
+    /// Duty-cycle configuration for the physical LED torch.
+    ///
+    /// These constants are tuned for a trade-off between:
+    /// - **Neural entrainment effectiveness** in the alpha / theta / gamma bands
+    /// - **Perceived pulse clarity** (sharp on/off edges instead of smeared ramps)
+    /// - **Hardware limitations** of the iPhone torch (LED rise/fall times, driver latency)
+    /// - **Thermal safety** and user comfort (avoiding sustained max brightness)
+    ///
+    /// Frequency thresholds:
+    /// - `lowThreshold` (10 Hz): below ≈10 Hz we have long periods where the LED can be fully
+    ///   off, so we allow relatively high duty cycles without smearing the pulse edges.
+    /// - `midThreshold` (20 Hz): between 10–20 Hz is the typical alpha band; we still have
+    ///   enough period length for >30% duty without the LED behaving like a constant light.
+    /// - `highThreshold` (30 Hz): above ≈30 Hz (high beta / low gamma) the effective period
+    ///   becomes short relative to LED rise/fall times, so we must keep duty cycles lower
+    ///   to preserve visible flicker and prevent the LED driver from saturating.
+    ///
+    /// Duty cycles by band:
+    /// - `gammaHighDuty = 0.15` (15%): used for the highest gamma region where the physical
+    ///   pulse width is already close to the LED’s minimum stable on-time. Empirically, this
+    ///   gives a crisp perceptual strobe while keeping thermal load manageable.
+    /// - `gammaDuty = 0.20` (20%): default gamma duty. Slightly longer pulses improve
+    ///   entrainment contrast without making the torch appear continuously on.
+    /// - `alphaDuty = 0.30` (30%): alpha has longer periods, so we can afford more “on” time
+    ///   for a smoother, brighter subjective experience without losing distinct flashes.
+    /// - `thetaDuty = 0.45` (45%): theta is very low frequency; tests show that higher duty
+    ///   cycles are perceived as pleasant and still clearly pulsatile at these periods.
+    ///
+    /// Minimum duty floor:
+    /// - `minimumDutyFloor = 0.05` (5%): below ≈5% the effective pulse width approaches the
+    ///   LED and driver’s rise/fall time, which leads to inconsistent activation, “ghost”
+    ///   pulses, or the torch not visibly turning on at all on some devices. The floor also
+    ///   prevents extreme reductions under thermal throttling, which would undermine
+    ///   entrainment effectiveness even if the frequency is technically correct.
     private enum DutyCycleConfig {
+        /// Frequencies ≥ `highThreshold` Hz are treated as high-frequency (high beta / gamma).
         static let highThreshold: Double = 30.0
+        /// Frequencies between `midThreshold` and `highThreshold` are mid-range (alpha / beta).
         static let midThreshold: Double = 20.0
+        /// Frequencies ≤ `lowThreshold` Hz are low-frequency (theta / low alpha).
         static let lowThreshold: Double = 10.0
+        /// Duty cycle for the highest gamma frequencies (shortest stable pulses).
         static let gammaHighDuty: Double = 0.15
+        /// Default duty cycle for gamma band entrainment.
         static let gammaDuty: Double = 0.20
+        /// Duty cycle for alpha band entrainment (longer, smoother flashes).
         static let alphaDuty: Double = 0.30
+        /// Duty cycle for theta band entrainment (slow, bright pulses).
         static let thetaDuty: Double = 0.45
+        /// Absolute lower bound to keep pulses above LED rise/fall time and maintain visibility.
         static let minimumDutyFloor: Double = 0.05
     }
 
