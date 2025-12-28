@@ -67,6 +67,7 @@
 "session.screenController.error" = "Failed to switch to screen-based light controller";
 "session.affirmation.waiting" = "Affirmation scheduled – will play after 5 minutes in Theta mode.";
 "session.affirmation.playing" = "Affirmation playing – relax and listen.";
+"session.cinematic.liveMode" = "Cinematic mode: Live reaction without latency compensation";
 "session.pauseAccessibility" = "Pause session";
 "session.resumeAccessibility" = "Resume session";
 "session.stopAccessibility" = "Stop session";

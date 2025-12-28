@@ -33,8 +33,15 @@ enum EntrainmentMode: String, Codable, CaseIterable, Identifiable {
 
     /// Mittlere Zielfrequenz in Hz
     var targetFrequency: Double {
-        let range = frequencyRange
-        return (range.lowerBound + range.upperBound) / 2.0
+        switch self {
+        case .gamma:
+            // 40 Hz ist der wissenschaftliche Goldstandard für Gamma-Entrainment
+            // MIT-Studien zeigen maximale kognitive Verbesserung bei exakt 40 Hz
+            return 40.0
+        default:
+            let range = frequencyRange
+            return (range.lowerBound + range.upperBound) / 2.0
+        }
     }
 
     /// Startfrequenz (welche Frequenz nehmen wir als Ausgangspunkt beim Ramping)
