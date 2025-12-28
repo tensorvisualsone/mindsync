@@ -58,9 +58,9 @@ final class ServiceContainer: ObservableObject {
         
         // Pre-warm the flashlight hardware to reduce cold-start latency
         // Must be after all properties are initialized to avoid capturing 'self' prematurely
-        Task { [weak flashlightController] in
+        Task { [weak self] in
             do {
-                try await flashlightController?.prewarm()
+                try await self?.flashlightController.prewarm()
             } catch {
                 // Log at ServiceContainer level for better observability during app startup
                 NSLog("ServiceContainer: Failed to prewarm flashlight: \(error)")

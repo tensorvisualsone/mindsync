@@ -626,14 +626,6 @@ final class SessionViewModel: ObservableObject {
             
             // Start Bluetooth latency monitoring for dynamic synchronization
             setupBluetoothLatencyMonitoring()
-            // Update audio latency offset from monitor
-            if let baseController = lightController as? BaseLightController {
-                // Use smoothed latency for stable synchronization
-                baseController.audioLatencyOffset = bluetoothLatencyMonitor.smoothedLatency
-            }
-            if let vibrationController = vibrationController {
-                vibrationController.audioLatencyOffset = bluetoothLatencyMonitor.smoothedLatency
-            }
             
             // Prevent screen from turning off during session
             UIApplication.shared.isIdleTimerDisabled = true
