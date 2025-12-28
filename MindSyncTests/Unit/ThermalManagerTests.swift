@@ -113,7 +113,7 @@ final class ThermalManagerTests: XCTestCase {
         }
     }
     
-    func testMaxFlashlightIntensity_WithFairState_Returns1() {
+    func testMaxFlashlightIntensity_WithFairState_Returns0_8() {
         // Note: This test depends on actual device thermal state
         // If device is in fair state, intensity should be 0.8
         if thermalManager.currentState == .fair {
