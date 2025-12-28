@@ -9,6 +9,15 @@ import UIKit
 /// ViewModel for session view
 @MainActor
 final class SessionViewModel: ObservableObject {
+    // MARK: - Constants
+    
+    /// Delay in nanoseconds to ensure audio engine is fully started before starting light synchronization.
+    /// This 50ms delay is empirically derived to allow the audio engine to stabilize and ensure
+    /// currentTime is available for accurate synchronization timing.
+    private static let audioEngineStartupDelay: UInt64 = 50_000_000 // 50ms
+    
+    // MARK: - Services
+    
     // Services
     private let services = ServiceContainer.shared
     private let logger = Logger(subsystem: "com.mindsync", category: "Session")
@@ -161,6 +170,50 @@ final class SessionViewModel: ObservableObject {
             .store(in: &cancellables)
         
     }
+    
+    // MARK: - Helper Methods
+    
+    /// Prewarms the flashlight to reduce cold-start latency
+    private func prewarmFlashlightIfNeeded() async {
+        guard cachedPreferences.preferredLightSource == .flashlight else { return }
+        
+        do {
+            try await services.flashlightController.prewarm()
+            logger.info("Flashlight pre-warmed successfully")
+        } catch {
+            logger.warning("Flashlight pre-warming failed: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Configures spectral flux for cinematic mode
+    private func enableSpectralFluxForCinematicMode(_ mode: EntrainmentMode) {
+        guard mode == .cinematic else { return }
+        
+        if let mixerNode = audioPlayback.getMainMixerNode() {
+            // Enable spectral flux for better beat detection in cinematic mode
+            audioEnergyTracker.useSpectralFlux = true
+            audioEnergyTracker.startTracking(mixerNode: mixerNode)
+        }
+        // Attach audio energy tracker to light controller for dynamic intensity modulation
+        lightController?.audioEnergyTracker = audioEnergyTracker
+    }
+    
+    /// Sets up Bluetooth latency monitoring for dynamic audio synchronization
+    private func setupBluetoothLatencyMonitoring() {
+        // Start Bluetooth latency monitoring for dynamic synchronization
+        bluetoothLatencyMonitor.startMonitoring(interval: 1.0)
+        
+        // Update audio latency offset from monitor
+        if let baseController = lightController as? BaseLightController {
+            // Use smoothed latency for stable synchronization
+            baseController.audioLatencyOffset = bluetoothLatencyMonitor.smoothedLatency
+        }
+        if let vibrationController = vibrationController {
+            vibrationController.audioLatencyOffset = bluetoothLatencyMonitor.smoothedLatency
+        }
+    }
+    
+    // MARK: - Thermal & System Event Handlers
     
     /// Handles thermal warning level changes during session
     private func handleThermalWarning(_ level: ThermalWarningLevel) {
@@ -456,6 +509,7 @@ final class SessionViewModel: ObservableObject {
         
         logger.info("Starting session with local media item")
         state = .analyzing
+        analysisProgress = AnalysisProgress(phase: .analyzing, progress: 0.0, message: "Analysiere Audio-Datei...")
         stopPlaybackProgressUpdates()
         
         // Refresh cached preferences to ensure we use current user settings
@@ -465,16 +519,12 @@ final class SessionViewModel: ObservableObject {
         switch cachedPreferences.preferredLightSource {
         case .flashlight:
             lightController = services.flashlightController
-            // Pre-warm flashlight immediately to reduce cold-start latency
-            do {
-                try await services.flashlightController.prewarm()
-                logger.info("Flashlight pre-warmed successfully")
-            } catch {
-                logger.warning("Flashlight pre-warming failed: \(error.localizedDescription)")
-            }
         case .screen:
             lightController = services.screenController
         }
+        
+        // Pre-warm flashlight if needed
+        await prewarmFlashlightIfNeeded()
         
         do {
             // Check if item can be analyzed
@@ -572,19 +622,10 @@ final class SessionViewModel: ObservableObject {
             }
             
             // If cinematic mode, start audio energy tracking and attach to light controller
-            if mode == .cinematic {
-                if let mixerNode = audioPlayback.getMainMixerNode() {
-                    // Enable spectral flux for better beat detection in cinematic mode
-                    audioEnergyTracker.useSpectralFlux = true
-                    audioEnergyTracker.startTracking(mixerNode: mixerNode)
-                }
-                // Attach audio energy tracker to light controller for dynamic intensity modulation
-                lightController?.audioEnergyTracker = audioEnergyTracker
-            }
+            enableSpectralFluxForCinematicMode(mode)
             
             // Start Bluetooth latency monitoring for dynamic synchronization
-            bluetoothLatencyMonitor.startMonitoring(interval: 1.0)
-            
+            setupBluetoothLatencyMonitoring()
             // Update audio latency offset from monitor
             if let baseController = lightController as? BaseLightController {
                 // Use smoothed latency for stable synchronization
@@ -642,16 +683,12 @@ final class SessionViewModel: ObservableObject {
         switch cachedPreferences.preferredLightSource {
         case .flashlight:
             lightController = services.flashlightController
-            // Pre-warm flashlight immediately to reduce cold-start latency
-            do {
-                try await services.flashlightController.prewarm()
-                logger.info("Flashlight pre-warmed successfully")
-            } catch {
-                logger.warning("Flashlight pre-warming failed: \(error.localizedDescription)")
-            }
         case .screen:
             lightController = services.screenController
         }
+        
+        // Pre-warm flashlight if needed
+        await prewarmFlashlightIfNeeded()
         
         do {
             // Analyze audio directly from URL (no MediaItem required, use quick mode if enabled)
@@ -745,26 +782,10 @@ final class SessionViewModel: ObservableObject {
             }
             
             // If cinematic mode, start audio energy tracking and attach to light controller
-            if mode == .cinematic {
-                if let mixerNode = audioPlayback.getMainMixerNode() {
-                    // Enable spectral flux for better beat detection in cinematic mode
-                    audioEnergyTracker.useSpectralFlux = true
-                    audioEnergyTracker.startTracking(mixerNode: mixerNode)
-                }
-                lightController?.audioEnergyTracker = audioEnergyTracker
-            }
+            enableSpectralFluxForCinematicMode(mode)
             
             // Start Bluetooth latency monitoring for dynamic synchronization
-            bluetoothLatencyMonitor.startMonitoring(interval: 1.0)
-            
-            // Update audio latency offset from monitor
-            if let baseController = lightController as? BaseLightController {
-                // Use smoothed latency for stable synchronization
-                baseController.audioLatencyOffset = bluetoothLatencyMonitor.smoothedLatency
-            }
-            if let vibrationController = vibrationController {
-                vibrationController.audioLatencyOffset = bluetoothLatencyMonitor.smoothedLatency
-            }
+            setupBluetoothLatencyMonitoring()
             
             // Prevent screen from turning off during session
             UIApplication.shared.isIdleTimerDisabled = true
@@ -971,8 +992,7 @@ final class SessionViewModel: ObservableObject {
         try audioPlayback.play(url: url)
         
         // Small delay to ensure audio engine is fully started before starting light
-        // This helps with synchronization and ensures currentTime is available
-        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        try await Task.sleep(nanoseconds: Self.audioEngineStartupDelay)
         
         // If cinematic mode, attach isochronic audio to the playback engine for perfect sync
         if currentSession?.mode == .cinematic, let engine = audioPlayback.getAudioEngine() {

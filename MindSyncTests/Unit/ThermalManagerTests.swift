@@ -113,11 +113,11 @@ final class ThermalManagerTests: XCTestCase {
         }
     }
     
-    func testMaxFlashlightIntensity_WithFairState_Returns0_8() {
+    func testMaxFlashlightIntensity_WithFairState_Returns0_9() {
         // Note: This test depends on actual device thermal state
-        // If device is in fair state, intensity should be 0.8
+        // If device is in fair state, intensity should be 0.9
         if thermalManager.currentState == .fair {
-            XCTAssertEqual(thermalManager.maxFlashlightIntensity, 0.8,
+            XCTAssertEqual(thermalManager.maxFlashlightIntensity, 0.9,
                          "Fair state should reduce intensity slightly")
         }
     }
@@ -192,11 +192,11 @@ final class ThermalManagerTests: XCTestCase {
             XCTAssertEqual(maxIntensity, 1.0, "Full intensity in nominal state")
             XCTAssertFalse(shouldSwitch, "No need to switch in nominal state")
         case .fair:
-            XCTAssertEqual(maxIntensity, 0.8, "Slightly reduced intensity in fair state")
+            XCTAssertEqual(maxIntensity, 0.9, "Slightly reduced intensity in fair state")
             XCTAssertFalse(shouldSwitch, "No need to switch in fair state")
             
         case .serious:
-            XCTAssertEqual(maxIntensity, 0.5, "Reduced intensity in serious state")
+            XCTAssertEqual(maxIntensity, 0.6, "Reduced intensity in serious state")
             XCTAssertTrue(shouldSwitch, "Should switch to screen in serious state")
             
         case .critical:

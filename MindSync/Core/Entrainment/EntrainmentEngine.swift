@@ -15,22 +15,6 @@ final class EntrainmentEngine {
     ///   would be 0.1, which is then clamped to this minimum (0.15).
     static let minVibrationIntensity: Float = 0.15
     
-    /// Base flicker frequency (Hz) used for the enforced cinematic dark phase.
-    static let cinematicEnforcedFlickerFrequency: Double = 8.0
-    
-    /// Ratio of the cycle reserved for darkness to guarantee visible flicker (e.g. 0.64 -> 64% off).
-    static let cinematicDarkPhaseRatio: Double = 0.64
-    
-    /// Precomputed cycle duration for the enforced cinematic flicker frequency.
-    static var cinematicCycleDuration: TimeInterval {
-        1.0 / cinematicEnforcedFlickerFrequency
-    }
-    
-    /// Precomputed enforced off time per cycle based on the dark phase ratio.
-    static var cinematicEnforcedOffTime: TimeInterval {
-        cinematicCycleDuration * cinematicDarkPhaseRatio
-    }
-    
     /// Calculates cinematic intensity with audio-reactive beat detection
     /// - Parameters:
     ///   - baseFrequency: Base frequency in Hz (typically 6.5 for cinematic mode)

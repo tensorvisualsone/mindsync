@@ -228,9 +228,11 @@ final class VibrationController: NSObject {
     /// Sets transient haptic intensity for square wave events
     /// Creates short, sharp haptic impulses (20ms) for percussive beats
     private func setTransientIntensity(_ intensity: Float, at time: TimeInterval) {
-        guard hapticEngine != nil else { return }
+        guard let engine = hapticEngine else { return }
         
         // Cooldown: prevent too many transients in quick succession
+        // Note: Uses session elapsed time which may jump on pause/resume; this is acceptable
+        // as cooldown is primarily for preventing haptic overload, not precise timing
         guard time - lastTransientTime >= transientCooldown else {
             return
         }
@@ -250,7 +252,7 @@ final class VibrationController: NSObject {
         
         do {
             let pattern = try CHHapticPattern(events: [hapticEvent], parameters: [])
-            let player = try hapticEngine!.makeAdvancedPlayer(with: pattern)
+            let player = try engine.makeAdvancedPlayer(with: pattern)
             try player.start(atTime: 0)
             
             // Update last transient time
