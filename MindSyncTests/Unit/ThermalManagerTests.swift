@@ -124,10 +124,10 @@ final class ThermalManagerTests: XCTestCase {
     
     func testMaxFlashlightIntensity_WithSeriousState_ReturnsReduced() {
         // Note: This test depends on actual device thermal state
-        // If device is in serious state, intensity should be reduced to 0.5
+        // If device is in serious state, intensity should be reduced to 0.6
         if thermalManager.currentState == .serious {
-            XCTAssertEqual(thermalManager.maxFlashlightIntensity, 0.5,
-                         "Serious state should reduce intensity to 0.5")
+            XCTAssertEqual(thermalManager.maxFlashlightIntensity, 0.6,
+                         "Serious state should reduce intensity to 0.6")
         }
     }
     
