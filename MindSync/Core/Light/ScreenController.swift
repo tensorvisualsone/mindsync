@@ -13,7 +13,9 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
     
     private var defaultColor: LightEvent.LightColor = .white
     private var customColorRGB: CustomColorRGB?
-    private let precisionInterval: DispatchTimeInterval = .nanoseconds(4_000_000) // ~250 Hz update cadence
+    
+    /// Precision timer interval shared across light controllers (250 Hz)
+    private let precisionInterval: DispatchTimeInterval = .nanoseconds(FlashlightController.precisionIntervalNanoseconds)
     
     override init() {
         super.init()

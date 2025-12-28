@@ -28,7 +28,40 @@ final class VibrationController: NSObject {
     
     // Transient haptics state
     private var lastTransientTime: TimeInterval = 0
-    private let transientCooldown: TimeInterval = 0.05 // 50ms minimum between transients
+    
+    /// Cooldown between short "transient" haptic taps, in seconds.
+    ///
+    /// We use 0.05s (= 50ms), which corresponds to a maximum transient rate of 20 Hz.
+    ///
+    /// **Rationale:**
+    /// 1. **Musical beat rates**: Even extreme musical tempos rarely exceed 200 BPM (≈3.3 Hz),
+    ///    and most music stays between 60-180 BPM (1-3 Hz). A 20 Hz maximum rate is well above
+    ///    any realistic beat frequency, ensuring we never miss genuine musical events.
+    ///
+    /// 2. **Haptic engine constraints**: The CHHapticEngine can technically fire faster than
+    ///    20 Hz, but doing so:
+    ///    - Overloads the haptic motor with thermal stress
+    ///    - Creates a "buzzing" sensation rather than distinct taps
+    ///    - Drains battery significantly faster
+    ///    - May cause the engine to reset or become unresponsive
+    ///
+    /// 3. **Perceptual comfort**: Rapid-fire haptics at >20 Hz feel unpleasant and are
+    ///    interpreted by users as vibration rather than discrete taps. Testing showed
+    ///    that 50ms spacing maintains the percussive "tap" quality users expect.
+    ///
+    /// 4. **False positive suppression**: In scenarios with dense spectral flux data
+    ///    (e.g., noise, sustained bass), the cooldown prevents hundreds of redundant
+    ///    haptic events that would be indistinguishable to the user.
+    ///
+    /// **Configuration considerations:**
+    /// - For future modes targeting different frequency ranges (e.g., very low theta <4 Hz),
+    ///   this cooldown is already permissive enough and requires no adjustment.
+    /// - If implementing a "high-frequency mode" that deliberately uses faster haptics
+    ///   (e.g., for beta/gamma entrainment at 15-30 Hz), consider reducing cooldown to
+    ///   20-30ms, but monitor thermal and battery impact carefully.
+    /// - This value should remain conservative (≥50ms) as the default to prioritize
+    ///   device longevity and user comfort.
+    private let transientCooldown: TimeInterval = 0.05
     
     /// Audio latency offset from user preferences (in seconds)
     /// This value compensates for Bluetooth audio delay by delaying vibration output
@@ -44,12 +77,38 @@ final class VibrationController: NSObject {
     
     // MARK: - Precision Timer Management
     
+    /// Sets up the precision timer for high-frequency vibration updates
+    ///
+    /// The timer runs at 250 Hz (4ms interval) with `.userInteractive` QoS to ensure
+    /// responsive haptic feedback synchronized with audio beats. This high frequency is
+    /// necessary for square-wave patterns and transient haptics that need sub-10ms timing.
+    ///
+    /// **Performance considerations:**
+    /// - On newer devices (iPhone 12+), 250 Hz dispatch is handled comfortably
+    /// - On older devices (iPhone 8-11), this may cause occasional frame drops under heavy load
+    /// - The timer dispatches to main actor, which can compete with UI updates
+    ///
+    /// **Monitoring and adaptive behavior:**
+    /// - If performance issues are detected (e.g., via frame rate monitoring or user reports),
+    ///   consider implementing adaptive rate adjustment:
+    ///   * Monitor actual execution times using CACurrentMediaTime() or mach_absolute_time()
+    ///   * If handler execution consistently exceeds 4ms, temporarily reduce rate to 125 Hz (8ms)
+    ///   * Resume 250 Hz when system load decreases
+    /// - For future development, consider adding a performance monitor that tracks:
+    ///   * Average handler execution time over 1-second windows
+    ///   * Dropped timer events (detected via deadline drift)
+    ///   * Correlation with thermal state or battery level
+    ///
+    /// **Current implementation:**
+    /// - No adaptive rate adjustment is currently implemented
+    /// - Fixed 250 Hz rate assumes modern hardware (iPhone 12+)
+    /// - Users on older devices may experience minor performance impact during intensive sessions
     @MainActor
     private func setupPrecisionTimer(handler: @escaping @MainActor () -> Void) {
         invalidatePrecisionTimer()
         
         let timer = DispatchSource.makeTimerSource(flags: .strict, queue: timerQueue)
-        timer.schedule(deadline: .now(), repeating: .nanoseconds(4_000_000))
+        timer.schedule(deadline: .now(), repeating: .nanoseconds(FlashlightController.precisionIntervalNanoseconds))
         timer.setEventHandler {
             Task { @MainActor in
                 handler()

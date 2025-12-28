@@ -37,7 +37,12 @@ final class AudioEnergyTracker {
     var useSpectralFlux: Bool = false
     
     init() {
-        self.spectralFluxDetector = SpectralFluxDetector()
+        if let detector = SpectralFluxDetector() {
+            self.spectralFluxDetector = detector
+        } else {
+            self.spectralFluxDetector = nil
+            logger.error("Failed to initialize SpectralFluxDetector; spectral flux will be unavailable. This may degrade cinematic mode functionality.")
+        }
     }
     
     /// Starts tracking audio energy from the mixer node
