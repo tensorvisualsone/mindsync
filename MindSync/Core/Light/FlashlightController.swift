@@ -261,10 +261,18 @@ final class FlashlightController: BaseLightController, LightControlling {
             baseDuty = DutyCycleConfig.thetaDuty  // 45% on, 55% off
         }
 
-        let adjustedDuty = baseDuty * thermalManager.recommendedDutyCycleMultiplier
-        if adjustedDuty <= 0 {
+        let multiplier = thermalManager.recommendedDutyCycleMultiplier
+
+        // Critical thermal state handling:
+        // A non-positive multiplier indicates that the torch must be completely off
+        // to protect the device. In this state we intentionally bypass the
+        // `minimumDutyFloor` safety floor, because 0% duty is strictly safer than
+        // any non-zero value.
+        if multiplier <= 0 {
             return 0
         }
+
+        let adjustedDuty = baseDuty * multiplier
         return max(adjustedDuty, DutyCycleConfig.minimumDutyFloor)
     }
     
