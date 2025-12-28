@@ -246,7 +246,7 @@ final class FlashlightController: BaseLightController, LightControlling {
         }
         
         let adjustedDuty = baseDuty * thermalManager.recommendedDutyCycleMultiplier
-        return max(0.0, min(1.0, adjustedDuty))
+        return adjustedDuty
     }
     
     // MARK: - Helpers
