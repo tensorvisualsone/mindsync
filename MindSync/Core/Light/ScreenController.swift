@@ -93,13 +93,19 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
         if let script = currentScript {
             // Check if cinematic mode - apply dynamic intensity modulation
             if script.mode == .cinematic {
-                // For cinematic mode, use continuous wave regardless of events
-                // This ensures smooth synchronization even if beat detection is imperfect
-                let audioEnergy = audioEnergyTracker?.currentEnergy ?? 0.0
+                // For cinematic mode, use spectral flux if available (better beat detection)
+                // Otherwise fall back to RMS energy
+                let audioEnergy: Float
+                if let tracker = audioEnergyTracker, tracker.useSpectralFlux {
+                    audioEnergy = tracker.currentSpectralFlux
+                } else {
+                    audioEnergy = audioEnergyTracker?.currentEnergy ?? 0.0
+                }
+                
                 let baseFreq = script.targetFrequency
                 let elapsed = result.elapsed
                 
-                // Calculate cinematic intensity (continuous wave)
+                // Calculate cinematic intensity with audio reactivity
                 let cinematicIntensity = EntrainmentEngine.calculateCinematicIntensity(
                     baseFrequency: baseFreq,
                     currentTime: elapsed,

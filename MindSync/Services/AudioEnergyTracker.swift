@@ -25,10 +25,10 @@ final class AudioEnergyTracker {
     private let bufferSize: AVAudioFrameCount = 4096
     
     /// Current energy value (0.0 - 1.0) - RMS-based
-    private(set) var currentEnergy: Float = 0.0
+    @MainActor private(set) var currentEnergy: Float = 0.0
     
     /// Current spectral flux value (0.0 - 1.0) - bass-focused for cinematic mode
-    private(set) var currentSpectralFlux: Float = 0.0
+    @MainActor private(set) var currentSpectralFlux: Float = 0.0
     
     /// Spectral flux detector for bass isolation
     private let spectralFluxDetector: SpectralFluxDetector?
@@ -99,25 +99,28 @@ final class AudioEnergyTracker {
             averageEnergy = (averageEnergy * smoothingFactor) + (rms * (1.0 - smoothingFactor))
         }
         
-        // Update current energy
-        currentEnergy = averageEnergy
-        
         // Calculate spectral flux if detector is available
+        var flux: Float = 0.0
         if let detector = spectralFluxDetector {
-            let flux = detector.calculateBassFlux(from: buffer)
-            currentSpectralFlux = flux
+            flux = detector.calculateBassFlux(from: buffer)
         }
         
-        // Publish on main thread (audio callbacks run on audio thread)
+        // Update on main thread (audio callbacks run on audio thread)
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
+            
+            // Update current energy
+            self.currentEnergy = averageEnergy
+            self.currentSpectralFlux = flux
+            
+            // Publish appropriate value
             if self.useSpectralFlux {
                 // Use spectral flux for cinematic mode (better beat detection)
-                self.energyPublisher.send(self.currentSpectralFlux)
-                self.spectralFluxPublisher.send(self.currentSpectralFlux)
+                self.energyPublisher.send(flux)
+                self.spectralFluxPublisher.send(flux)
             } else {
                 // Use RMS for general energy tracking
-                self.energyPublisher.send(self.currentEnergy)
+                self.energyPublisher.send(averageEnergy)
             }
         }
     }

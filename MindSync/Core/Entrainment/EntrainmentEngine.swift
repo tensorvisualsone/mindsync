@@ -31,52 +31,47 @@ final class EntrainmentEngine {
         cinematicCycleDuration * cinematicDarkPhaseRatio
     }
     
-    /// Calculates cinematic intensity with frequency drift and audio reactivity
+    /// Calculates cinematic intensity with audio-reactive beat detection
     /// - Parameters:
     ///   - baseFrequency: Base frequency in Hz (typically 6.5 for cinematic mode)
     ///   - currentTime: Current time in seconds since session start
-    ///   - audioEnergy: Current audio energy value (0.0 - 1.0)
+    ///   - audioEnergy: Current spectral flux value (0.0 - 1.0) from SpectralFluxDetector
     /// - Returns: Intensity value (0.0 - 1.0) for light output
     static func calculateCinematicIntensity(
         baseFrequency: Double,
         currentTime: TimeInterval,
         audioEnergy: Float
     ) -> Float {
-        // 1. Frequency Drift: Slow oscillation between 5.5-7.5 Hz over 5-10 seconds
-        let drift = sin(currentTime * 0.2) * 1.0
-        let currentFreq = baseFrequency + drift
+        // For cinematic mode, prioritize audio reactivity (spectral flux) over base wave
+        // When spectral flux is high (beats detected), create sharp pulses
+        // When spectral flux is low, maintain subtle background flicker
         
-        // 2. Base Wave: Cosine wave for smoother transitions
-        // Phase offset for cosine (shift by π/2)
-        let phase = (currentTime * currentFreq * 2.0 * .pi) + (.pi / 2.0)
-        let cosineValue = cos(phase)
+        var output: Float
         
-        // Normalize cosine from [-1, 1] to [0, 1]
-        let normalizedWave = Float((cosineValue + 1.0) / 2.0)
+        // Threshold for beat detection (spectral flux > 0.2 indicates a beat/transient)
+        let beatThreshold: Float = 0.2
         
-        // 3. Audio Reactivity: Base intensity based on audio energy
-        // For cinematic mode, we want more dramatic reactions to spectral flux
-        // Minimum 20%, scales up to 100% with spectral flux (more sensitive)
-        let baseIntensity: Float = 0.2 + (audioEnergy * 0.8)
-        
-        // 4. Mix wave with base intensity
-        var output = normalizedWave * baseIntensity
-        
-        // 4b. Enforce a minimum dark phase to guarantee visible flicker in cinematic mode
-        // But allow audio-reactive beats to override the enforced darkness occasionally
-        let cyclePhase = currentTime.truncatingRemainder(dividingBy: Self.cinematicCycleDuration)
-        let shouldForceDark = cyclePhase < Self.cinematicEnforcedOffTime
-
-        if shouldForceDark && audioEnergy < 0.4 {
-            // Only force darkness if spectral flux is not high enough to indicate a beat
-            output = 0.0
-        }
-        // If spectral flux is high (>= 0.4), allow the beat to show through even during dark phase
-        
-        // 5. Lens Flare: Gamma correction for bright areas (crispness)
-        // When output > 0.8, apply inverse gamma to brighten highlights
-        if output > 0.8 {
-            output = pow(output, 0.5)
+        if audioEnergy > beatThreshold {
+            // High spectral flux detected (beat/transient): Create sharp pulse
+            // Scale intensity based on flux strength
+            // Maps: 0.2 -> 0.4, 1.0 -> 1.0
+            let normalizedFlux = (audioEnergy - beatThreshold) / (1.0 - beatThreshold)
+            output = 0.4 + (normalizedFlux * 0.6)
+            
+            // Ensure pulse is strong enough to be visible
+            output = max(0.5, output)
+        } else {
+            // Low spectral flux: Subtle background flicker at base frequency
+            // This maintains visual interest between beats without being distracting
+            let drift = sin(currentTime * 0.2) * 1.0
+            let currentFreq = baseFrequency + drift
+            
+            let phase = (currentTime * currentFreq * 2.0 * .pi) + (.pi / 2.0)
+            let cosineValue = cos(phase)
+            let normalizedWave = Float((cosineValue + 1.0) / 2.0)
+            
+            // Very subtle background (5-20% intensity)
+            output = 0.05 + (normalizedWave * 0.15)
         }
         
         // Clamp to valid range

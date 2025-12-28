@@ -449,13 +449,6 @@ final class SessionViewModel: ObservableObject {
     
     /// Starts a session with a selected media item
     func startSession(with mediaItem: MPMediaItem) async {
-        // Pre-warm flashlight before starting analysis
-        do {
-            try await services.flashlightController.prewarm()
-            logger.info("Flashlight pre-warmed successfully")
-        } catch {
-            logger.warning("Flashlight pre-warming failed: \(error.localizedDescription)")
-        }
         guard state == .idle else { 
             logger.warning("Attempted to start session while state is \(String(describing: self.state))")
             return 
@@ -472,6 +465,13 @@ final class SessionViewModel: ObservableObject {
         switch cachedPreferences.preferredLightSource {
         case .flashlight:
             lightController = services.flashlightController
+            // Pre-warm flashlight immediately to reduce cold-start latency
+            do {
+                try await services.flashlightController.prewarm()
+                logger.info("Flashlight pre-warmed successfully")
+            } catch {
+                logger.warning("Flashlight pre-warming failed: \(error.localizedDescription)")
+            }
         case .screen:
             lightController = services.screenController
         }
@@ -483,7 +483,6 @@ final class SessionViewModel: ObservableObject {
             // Analyze audio (use quick mode if enabled in preferences)
             let track = try await audioAnalyzer.analyze(url: assetURL, mediaItem: mediaItem, quickMode: cachedPreferences.quickAnalysisEnabled)
             currentTrack = track
-            startPlaybackProgressUpdates(for: track.duration)
             
             // Generate LightScript using cached preferences
             let mode = cachedPreferences.preferredMode
@@ -554,7 +553,12 @@ final class SessionViewModel: ObservableObject {
             // Update frequency now that sessionStartTime is set (timer will continue updating)
             updateCurrentFrequency()
             startFrequencyUpdates()
+            
+            // Start audio playback and light
             try await startPlaybackAndLight(url: assetURL, script: script, startTime: startTime)
+            
+            // Start playback progress updates AFTER audio has started
+            startPlaybackProgressUpdates(for: track.duration)
             
             // Start vibration if enabled (using same startTime for synchronization)
             if cachedPreferences.vibrationEnabled, let vibrationController = vibrationController, let vibrationScript = currentVibrationScript {
@@ -638,6 +642,13 @@ final class SessionViewModel: ObservableObject {
         switch cachedPreferences.preferredLightSource {
         case .flashlight:
             lightController = services.flashlightController
+            // Pre-warm flashlight immediately to reduce cold-start latency
+            do {
+                try await services.flashlightController.prewarm()
+                logger.info("Flashlight pre-warmed successfully")
+            } catch {
+                logger.warning("Flashlight pre-warming failed: \(error.localizedDescription)")
+            }
         case .screen:
             lightController = services.screenController
         }
@@ -646,7 +657,6 @@ final class SessionViewModel: ObservableObject {
             // Analyze audio directly from URL (no MediaItem required, use quick mode if enabled)
             let track = try await audioAnalyzer.analyze(url: audioFileURL, quickMode: cachedPreferences.quickAnalysisEnabled)
             currentTrack = track
-            startPlaybackProgressUpdates(for: track.duration)
             
             // Generate LightScript using cached preferences
             let mode = cachedPreferences.preferredMode
@@ -716,7 +726,12 @@ final class SessionViewModel: ObservableObject {
             // Update frequency now that sessionStartTime is set (timer will continue updating)
             updateCurrentFrequency()
             startFrequencyUpdates()
+            
+            // Start audio playback and light
             try await startPlaybackAndLight(url: audioFileURL, script: script, startTime: startTime)
+            
+            // Start playback progress updates AFTER audio has started
+            startPlaybackProgressUpdates(for: track.duration)
             
             // Start vibration if enabled (using same startTime for synchronization)
             if cachedPreferences.vibrationEnabled, let vibrationController = vibrationController, let vibrationScript = currentVibrationScript {
@@ -952,8 +967,12 @@ final class SessionViewModel: ObservableObject {
             throw LightControlError.configurationFailed
         }
         
-        // Start audio playback
+        // Start audio playback first
         try audioPlayback.play(url: url)
+        
+        // Small delay to ensure audio engine is fully started before starting light
+        // This helps with synchronization and ensures currentTime is available
+        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
         
         // If cinematic mode, attach isochronic audio to the playback engine for perfect sync
         if currentSession?.mode == .cinematic, let engine = audioPlayback.getAudioEngine() {
