@@ -1,12 +1,11 @@
 name: "CodeQL"
 
+# DISABLED: This workflow expects an Xcode project at MindSync/MindSync.xcodeproj
+# which has not been created yet. It will be re-enabled once the Xcode project is set up.
+# See specs/001-audio-strobe-sync/quickstart.md for project setup instructions.
+
 on:
-  push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
-  schedule:
-    - cron: '0 0 * * 0'
+  workflow_dispatch: # Only run manually
 
 jobs:
   analyze:
