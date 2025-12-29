@@ -38,13 +38,30 @@ struct SessionView: View {
             
             switch viewModel.state {
             case .idle:
-                // Should not be here - navigated from HomeView
-                EmptyView()
+                // Show loading state while session is being initialized
+                VStack {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                    Text(NSLocalizedString("analysis.loading", comment: "Loading audio..."))
+                        .font(AppConstants.Typography.subheadline)
+                        .foregroundColor(.mindSyncSecondaryText)
+                        .padding(.top, AppConstants.Spacing.md)
+                }
                 
             case .analyzing:
                 if let progress = viewModel.analysisProgress {
                     AnalysisProgressView(progress: progress) {
                         viewModel.cancelAnalysis()
+                    }
+                } else {
+                    // Fallback if progress is nil
+                    VStack {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                        Text(NSLocalizedString("analysis.analyzing", comment: "Analyzing..."))
+                            .font(AppConstants.Typography.subheadline)
+                            .foregroundColor(.mindSyncSecondaryText)
+                            .padding(.top, AppConstants.Spacing.md)
                     }
                 }
                 
@@ -83,6 +100,7 @@ struct SessionView: View {
         }
         .preferredColorScheme(.dark)
         .task {
+            // Start the session immediately when view appears
             if let mediaItem = mediaItem {
                 await viewModel.startSession(with: mediaItem)
             } else if let audioFileURL = audioFileURL {

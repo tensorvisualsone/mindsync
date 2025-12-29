@@ -195,6 +195,7 @@
 "error.audio.cancelled" = "Analysis cancelled.";
 "status.audio.cancelled" = "Analysis was cancelled.";
 "status.vibration.unavailable" = "Vibration is unavailable. Session continues without vibration.";
+"status.light.failed" = "Light synchronization failed. Session continues in audio-only mode.";
 "error.audio.fileTooLong" = "Audio file is too long (%d minutes). Maximum supported length is 120 minutes.";
 "error.audio.corruptedData" = "Audio data appears to be corrupted or empty. Please choose another track.";
 "error.audio.timeout" = "Audio analysis took too long and was stopped. Please choose a shorter track or try again.";

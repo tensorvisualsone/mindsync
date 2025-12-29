@@ -209,6 +209,7 @@
 "error.audio.cancelled" = "Analyse abgebrochen.";
 "status.audio.cancelled" = "Analyse wurde abgebrochen.";
 "status.vibration.unavailable" = "Vibration ist nicht verfügbar. Session wird ohne Vibration fortgesetzt.";
+"status.light.failed" = "Lichtsynchronisation fehlgeschlagen. Session wird nur mit Audio fortgesetzt.";
 "error.audio.fileTooLong" = "Audiodatei ist zu lang (%d Minuten). Die maximal unterstützte Länge beträgt 120 Minuten.";
 "error.audio.corruptedData" = "Die Audiodaten wirken beschädigt oder leer. Bitte wähle einen anderen Titel.";
 "error.audio.timeout" = "Die Audio-Analyse hat ungewöhnlich lange gedauert und wurde abgebrochen. Bitte wähle einen kürzeren Titel oder versuche es erneut.";
