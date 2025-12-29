@@ -726,6 +726,8 @@ final class SessionViewModel: ObservableObject {
             lightController?.stop()
             vibrationController?.stop()
             stopPlaybackProgressUpdates()
+            bluetoothLatencyMonitor.stopMonitoring()
+            UIApplication.shared.isIdleTimerDisabled = false
             state = .idle
         } catch {
             logger.error("Session start failed: \(error.localizedDescription, privacy: .public)")
@@ -884,6 +886,8 @@ final class SessionViewModel: ObservableObject {
             lightController?.stop()
             vibrationController?.stop()
             stopPlaybackProgressUpdates()
+            bluetoothLatencyMonitor.stopMonitoring()
+            UIApplication.shared.isIdleTimerDisabled = false
             state = .idle
         } catch {
             logger.error("Session start (file) failed: \(error.localizedDescription, privacy: .public)")
@@ -1102,7 +1106,12 @@ final class SessionViewModel: ObservableObject {
             lightControllerStarted = true
         } catch {
             lightStartTask.cancel()
-            logger.error("Light controller start timed out or failed: \(error.localizedDescription)")
+            // Log the actual error type for better diagnostics
+            if error is TimeoutError {
+                logger.error("Light controller start timed out after 5 seconds")
+            } else {
+                logger.error("Light controller start failed with error: \(error.localizedDescription, privacy: .public)")
+            }
             // Try to continue without light controller as fallback
             // Set status message to notify user of audio-only mode
             statusMessage = NSLocalizedString("status.light.failed", comment: "Light synchronization failed, continuing in audio-only mode")
@@ -1149,19 +1158,21 @@ final class SessionViewModel: ObservableObject {
                     return .failure(TimeoutError.timedOut(seconds: seconds))
                 } catch {
                     // If the sleep is cancelled (because the operation finished first),
-                    // propagate the cancellation as a failure so the group can complete cleanly.
-                    return .failure(error)
+                    // we should not propagate the cancellation as a failure.
+                    // Instead, we'll just let the task group complete without this result.
+                    throw error
                 }
             }
 
-            // Wait for either completion or timeout
+            // Wait for the first task to complete
             guard let result = try await group.next() else {
                 throw TimeoutError.timedOut(seconds: seconds)
             }
 
-            // Cancel remaining tasks
+            // Cancel remaining tasks to ensure cleanup
             group.cancelAll()
 
+            // Return the result from the first completed task
             switch result {
             case .success(let value):
                 return value

@@ -38,18 +38,28 @@ final class PermissionsService {
     func requestMicrophoneAccess() async -> AVAudioSession.RecordPermission {
         if #available(iOS 17.0, *) {
             return await withCheckedContinuation { continuation in
-                AVAudioApplication.requestRecordPermission { granted in
-                    // Map the callback parameter directly
-                    let permission: AVAudioSession.RecordPermission = granted ? .granted : .denied
+                AVAudioApplication.requestRecordPermission { _ in
+                    // After the system dialog completes, re-query the actual permission status
+                    // to handle cases where the user dismisses without choosing
+                    let appPermission = AVAudioApplication.shared.recordPermission
+                    let permission: AVAudioSession.RecordPermission
+                    switch appPermission {
+                    case .granted:
+                        permission = .granted
+                    case .denied:
+                        permission = .denied
+                    @unknown default:
+                        permission = .undetermined
+                    }
                     continuation.resume(returning: permission)
                 }
             }
         } else {
             return await withCheckedContinuation { continuation in
-                AVAudioSession.sharedInstance().requestRecordPermission { granted in
-                    // Map the callback parameter directly instead of re-querying
-                    let permission: AVAudioSession.RecordPermission = granted ? .granted : .denied
-                    continuation.resume(returning: permission)
+                AVAudioSession.sharedInstance().requestRecordPermission { _ in
+                    // After the system dialog completes, re-query the actual permission status
+                    let currentPermission = AVAudioSession.sharedInstance().recordPermission
+                    continuation.resume(returning: currentPermission)
                 }
             }
         }
