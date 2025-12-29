@@ -33,6 +33,8 @@ xcuserdata/
 !*.xcodeproj/project.pbxproj
 !*.xcodeproj/xcshareddata/
 !*.xcodeproj/project.xcworkspace/
+*.xcodeproj/**/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
 *.hmap
 
 ## Obj-C/Swift specific
@@ -50,7 +52,8 @@ playground.xcworkspace
 Packages/
 Package.pins
 Package.resolved
-*.xcodeproj
+# Note: *.xcodeproj is NOT ignored - we need the project file for CI/CD
+# Only ignore user-specific data inside xcodeproj (see above)
 .netrc
 
 # -----------------------------------------------------------------------------
