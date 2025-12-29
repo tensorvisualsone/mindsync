@@ -1,6 +1,6 @@
 # MindSync
 
-**Neural Entrainment für veränderte Bewusstseinszustände durch Audio-synchronisierte Lichtst imulation**
+**Neural Entrainment für veränderte Bewusstseinszustände durch audio-synchronisierte Lichtstimulation**
 
 [![iOS 17+](https://img.shields.io/badge/iOS-17%2B-blue.svg)](https://developer.apple.com/ios/)
 [![Swift 5.9](https://img.shields.io/badge/Swift-5.9-orange.svg)](https://swift.org/)
@@ -8,43 +8,24 @@
 
 ---
 
-## 🌟 Vision & Zweck
+## 🌟 Kurzüberblick
 
-**MindSync ermöglicht es Menschen, das volle Potenzial ihres Unterbewusstseins zu nutzen, um ein erfülltes Leben im vollen Bewusstsein zu erleben.**
+MindSync ist eine iOS-App für **Neural Entrainment**: Audio-analysierte, stroboskopische Lichtmuster werden mit deiner Musik synchronisiert, um gezielt bestimmte Gehirnwellen-Bereiche anzuregen (z.B. Entspannung, Fokus, tiefe Meditation).
 
-Durch die Kombination von **visueller Lichtstimulation** und **auditiver Synchronisation** nutzt MindSync die wissenschaftlich fundierte Methode des **Neural Entrainment**, um das Gehirn gezielt in gewünschte Frequenzbereiche zu führen. Dies ermöglicht tiefe Entspannungszustände, erweiterte Bewusstseinszustände und optimierte Konzentration – alles basierend auf deiner persönlichen Musik.
+- Personalisierte Erfahrung: Analyse deiner Musik in Echtzeit  
+- Mehrere Entrainment-Modi: Alpha, Theta, Gamma & Cinematic  
+- Dual-Lichtquellen: Taschenlampe oder farbiger Bildschirm  
+- Sicherheit first: Epilepsie-Onboarding, Frequenz-Limits, Thermal-Management  
+
+Für Vision, Wissenschaft & Roadmap siehe `docs/CONCEPT_AND_ROADMAP.md`.
 
 ---
 
-## 🧠 Was ist Neural Entrainment?
+## 🧠 Neural Entrainment (Kurz erklärt)
 
-### Die Wissenschaft dahinter
+**Neural Entrainment** ist die Anpassung der Gehirnaktivität an externe Rhythmen (z.B. Lichtblitze). MindSync nutzt dieses Prinzip, indem es Lichtimpulse in definierter Frequenz mit der Energie und den Beats der Musik kombiniert.
 
-**Neural Entrainment** (auch **Brainwave Entrainment** genannt) ist ein neurowissenschaftlich erforschtes Phänomen, bei dem das Gehirn seine elektrische Aktivität an externe rhythmische Reize anpasst. Dieser Prozess wird auch als **Frequenz-Folge-Reaktion** (Frequency Following Response, FFR) bezeichnet.
-
-### Wie funktioniert es?
-
-1. **Gehirnwellen-Frequenzen**: Das menschliche Gehirn produziert elektrische Aktivität in verschiedenen Frequenzbereichen:
-   - **Delta (0.5-4 Hz)**: Tiefschlaf, unbewusste Prozesse
-   - **Theta (4-8 Hz)**: Meditation, Kreativität, Traumzustand, veränderte Bewusstseinszustände
-   - **Alpha (8-13 Hz)**: Entspannung, Tagträumen, leichte Meditation
-   - **Beta (13-30 Hz)**: Normaler Wachzustand, aktives Denken
-   - **Gamma (30-100 Hz)**: Höchste Konzentration, Informationsverarbeitung
-
-2. **Synchronisation durch Licht**: Wenn das Gehirn rhythmischen visuellen Reizen (z.B. pulsierendem Licht) ausgesetzt wird, beginnt es, seine eigene elektrische Aktivität mit dieser Frequenz zu synchronisieren.
-
-3. **Photic Driving**: Die Methode der visuellen Stimulation zur Beeinflussung von Gehirnwellen wird als "Photic Driving" bezeichnet und wird seit den 1940er Jahren erforscht.
-
-### Wissenschaftliche Grundlage
-
-Neural Entrainment basiert auf jahrzehntelanger Forschung:
-
-- **Photic Driving Studien** (1940er-heute): Zeigen, dass rhythmische Lichtstimulation nachweisbare Veränderungen in EEG-Mustern erzeugt
-- **Frequenz-Folge-Reaktion**: Das Gehirn zeigt eine natürliche Tendenz, sich an externe Rhythmen anzupassen
-- **Neuroplastizität**: Wiederholte Entrainment-Sitzungen können langfristige Veränderungen in Gehirnwellen-Mustern fördern
-- **Subjektive Erfahrungen**: Nutzer berichten von veränderten Bewusstseinszuständen, tiefer Entspannung und erhöhter Kreativität
-
-**Wichtig**: MindSync ist ein Wellness-Tool für persönliches Wachstum, kein medizinisches Gerät. Die Wirksamkeit variiert individuell.
+Die ausführliche neurowissenschaftliche Herleitung findest du in `docs/CONCEPT_AND_ROADMAP.md`.
 
 ---
 
@@ -61,31 +42,14 @@ Im Gegensatz zu Apps wie Lumenate, die vorgefertigte, statische Inhalte verwende
 
 ---
 
-## 🧘 Entrainment-Modi
+## 🧘 Entrainment-Modi (Überblick)
 
-### Alpha-Modus (8-13 Hz) - Entspannung
-- **Ziel**: Tiefe Entspannung, Stressabbau
-- **Wellenform**: Sanfte Sinuskurve
-- **Intensität**: 65%
-- **Ideal für**: Meditation, Yoga, Entspannung nach der Arbeit
+- **Alpha (8–13 Hz)**: Entspannung & Stressabbau  
+- **Theta (4–8 Hz)**: Tiefe Meditation & Trips  
+- **Gamma (30–100 Hz)**: Fokus & High-Performance  
+- **Cinematic**: Audio-reaktiver, filmischer Modus  
 
-### Theta-Modus (4-8 Hz) - Trip
-- **Ziel**: Veränderte Bewusstseinszustände, Kreativität, Trancezu stand
-- **Wellenform**: Dreieckswelle
-- **Intensität**: 85%
-- **Ideal für**: Tiefe Meditation, kreative Durchbrüche, Selbsterforschung
-
-### Gamma-Modus (30-100 Hz) - Fokus
-- **Ziel**: Höchste Konzentration, Informationsverarbeitung
-- **Wellenform**: Scharfe Rechteckwelle
-- **Intensität**: 50%
-- **Ideal für**: Lernen, intensive Denkaufgaben, Flow-Zustände
-
-### Cinematic-Modus - Dynamischer Flow
-- **Ziel**: Immersive, filmische Erfahrung
-- **Besonderheit**: Lichtintensität moduliert dynamisch mit Audio-Energie
-- **Technik**: Frequenz-Drift + Audio-reaktive Modulation + Lens-Flare-Effekt
-- **Ideal für**: Musikgenuss, visuelle Reisen, kreative Inspiration
+Details zu den Parametern der einzelnen Modi stehen in `docs/CONCEPT_AND_ROADMAP.md`.
 
 ---
 
@@ -182,65 +146,85 @@ Im Gegensatz zu Apps wie Lumenate, die vorgefertigte, statische Inhalte verwende
 ```
 mindsync/
 ├── MindSync/                         # Haupt-App-Target
-│   ├── App/                          # App-Lifecycle
-│   │   ├── MindSyncApp.swift         # App Entry Point
-│   │   └── AppDelegate.swift         # Legacy App Delegate
+│   ├── App/                          # App-Lifecycle & State
+│   │   ├── MindSyncApp.swift         # App Entry Point (SwiftUI)
+│   │   └── AppState.swift            # Zentraler App-Status
 │   │
-│   ├── Features/                     # Feature-Module
-│   │   ├── Onboarding/              # Epilepsie-Warning + Welcome
-│   │   ├── Home/                    # Hauptbildschirm
-│   │   ├── SourceSelection/         # Musik/Mikrofon Auswahl
-│   │   ├── ModeSelection/           # Entrainment-Modus Wahl
-│   │   ├── Session/                 # Aktive Entrainment-Session
-│   │   └── History/                 # Session-Historie
+│   ├── Features/                     # Feature-Module (SwiftUI-Screens)
+│   │   ├── Onboarding/               # Epilepsie-Warnung & Erste Schritte
+│   │   ├── Home/                     # Hauptbildschirm & Navigation
+│   │   ├── Session/                  # Aktive Entrainment-Session
+│   │   ├── Settings/                 # App-Einstellungen & Präferenzen
+│   │   └── History/                  # Session-Historie & Statistiken
 │   │
-│   ├── Core/                        # Kern-Komponenten
-│   │   ├── Audio/                   # Audio-Analyse & Playback
+│   ├── Core/                         # Kern-Komponenten (Framework-agnostisch)
+│   │   ├── Audio/                    # Audio-Analyse
 │   │   │   ├── AudioAnalyzer.swift
-│   │   │   ├── AudioPlaybackService.swift
+│   │   │   ├── AudioFileReader.swift
 │   │   │   ├── BeatDetector.swift
+│   │   │   ├── SpectralFluxDetector.swift
 │   │   │   └── TempoEstimator.swift
 │   │   │
-│   │   ├── Light/                   # Licht-Steuerung
+│   │   ├── Entrainment/              # Entrainment-Logik
+│   │   │   ├── EntrainmentEngine.swift
+│   │   │   ├── FrequencyMapper.swift
+│   │   │   ├── LightScript.swift
+│   │   │   └── WaveformGenerator.swift
+│   │   │
+│   │   ├── Light/                    # Licht-Steuerung
 │   │   │   ├── BaseLightController.swift
 │   │   │   ├── FlashlightController.swift
-│   │   │   ├── ScreenController.swift
-│   │   │   └── EntrainmentEngine.swift
+│   │   │   ├── LightController.swift
+│   │   │   └── ScreenController.swift
 │   │   │
-│   │   └── Safety/                  # Sicherheits-Features
-│   │       ├── ThermalManager.swift
-│   │       └── FallDetector.swift
+│   │   ├── Safety/                   # Sicherheits-Features
+│   │   │   ├── ThermalManager.swift
+│   │   │   ├── SafetyLimits.swift
+│   │   │   └── FallDetector.swift
+│   │   │
+│   │   ├── Sync/                     # Latenz & Synchronisation
+│   │   │   └── BluetoothLatencyMonitor.swift
+│   │   │
+│   │   └── Vibration/                # Haptische Entrainment-Komponenten
+│   │       ├── VibrationController.swift
+│   │       ├── VibrationEvent.swift
+│   │       └── VibrationScript.swift
 │   │
-│   ├── Models/                      # Datenmodelle
-│   │   ├── EntrainmentMode.swift    # Alpha/Theta/Gamma/Cinematic
-│   │   ├── LightScript.swift        # Generierte Licht-Events
-│   │   ├── LightEvent.swift         # Einzelnes Licht-Event
-│   │   ├── Session.swift            # Session-Daten
-│   │   ├── AudioSource.swift        # LocalFile/Microphone
-│   │   └── LightSource.swift        # Flashlight/Screen
+│   ├── Models/                       # Datenmodelle
+│   │   ├── AudioTrack.swift          # Repräsentation eines Audiotracks
+│   │   ├── EntrainmentMode.swift     # Alpha/Theta/Gamma/Cinematic
+│   │   ├── Session.swift             # Session-Daten
+│   │   └── UserPreferences.swift     # Nutzerpräferenzen
 │   │
-│   ├── Services/                    # Business Logic
-│   │   ├── ServiceContainer.swift   # DI Container
+│   ├── Services/                     # Business Logic & System-Services
+│   │   ├── ServiceContainer.swift    # DI Container
+│   │   ├── AudioPlaybackService.swift
+│   │   ├── AudioEnergyTracker.swift
+│   │   ├── MediaLibraryService.swift
+│   │   ├── PermissionsService.swift
 │   │   ├── SessionHistoryService.swift
-│   │   └── UserPreferencesService.swift
+│   │   └── AffirmationOverlayService.swift
 │   │
-│   └── Shared/                      # Wiederverwendbare Komponenten
-│       ├── UI/                      # UI-Komponenten
-│       ├── Extensions/              # Swift Extensions
-│       └── Constants/               # App-weite Konstanten
+│   └── Shared/                       # Wiederverwendbare Bausteine
+│       ├── Components/               # UI-Komponenten
+│       ├── Extensions/               # Swift-Extensions
+│       ├── Theme/                    # Farben & Typografie
+│       ├── MathHelpers.swift         # Mathematische Hilfsfunktionen
+│       ├── Constants.swift           # App-weite Konstanten
+│       └── Resources/                # Lokalisierungen & Strings
 │
-├── MindSyncTests/                   # Unit Tests
-│   ├── Unit/                        # Isolierte Unit Tests
-│   └── Integration/                 # Integrations Tests
+├── MindSyncTests/                    # Unit & Integration Tests
+│   ├── Unit/                         # Isolierte Unit Tests
+│   └── Integration/                  # Integrations-Tests
 │
-├── MindSyncUITests/                 # UI Tests
+├── MindSyncUITests/                  # UI Tests (XCTest)
 │
-├── docs/                            # Dokumentation
-│   ├── architecture.md              # Architektur-Übersicht
-│   ├── developer-guide.md           # Entwickler-Guide
-│   └── research/                    # Forschungs-Dokumente
+├── docs/                             # High-Level Dokumentation
 │
-└── README.md                        # Diese Datei
+├── specs/                            # Detaillierte Spezifikationen
+│   └── 001-audio-strobe-sync/        # Haupt-Spezifikation für Audio-Licht-Sync
+│
+└── README.md                         # Diese Datei
 ```
 
 ---
@@ -313,7 +297,7 @@ xcodebuild test \
 
 ### Test Coverage
 
-Die Test-Suite umfasst:
+Die Test-Suite umfasst unter anderem:
 - ✅ Audio-Analyse-Algorithmen
 - ✅ Beat-Detection-Logik
 - ✅ Entrainment-Engine-Berechnungen
@@ -324,126 +308,17 @@ Die Test-Suite umfasst:
 
 ---
 
-## 🎯 Roadmap & Status
+## 🎯 Roadmap (Kurzfassung)
 
-### ✅ Phase 1: MVP (Abgeschlossen)
-- [x] Lokale Musikbibliothek-Zugriff
-- [x] Beat-Detection via FFT
-- [x] Taschenlampen-Stroboskop
-- [x] Epilepsie-Onboarding
-- [x] Thermisches Management
-- [x] AVAudioEngine Migration
-
-### ✅ Phase 2: Neural Update (Abgeschlossen)
-- [x] Entrainment-Modi (Alpha/Theta/Gamma)
-- [x] Bildschirm-Modus mit Farbauswahl
-- [x] Mikrofon-Modus für Streaming
-- [x] **Cinematic Mode** mit dynamischer Modulation
-- [x] Audio-Energie-Tracking
-- [x] Session-History mit Statistiken
-- [x] Fall-Erkennung
-- [x] Vollständige Lokalisierung (DE/EN)
-
-### 🔄 Phase 3: Generative Zukunft (In Planung)
-- [ ] **Timbre-zu-Luminanz Mapping**: Verschiedene Instrumente → verschiedene Farben
-- [ ] **HomeKit Integration**: Philips Hue, Nanoleaf für Raum-weite Synchronisation
-- [ ] **Community LightScript Sharing**: Nutzer können eigene Lichtmuster teilen
-- [ ] **AI-gestützte Personalisierung**: ML-basierte Anpassung an Nutzer-Präferenzen
-- [ ] **Biofeedback**: Integration von Herzfrequenz-Daten
-
-### 🎁 Phase 4: Monetarisierung & Launch
-- [ ] App Store Submission
-- [ ] Privacy Policy & Terms of Service
-- [ ] Marketing Assets (Screenshots, Video)
-- [ ] In-App-Käufe (Premium Features)
-- [ ] TestFlight Beta Testing
+Der aktuelle Status inkl. abgeschlossener Phasen und geplanter Features ist in `docs/CONCEPT_AND_ROADMAP.md` dokumentiert.
 
 ---
 
-## 🏗️ Architektur-Deep-Dive
+## 🏗️ Architektur (Kurzüberblick)
 
-### Audio-Verarbeitungs-Pipeline
-
-```
-Audio-Quelle (Datei/Mikrofon)
-    ↓
-AVAudioEngine (Playback)
-    ↓
-AVAudioPCMBuffer (PCM-Samples)
-    ↓
-vDSP (FFT-Transformation)
-    ↓
-BeatDetector (Peak-Finding)
-    ↓
-TempoEstimator (BPM-Berechnung)
-    ↓
-EntrainmentEngine (LightScript-Generierung)
-    ↓
-LightController (Flashlight/Screen)
-    ↓
-CADisplayLink/AVCaptureDevice (Hardware)
-```
-
-### Entrainment-Algorithmus
-
-Der Kern-Algorithmus von MindSync:
-
-1. **Audio-Analyse**:
-   ```swift
-   let beats = beatDetector.detectBeats(samples, sampleRate: 44100)
-   let bpm = tempoEstimator.estimate(beatTimestamps: beats)
-   ```
-
-2. **Frequenz-Mapping**:
-   ```swift
-   let targetFrequency = mode.frequency  // z.B. 10 Hz für Alpha
-   let scriptDuration = audioFile.duration
-   ```
-
-3. **LightScript-Generierung**:
-   ```swift
-   for beat in beats {
-       let event = LightEvent(
-           timestamp: beat.time,
-           intensity: mode.intensity,
-           waveform: mode.waveform  // sine/triangle/square
-       )
-       events.append(event)
-   }
-   ```
-
-4. **Cinematic Modulation** (nur Cinematic Mode):
-   ```swift
-   let audioEnergy = audioEnergyTracker.currentEnergy
-   let baseIntensity = event.intensity
-   let modulatedIntensity = calculateCinematicIntensity(
-       baseFrequency: targetFrequency,
-       currentTime: elapsed,
-       audioEnergy: audioEnergy
-   )
-   ```
-
-### Service Container Pattern
-
-Alle Services sind zent ral registriert:
-
-```swift
-class ServiceContainer {
-    static let shared = ServiceContainer()
-    
-    lazy var audioAnalyzer: AudioAnalyzer = AudioAnalyzer()
-    lazy var thermalManager: ThermalManager = ThermalManager()
-    lazy var fallDetector: FallDetector = FallDetector()
-    lazy var sessionHistoryService: SessionHistoryServiceProtocol = SessionHistoryService()
-    // ...
-}
-```
-
-Vorteile:
-- ✅ Zentrale Konfiguration
-- ✅ Einfaches Mocking für Tests
-- ✅ Lazy Loading für Performance
-- ✅ Singleton-Pattern für State-Management
+- Audio-Pipeline: `AVAudioEngine` → FFT (Accelerate) → Beat-/Tempo-Detection → `EntrainmentEngine` → Licht-/Vibrations-Controller  
+- Architekturprinzipien: Feature-basiert, protocollastig, testgetrieben, Service-Container für DI  
+- Details: Siehe `docs/architecture.md`, `docs/SYNC_IMPLEMENTATION.md` und `docs/CONCEPT_AND_ROADMAP.md`.
 
 ---
 
@@ -453,10 +328,14 @@ Ausführliche Dokumentation findest du in:
 
 | Dokument | Beschreibung |
 |----------|--------------|
-| [Architecture Guide](docs/architecture.md) | Detaillierte Architektur-Übersicht |
-| [Developer Guide](docs/developer-guide.md) | Setup, Testing, Code Style |
-| [Plan Document](plan.md) | Original Technical Plan |
-| [Tasks Document](tasks.md) | Implementierungs-Tasks & Dependencies |
+| [Architecture](docs/architecture.md) | Architektur-Übersicht & Komponenten |
+| [Development Guide](docs/DEVELOPMENT.md) | Setup, Build, Testing & Entwickler-Workflow |
+| [User Guide](docs/USER_GUIDE.md) | Benutzerführung & Session-Empfehlungen |
+| [Sync Implementation](docs/SYNC_IMPLEMENTATION.md) | Details zur Audio-Licht-Synchronisation |
+| [Latency Calibration](docs/LATENCY_CALIBRATION.md) | Latenz-Messung & -Korrektur |
+| [Gamma Optimization](docs/GAMMA_OPTIMIZATION.md) | Optimierungen für Gamma-/High-Frequency-Modi |
+| [Final Acceptance Report](docs/FINAL_ACCEPTANCE_REPORT.md) | Abnahme- & Qualitätszusammenfassung |
+| Spezifikation 001 (specs/001-audio-strobe-sync/spec.md) | Formale Spezifikation der Audio-Strobe-Sync-Pipeline |
 
 ---
 
@@ -492,18 +371,39 @@ MindSync ist derzeit ein privates Projekt. Wenn du Interesse an Zusammenarbeit h
 
 ## 🙏 Danksagungen & Inspiration
 
-### Wissenschaftliche Grundlagen
-- **Photic Driving Forschung** (Walter & Walter, 1949): Grundlegende Studien zur visuellen Stimulation
-- **Neural Entrainment Studien**: Jahrzehnte der neurowissenschaftlichen Forschung
-- **Netherlands Institute for Neuroscience**: Forschung zu Bewusstseinszuständen
+Eine ausführlichere Liste an wissenschaftlichen Quellen, technischer Inspiration und persönlicher Motivation findest du in `docs/CONCEPT_AND_ROADMAP.md`.
 
-### Technische Inspiration
-- **Apple Developer Documentation**: AVFoundation, Accelerate, CoreMotion
-- **iOS Developer Community**: Unzählige Open-Source-Projekte und Tutorials
-- **Lumenate App**: Inspiration für die Produktvision (trotz anderer Herangehensweise)
+---
 
-### Persönliche Motivation
-MindSync entstand aus dem tiefen Wunsch, Menschen zu ermöglichen, ihr inneres Potenzial zu entfalten. Die Technologie ist nur ein Werkzeug – das wahre Ziel ist die Ermächtigung des Einzelnen, sein Bewusstsein zu erweitern und ein erfülltes Leben zu führen.
+## 📞 Kontakt
+
+Für Fragen, Feedback oder Zusammenarbeit:
+- **Issues**: [GitHub Issues](../../issues)
+- **Discussions**: [GitHub Discussions](../../discussions)
+
+---
+
+## 🌍 English Overview
+
+MindSync is an iOS app for **neural entrainment** using audio-synchronised stroboscopic light patterns. It analyses your music in real time and generates light scripts that target specific brainwave ranges (e.g. relaxation, focus, deep meditation).
+
+- Personalised experience: Real-time analysis of your own tracks  
+- Multiple entrainment modes: Alpha, Theta, Gamma & Cinematic  
+- Dual light sources: Torch (eyes closed) or coloured screen  
+- Safety first: Epilepsy onboarding, frequency limits, thermal management  
+
+For more details, please refer to:  
+- `docs/USER_GUIDE.md` for user-facing guidance  
+- `docs/architecture.md` and `docs/SYNC_IMPLEMENTATION.md` for technical internals  
+- `docs/CONCEPT_AND_ROADMAP.md` for the scientific background and roadmap  
+
+---
+
+**Version**: 1.0.0 | **Status**: Phase 1 & 2 abgeschlossen, Phase 3 in Planung | **Letztes Update**: Dezember 2025
+
+---
+
+*\"Das Gehirn ist ein Instrument der unglaublichen Macht. Mit den richtigen Werkzeugen können wir lernen, es bewusst zu nutzen, um unser volles Potenzial zu entfalten.\"*
 
 ---
 
