@@ -1072,7 +1072,8 @@ final class SessionViewModel: ObservableObject {
     
     /// Starts audio playback and light synchronization
     private func startPlaybackAndLight(url: URL, script: LightScript, startTime: Date) async throws {
-        logger.info("startPlaybackAndLight: starting with URL=\(url.lastPathComponent), mode=\(currentSession?.mode.rawValue ?? "unknown")")
+        let modeString = self.currentSession?.mode.rawValue ?? "unknown"
+        logger.info("startPlaybackAndLight: starting with URL=\(url.lastPathComponent), mode=\(modeString)")
 
         guard let lightController = lightController else {
             logger.error("No light controller available")
