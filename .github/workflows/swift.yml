@@ -1,4 +1,4 @@
-# This workflow will build a Swift project
+# This workflow will build and test the MindSync Xcode project
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-swift
 
 name: Swift
@@ -10,13 +10,75 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
-
+  build-and-test:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+
+    - name: Create shared scheme directory
+      run: |
+        mkdir -p MindSync/MindSync.xcodeproj/xcshareddata/xcschemes
+
+    - name: Make scheme shared (if not already)
+      run: |
+        if [ ! -f "MindSync/MindSync.xcodeproj/xcshareddata/xcschemes/MindSync.xcscheme" ]; then
+          echo "⚠️  Scheme is not shared. Attempting to create shared scheme..."
+          # Try to run the script if it exists
+          if [ -f "scripts/make-scheme-shared.sh" ]; then
+            bash scripts/make-scheme-shared.sh || echo "⚠️  Could not auto-create shared scheme. Please mark it as shared in Xcode."
+          fi
+        else
+          echo "✓ Scheme is already shared"
+        fi
+
+    - name: List available schemes
+      run: |
+        xcodebuild -list -project MindSync/MindSync.xcodeproj
+
     - name: Build
-      run: swift build -v
-    - name: Run tests
-      run: swift test -v
+      run: |
+        xcodebuild clean build \
+          -project MindSync/MindSync.xcodeproj \
+          -scheme MindSync \
+          -configuration Debug \
+          -sdk iphonesimulator \
+          -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO \
+          ONLY_ACTIVE_ARCH=NO
+
+    - name: Run Unit Tests
+      run: |
+        xcodebuild test \
+          -project MindSync/MindSync.xcodeproj \
+          -scheme MindSync \
+          -configuration Debug \
+          -sdk iphonesimulator \
+          -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO \
+          ONLY_ACTIVE_ARCH=NO \
+          -only-testing:MindSyncTests
+
+    - name: Run UI Tests
+      run: |
+        xcodebuild test \
+          -project MindSync/MindSync.xcodeproj \
+          -scheme MindSync \
+          -configuration Debug \
+          -sdk iphonesimulator \
+          -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO \
+          ONLY_ACTIVE_ARCH=NO \
+          -only-testing:MindSyncUITests
