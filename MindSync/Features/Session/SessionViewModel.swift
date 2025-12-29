@@ -568,43 +568,53 @@ final class SessionViewModel: ObservableObject {
     
     /// Starts a session with a selected media item
     func startSession(with mediaItem: MPMediaItem) async {
-        guard state == .idle else { 
+        logger.info("Starting session with local media item - BEGIN")
+
+        guard state == .idle else {
             logger.warning("Attempted to start session while state is \(String(describing: self.state))")
-            return 
+            return
         }
-        
-        logger.info("Starting session with local media item")
+
+        logger.info("Setting state to analyzing")
         state = .analyzing
         analysisProgress = AnalysisProgress(phase: .analyzing, progress: 0.0, message: NSLocalizedString("analysis.analyzing", comment: ""))
         stopPlaybackProgressUpdates()
-        
+
         // Refresh cached preferences to ensure we use current user settings
+        logger.info("Loading cached preferences")
         cachedPreferences = UserPreferences.load()
-        
+
         // Set the light controller based on current preferences
+        logger.info("Setting light controller based on preferences: \(self.cachedPreferences.preferredLightSource.rawValue)")
         switch cachedPreferences.preferredLightSource {
         case .flashlight:
             lightController = services.flashlightController
         case .screen:
             lightController = services.screenController
         }
-        
+
         // Pre-warm flashlight if needed
+        logger.info("Pre-warming flashlight if needed")
         await prewarmFlashlightIfNeeded()
-        
+
         do {
+            logger.info("Getting asset URL for analysis")
             // Check if item can be analyzed
             let assetURL = try await services.mediaLibraryService.assetURLForAnalysis(of: mediaItem)
-            
+            logger.info("Asset URL obtained: \(assetURL.lastPathComponent)")
+
+            logger.info("Starting audio analysis")
             // Analyze audio (use quick mode if enabled in preferences)
             let track = try await audioAnalyzer.analyze(url: assetURL, mediaItem: mediaItem, quickMode: cachedPreferences.quickAnalysisEnabled)
             currentTrack = track
-            
+            logger.info("Audio analysis completed: \(track.title)")
+
             // Generate LightScript using cached preferences
             let mode = cachedPreferences.preferredMode
             let lightSource = cachedPreferences.preferredLightSource
             let screenColor = cachedPreferences.screenColor
-            
+
+            logger.info("Generating light script")
             let script = entrainmentEngine.generateLightScript(
                 from: track,
                 mode: mode,
@@ -612,9 +622,11 @@ final class SessionViewModel: ObservableObject {
                 screenColor: lightSource == .screen ? screenColor : nil
             )
             currentScript = script
-            
+            logger.info("Light script generated")
+
             // Generate VibrationScript if vibration is enabled
             if cachedPreferences.vibrationEnabled {
+                logger.info("Generating vibration script")
                 do {
                     let vibrationScript = try entrainmentEngine.generateVibrationScript(
                         from: track,
@@ -623,22 +635,22 @@ final class SessionViewModel: ObservableObject {
                     )
                     currentVibrationScript = vibrationScript
                     vibrationController = services.vibrationController
+                    logger.info("Vibration script generated")
                 } catch {
                     logger.error("Failed to generate vibration script: \(error.localizedDescription, privacy: .public)")
                     // Degrade gracefully: continue without vibration instead of blocking session start
                     vibrationController = nil
                     currentVibrationScript = nil
                     statusMessage = NSLocalizedString("status.vibration.unavailable", comment: "")
-                    // Clear any previous critical error state to avoid stale UI: we're showing a non-critical
-                    // status message and continuing the session, so old error messages should not be displayed
                     errorMessage = nil
                 }
             } else {
                 vibrationController = nil
                 currentVibrationScript = nil
             }
-            
+
             // Create session
+            logger.info("Creating session object")
             let session = Session(
                 mode: mode,
                 lightSource: lightSource,
@@ -649,67 +661,66 @@ final class SessionViewModel: ObservableObject {
             )
             currentSession = session
             updateAffirmationStatusForCurrentPreferences()
-            
+
             // Set custom color RGB if screen mode and custom color is selected
             if lightSource == .screen, screenColor == .custom,
                let screenController = lightController as? ScreenController {
                 screenController.setCustomColorRGB(cachedPreferences.customColorRGB)
             }
-            
+
             // Apply audio latency offset from user preferences for Bluetooth compensation
             if let baseController = lightController as? BaseLightController {
                 baseController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
-                // Set audio playback reference for precise audio-thread timing
                 baseController.audioPlayback = audioPlayback
             }
-            
+
             // Start playback and light (this sets the startTime)
+            logger.info("Starting playback and light")
             let startTime = Date()
             sessionStartTime = startTime
-            // Update frequency now that sessionStartTime is set (timer will continue updating)
             updateCurrentFrequency()
             startFrequencyUpdates()
-            
+
             // Start audio playback and light
             try await startPlaybackAndLight(url: assetURL, script: script, startTime: startTime)
-            
+            logger.info("Playback and light started successfully")
+
             // Start playback progress updates AFTER audio has started
             startPlaybackProgressUpdates(for: track.duration)
-            
+
             // Start vibration if enabled (using same startTime for synchronization)
             if cachedPreferences.vibrationEnabled, let vibrationController = vibrationController, let vibrationScript = currentVibrationScript {
-                // Apply audio latency offset for Bluetooth compensation
                 vibrationController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
-                // Set audio playback reference for precise audio-thread timing
                 vibrationController.audioPlayback = audioPlayback
-                
+
                 try await vibrationController.start()
                 vibrationController.execute(script: vibrationScript, syncedTo: startTime)
             }
-            
+
             // If cinematic mode, start audio energy tracking and attach to light controller
             enableSpectralFluxForCinematicMode(mode)
-            
+
             // Start Bluetooth latency monitoring for dynamic synchronization
             setupBluetoothLatencyMonitoring()
-            
+
             // Prevent screen from turning off during session
             UIApplication.shared.isIdleTimerDisabled = true
-            
+
+            logger.info("Setting state to running")
             state = .running
             affirmationPlayed = false
-            
+
             // Start observing for affirmation trigger
             startAffirmationObserver()
-            
+
             // Haptic feedback for session start (if enabled)
             if cachedPreferences.hapticFeedbackEnabled {
                 HapticFeedback.medium()
             }
-            
+
+            logger.info("Session started successfully - END")
+
         } catch is CancellationError {
-            // Task was cancelled (e.g., view disappeared during startup)
-            // Clean up resources but don't set error state
             logger.info("Session start cancelled")
             audioPlayback.stop()
             lightController?.stop()
@@ -717,13 +728,10 @@ final class SessionViewModel: ObservableObject {
             stopPlaybackProgressUpdates()
             state = .idle
         } catch {
-            // Set error state first to ensure it's always set, even if cleanup fails
             logger.error("Session start failed: \(error.localizedDescription, privacy: .public)")
             errorMessage = error.localizedDescription
             state = .error
-            
-            // Cleanup resources - errors during cleanup are silently ignored
-            // to ensure the error state from the original failure is preserved
+
             audioPlayback.stop()
             lightController?.stop()
             vibrationController?.stop()
@@ -1060,27 +1068,80 @@ final class SessionViewModel: ObservableObject {
     
     /// Starts audio playback and light synchronization
     private func startPlaybackAndLight(url: URL, script: LightScript, startTime: Date) async throws {
+        logger.info("startPlaybackAndLight called with URL: \(url.lastPathComponent)")
+
         guard let lightController = lightController else {
+            logger.error("No light controller available")
             throw LightControlError.configurationFailed
         }
-        
+
+        logger.info("Starting audio playback")
         // Start audio playback first
         try audioPlayback.play(url: url)
-        
+        logger.info("Audio playback started successfully")
+
         // Small delay to ensure audio engine is fully started before starting light
+        logger.info("Waiting for audio engine startup delay: \(Self.audioEngineStartupDelay) nanoseconds")
         try await Task.sleep(nanoseconds: Self.audioEngineStartupDelay)
-        
+        logger.info("Audio engine startup delay completed")
+
         // If cinematic mode, attach isochronic audio to the playback engine for perfect sync
         if currentSession?.mode == .cinematic, let engine = audioPlayback.getAudioEngine() {
+            logger.info("Setting up isochronic audio for cinematic mode")
             IsochronicAudioService.shared.carrierFrequency = 150.0
             IsochronicAudioService.shared.start(mode: currentSession!.mode, attachToEngine: engine)
+            logger.info("Isochronic audio setup completed")
         }
 
-        // Start light controller
-        try await lightController.start()
-        
+        logger.info("Starting light controller with timeout")
+        // Start light controller with timeout to prevent hanging
+        let lightStartTask = Task {
+            try await lightController.start()
+        }
+
+        do {
+            // Wait for light controller to start with a 5-second timeout
+            try await withTimeout(seconds: 5.0) {
+                try await lightStartTask.value
+            }
+            logger.info("Light controller started successfully")
+        } catch {
+            lightStartTask.cancel()
+            logger.error("Light controller start timed out or failed: \(error.localizedDescription)")
+            // Try to continue without light controller as fallback
+            logger.info("Continuing without light synchronization due to timeout")
+        }
+
+        logger.info("Executing light script")
         // Start LightScript execution synchronized with audio
         lightController.execute(script: script, syncedTo: startTime)
+        logger.info("Light script execution started")
+    }
+
+    /// Helper function to add timeout to async operations
+    private func withTimeout<T>(seconds: TimeInterval, operation: @escaping () async throws -> T) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            // Start the operation
+            group.addTask {
+                try await operation()
+            }
+
+            // Start the timeout
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw NSError(domain: "SessionViewModel", code: -1, userInfo: [NSLocalizedDescriptionKey: "Operation timed out after \(seconds) seconds"])
+            }
+
+            // Wait for either completion or timeout
+            guard let result = try await group.next() else {
+                throw NSError(domain: "SessionViewModel", code: -2, userInfo: [NSLocalizedDescriptionKey: "No result from operation"])
+            }
+
+            // Cancel remaining tasks
+            group.cancelAll()
+
+            return result
+        }
     }
     
     /// Startet den Observer für Affirmationen während Theta-Phase

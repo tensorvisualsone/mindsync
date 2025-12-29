@@ -215,19 +215,28 @@ final class VibrationControllerTransientTests: XCTestCase {
         guard capabilities.supportsHaptics else {
             throw XCTSkip("Device does not support haptics")
         }
-        
+
         try await controller.start()
-        
-        // Set some transients
-        controller.setTransientIntensity(0.5)
-        
-        // We can't directly trigger engine reset, but we document expected behavior:
-        // - If engine resets during transient, the restart handler should reinitialize
-        // - Subsequent transients should work after engine recovers
-        
+
+        // Create a simple vibration script with transient events
+        let transientEvent = VibrationEvent(
+            timestamp: 0.0,
+            duration: 0.02, // 20ms transient
+            intensity: 0.5,
+            type: .transient
+        )
+
+        let script = VibrationScript(
+            events: [transientEvent],
+            duration: 0.1,
+            targetFrequency: 10.0
+        )
+
+        // Execute the script instead of calling private method directly
+        controller.execute(script: script, syncedTo: Date())
+
         // Wait and verify controller still works
         try await Task.sleep(nanoseconds: 100_000_000)
-        controller.setTransientIntensity(0.6)
     }
     
     func testTransientIntensityCreatesShortPulse() async throws {
@@ -251,20 +260,33 @@ final class VibrationControllerTransientTests: XCTestCase {
         guard capabilities.supportsHaptics else {
             throw XCTSkip("Device does not support haptics")
         }
-        
+
         try await controller.start()
-        
+
         // Transient haptics are designed to work with square wave patterns
-        // Simulate square wave by alternating transients with pauses
-        
-        for _ in 0..<5 {
-            // "On" phase: transient
-            controller.setTransientIntensity(0.8)
-            
-            // "Off" phase: wait (square wave period)
-            try await Task.sleep(nanoseconds: 100_000_000) // 100ms = 10 Hz
+        // Simulate square wave by creating a script with alternating transients
+
+        var events: [VibrationEvent] = []
+        for i in 0..<5 {
+            let timestamp = TimeInterval(i) * 0.1 // 100ms intervals
+            let transientEvent = VibrationEvent(
+                timestamp: timestamp,
+                duration: 0.02, // 20ms transient
+                intensity: 0.8,
+                type: .transient
+            )
+            events.append(transientEvent)
         }
-        
+
+        let script = VibrationScript(
+            events: events,
+            duration: 0.5,
+            targetFrequency: 10.0
+        )
+
+        // Execute the script instead of calling private method directly
+        controller.execute(script: script, syncedTo: Date())
+
         // Should create perceivable square wave pattern
     }
 }

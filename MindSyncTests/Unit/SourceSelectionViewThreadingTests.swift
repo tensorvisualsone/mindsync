@@ -7,26 +7,27 @@ import MediaPlayer
 /// Tests verify that ServiceContainer access is thread-safe
 @MainActor
 final class SourceSelectionViewThreadingTests: XCTestCase {
-    
+
     func testServiceContainerAccess_FromMainActor_IsSafe() {
         // Verify that accessing ServiceContainer from @MainActor context is safe
         // This simulates what SourceSelectionView does in onAppear
-        
+
         Task { @MainActor in
             let container = ServiceContainer.shared
             let mediaLibraryService = container.mediaLibraryService
             let permissionsService = container.permissionsService
-            
+
             // Access should not crash
             XCTAssertNotNil(mediaLibraryService)
             XCTAssertNotNil(permissionsService)
-            
+
             // Verify services are accessible
             let authStatus = mediaLibraryService.authorizationStatus
             XCTAssertNotNil(authStatus)
-            
+
             let micStatus = permissionsService.microphoneStatus
-            XCTAssertNotNil(micStatus)
+            // microphoneStatus returns AVAudioSession.RecordPermission
+            XCTAssertTrue(micStatus == .undetermined || micStatus == .denied || micStatus == .granted)
         }
     }
     
@@ -53,12 +54,12 @@ final class SourceSelectionViewThreadingTests: XCTestCase {
     func testServiceContainerAccess_Pattern_MatchesSourceSelectionView() {
         // Test the exact pattern used in SourceSelectionView.onAppear
         // This verifies the threading fix is correct
-        
+
         var mediaLibraryService: MediaLibraryService?
         var permissionsService: PermissionsService?
         var authorizationStatus: MPMediaLibraryAuthorizationStatus = .notDetermined
-        var microphoneStatus: MicrophonePermissionStatus = .undetermined
-        
+        var microphoneStatus: AVAudioSession.RecordPermission = .undetermined
+
         // Simulate onAppear pattern
         Task { @MainActor in
             mediaLibraryService = ServiceContainer.shared.mediaLibraryService
@@ -66,7 +67,7 @@ final class SourceSelectionViewThreadingTests: XCTestCase {
             authorizationStatus = mediaLibraryService?.authorizationStatus ?? .notDetermined
             microphoneStatus = permissionsService?.microphoneStatus ?? .undetermined
         }
-        
+
         // Wait for task to complete
         let expectation = expectation(description: "Services loaded")
         Task { @MainActor in
@@ -74,7 +75,7 @@ final class SourceSelectionViewThreadingTests: XCTestCase {
             expectation.fulfill()
         }
         wait(for: [expectation], timeout: 1.0)
-        
+
         // Verify services were loaded
         // Note: In actual SourceSelectionView, these would be @State variables
         // Here we just verify the pattern doesn't crash
@@ -94,12 +95,12 @@ final class SourceSelectionViewThreadingTests: XCTestCase {
         // Test that requestMicrophoneAccess can be called safely
         let container = ServiceContainer.shared
         let service = container.permissionsService
-        
+
         // This should not cause threading issues
         // Note: This will show a permission dialog in simulator, but should not crash
-        let granted = await service.requestMicrophoneAccess()
+        let permissionStatus = await service.requestMicrophoneAccess()
         // Result depends on user/system, but should not crash
-        XCTAssertNotNil(granted as Bool)
+        XCTAssertTrue(permissionStatus == .undetermined || permissionStatus == .denied || permissionStatus == .granted)
     }
     
     func testServiceContainer_ConcurrentAccess_IsSafe() {
