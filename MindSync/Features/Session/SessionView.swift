@@ -99,18 +99,6 @@ struct SessionView: View {
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.thermalWarningLevel)
         }
         .preferredColorScheme(.dark)
-        .onAppear {
-            // Immediately set state to analyzing to show progress UI
-            // This ensures the UI updates before the async task starts
-            if viewModel.state == .idle {
-                viewModel.state = .analyzing
-                viewModel.analysisProgress = AnalysisProgress(
-                    phase: .analyzing,
-                    progress: 0.0,
-                    message: NSLocalizedString("analysis.analyzing", comment: "")
-                )
-            }
-        }
         .task {
             // Start the session immediately when view appears
             if let mediaItem = mediaItem {
