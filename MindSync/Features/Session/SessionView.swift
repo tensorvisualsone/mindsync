@@ -38,13 +38,30 @@ struct SessionView: View {
             
             switch viewModel.state {
             case .idle:
-                // Should not be here - navigated from HomeView
-                EmptyView()
+                // Show loading state while session is being initialized
+                VStack {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                    Text(NSLocalizedString("analysis.analyzing", comment: "Analyzing..."))
+                        .font(AppConstants.Typography.subheadline)
+                        .foregroundColor(.mindSyncSecondaryText)
+                        .padding(.top, AppConstants.Spacing.md)
+                }
                 
             case .analyzing:
                 if let progress = viewModel.analysisProgress {
                     AnalysisProgressView(progress: progress) {
                         viewModel.cancelAnalysis()
+                    }
+                } else {
+                    // Fallback if progress is nil
+                    VStack {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                        Text(NSLocalizedString("analysis.analyzing", comment: "Analyzing..."))
+                            .font(AppConstants.Typography.subheadline)
+                            .foregroundColor(.mindSyncSecondaryText)
+                            .padding(.top, AppConstants.Spacing.md)
                     }
                 }
                 
@@ -82,7 +99,20 @@ struct SessionView: View {
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.thermalWarningLevel)
         }
         .preferredColorScheme(.dark)
+        .onAppear {
+            // Immediately set state to analyzing to show progress UI
+            // This ensures the UI updates before the async task starts
+            if viewModel.state == .idle {
+                viewModel.state = .analyzing
+                viewModel.analysisProgress = AnalysisProgress(
+                    phase: .analyzing,
+                    progress: 0.0,
+                    message: NSLocalizedString("analysis.analyzing", comment: "")
+                )
+            }
+        }
         .task {
+            // Start the session immediately when view appears
             if let mediaItem = mediaItem {
                 await viewModel.startSession(with: mediaItem)
             } else if let audioFileURL = audioFileURL {
