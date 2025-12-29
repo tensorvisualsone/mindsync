@@ -1068,32 +1068,26 @@ final class SessionViewModel: ObservableObject {
     
     /// Starts audio playback and light synchronization
     private func startPlaybackAndLight(url: URL, script: LightScript, startTime: Date) async throws {
-        logger.info("startPlaybackAndLight called with URL: \(url.lastPathComponent)")
+        logger.info("startPlaybackAndLight: starting with URL=\(url.lastPathComponent), mode=\(currentSession?.mode.rawValue ?? "unknown")")
 
         guard let lightController = lightController else {
             logger.error("No light controller available")
             throw LightControlError.configurationFailed
         }
 
-        logger.info("Starting audio playback")
         // Start audio playback first
         try audioPlayback.play(url: url)
-        logger.info("Audio playback started successfully")
 
         // Small delay to ensure audio engine is fully started before starting light
-        logger.info("Waiting for audio engine startup delay: \(Self.audioEngineStartupDelay) nanoseconds")
         try await Task.sleep(nanoseconds: Self.audioEngineStartupDelay)
-        logger.info("Audio engine startup delay completed")
 
         // If cinematic mode, attach isochronic audio to the playback engine for perfect sync
         if currentSession?.mode == .cinematic, let engine = audioPlayback.getAudioEngine() {
-            logger.info("Setting up isochronic audio for cinematic mode")
             IsochronicAudioService.shared.carrierFrequency = 150.0
             IsochronicAudioService.shared.start(mode: currentSession!.mode, attachToEngine: engine)
-            logger.info("Isochronic audio setup completed")
         }
 
-        logger.info("Starting light controller with timeout")
+        logger.info("startPlaybackAndLight: audio started, starting light controller with 5s timeout")
         // Start light controller with timeout to prevent hanging
         let lightStartTask = Task {
             try await lightController.start()
@@ -1105,20 +1099,21 @@ final class SessionViewModel: ObservableObject {
             try await withTimeout(seconds: 5.0) {
                 try await lightStartTask.value
             }
-            logger.info("Light controller started successfully")
             lightControllerStarted = true
         } catch {
             lightStartTask.cancel()
             logger.error("Light controller start timed out or failed: \(error.localizedDescription)")
             // Try to continue without light controller as fallback
-            logger.info("Continuing without light synchronization due to timeout")
+            // Set status message to notify user of audio-only mode
+            statusMessage = NSLocalizedString("status.light.failed", comment: "Light synchronization failed, continuing in audio-only mode")
         }
 
         if lightControllerStarted {
-            logger.info("Executing light script")
             // Start LightScript execution synchronized with audio
             lightController.execute(script: script, syncedTo: startTime)
-            logger.info("Light script execution started")
+            logger.info("startPlaybackAndLight: light script execution started successfully")
+        } else {
+            logger.info("startPlaybackAndLight: continuing in audio-only mode")
         }
     }
 
@@ -1136,27 +1131,43 @@ final class SessionViewModel: ObservableObject {
 
     /// Helper function to add timeout to async operations
     private func withTimeout<T>(seconds: TimeInterval, operation: @escaping () async throws -> T) async throws -> T {
-        try await withThrowingTaskGroup(of: T?.self) { group in
+        try await withThrowingTaskGroup(of: Result<T, Error>.self) { group in
             // Start the operation
             group.addTask {
-                try await operation()
+                do {
+                    let value = try await operation()
+                    return .success(value)
+                } catch {
+                    return .failure(error)
+                }
             }
 
             // Start the timeout
             group.addTask {
-                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-                throw TimeoutError.timedOut(seconds: seconds)
+                do {
+                    try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                    return .failure(TimeoutError.timedOut(seconds: seconds))
+                } catch {
+                    // If the sleep is cancelled (because the operation finished first),
+                    // propagate the cancellation as a failure so the group can complete cleanly.
+                    return .failure(error)
+                }
             }
 
             // Wait for either completion or timeout
-            guard let result = try await group.next(), let unwrapped = result else {
+            guard let result = try await group.next() else {
                 throw TimeoutError.timedOut(seconds: seconds)
             }
 
             // Cancel remaining tasks
             group.cancelAll()
 
-            return unwrapped
+            switch result {
+            case .success(let value):
+                return value
+            case .failure(let error):
+                throw error
+            }
         }
     }
     
