@@ -23,7 +23,9 @@ final class PermissionsService {
     func requestMicrophoneAccess() async -> AVAudioSession.RecordPermission {
         await withCheckedContinuation { continuation in
             AVAudioSession.sharedInstance().requestRecordPermission { granted in
-                continuation.resume(returning: AVAudioSession.sharedInstance().recordPermission)
+                // Map the callback parameter directly instead of re-querying
+                let permission: AVAudioSession.RecordPermission = granted ? .granted : .denied
+                continuation.resume(returning: permission)
             }
         }
     }

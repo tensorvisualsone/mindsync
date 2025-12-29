@@ -1099,12 +1099,14 @@ final class SessionViewModel: ObservableObject {
             try await lightController.start()
         }
 
+        var lightControllerStarted = false
         do {
             // Wait for light controller to start with a 5-second timeout
             try await withTimeout(seconds: 5.0) {
                 try await lightStartTask.value
             }
             logger.info("Light controller started successfully")
+            lightControllerStarted = true
         } catch {
             lightStartTask.cancel()
             logger.error("Light controller start timed out or failed: \(error.localizedDescription)")
@@ -1112,15 +1114,29 @@ final class SessionViewModel: ObservableObject {
             logger.info("Continuing without light synchronization due to timeout")
         }
 
-        logger.info("Executing light script")
-        // Start LightScript execution synchronized with audio
-        lightController.execute(script: script, syncedTo: startTime)
-        logger.info("Light script execution started")
+        if lightControllerStarted {
+            logger.info("Executing light script")
+            // Start LightScript execution synchronized with audio
+            lightController.execute(script: script, syncedTo: startTime)
+            logger.info("Light script execution started")
+        }
+    }
+
+    /// Typed timeout error for better type safety
+    enum TimeoutError: LocalizedError {
+        case timedOut(seconds: TimeInterval)
+
+        var errorDescription: String? {
+            switch self {
+            case .timedOut(let seconds):
+                return "Operation timed out after \(seconds) seconds"
+            }
+        }
     }
 
     /// Helper function to add timeout to async operations
     private func withTimeout<T>(seconds: TimeInterval, operation: @escaping () async throws -> T) async throws -> T {
-        try await withThrowingTaskGroup(of: T.self) { group in
+        try await withThrowingTaskGroup(of: T?.self) { group in
             // Start the operation
             group.addTask {
                 try await operation()
@@ -1129,18 +1145,18 @@ final class SessionViewModel: ObservableObject {
             // Start the timeout
             group.addTask {
                 try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-                throw NSError(domain: "SessionViewModel", code: -1, userInfo: [NSLocalizedDescriptionKey: "Operation timed out after \(seconds) seconds"])
+                throw TimeoutError.timedOut(seconds: seconds)
             }
 
             // Wait for either completion or timeout
-            guard let result = try await group.next() else {
-                throw NSError(domain: "SessionViewModel", code: -2, userInfo: [NSLocalizedDescriptionKey: "No result from operation"])
+            guard let result = try await group.next(), let unwrapped = result else {
+                throw TimeoutError.timedOut(seconds: seconds)
             }
 
             // Cancel remaining tasks
             group.cancelAll()
 
-            return result
+            return unwrapped
         }
     }
     
