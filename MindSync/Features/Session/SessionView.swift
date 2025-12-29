@@ -42,7 +42,7 @@ struct SessionView: View {
                 VStack {
                     ProgressView()
                         .scaleEffect(1.5)
-                    Text(NSLocalizedString("analysis.analyzing", comment: "Analyzing..."))
+                    Text(NSLocalizedString("analysis.loading", comment: "Loading audio..."))
                         .font(AppConstants.Typography.subheadline)
                         .foregroundColor(.mindSyncSecondaryText)
                         .padding(.top, AppConstants.Spacing.md)
