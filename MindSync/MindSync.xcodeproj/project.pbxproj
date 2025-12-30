@@ -1,0 +1,974 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		313231356664363636613366343537383862643366623036 /* BluetoothLatencyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 653862616434613531646362343731666131343735336434 /* BluetoothLatencyMonitor.swift */; };
+		633064626165323231623765343638656130306264383662 /* SpectralFluxDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 313932366265313238323165346263626265306632323465 /* SpectralFluxDetector.swift */; };
+		BA0681122EFB013D0035F5B8 /* FrequencyMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680E02EFB013D0035F5B8 /* FrequencyMapper.swift */; };
+		BA0681132EFB013D0035F5B8 /* TempoEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680DD2EFB013D0035F5B8 /* TempoEstimator.swift */; };
+		BA0681142EFB013D0035F5B8 /* ThermalManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680E72EFB013D0035F5B8 /* ThermalManager.swift */; };
+		BA0681152EFB013D0035F5B8 /* ScreenController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680E62EFB013D0035F5B8 /* ScreenController.swift */; };
+		BA0681162EFB013D0035F5B8 /* BeatDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680DB2EFB013D0035F5B8 /* BeatDetector.swift */; };
+		BA0681172EFB013D0035F5B8 /* FlashlightController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680E42EFB013D0035F5B8 /* FlashlightController.swift */; };
+		BA0681182EFB013D0035F5B8 /* AudioFileReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680DA2EFB013D0035F5B8 /* AudioFileReader.swift */; };
+		BA0681192EFB013D0035F5B8 /* SafetyBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA06810B2EFB013D0035F5B8 /* SafetyBanner.swift */; };
+		BA06811A2EFB013D0035F5B8 /* AudioTrack.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680FE2EFB013D0035F5B8 /* AudioTrack.swift */; };
+		BA06811B2EFB013D0035F5B8 /* AudioAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680D92EFB013D0035F5B8 /* AudioAnalyzer.swift */; };
+		BA06811C2EFB013D0035F5B8 /* LightScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680E12EFB013D0035F5B8 /* LightScript.swift */; };
+		BA06811D2EFB013D0035F5B8 /* Color+MindSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA06810D2EFB013D0035F5B8 /* Color+MindSync.swift */; };
+		BA06811E2EFB013D0035F5B8 /* LightSourcePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680FA2EFB013D0035F5B8 /* LightSourcePicker.swift */; };
+		BA06811F2EFB013D0035F5B8 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680ED2EFB013D0035F5B8 /* HomeView.swift */; };
+		BA0681202EFB013D0035F5B8 /* SourceSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680EF2EFB013D0035F5B8 /* SourceSelectionView.swift */; };
+		BA0681212EFB013D0035F5B8 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680F22EFB013D0035F5B8 /* OnboardingView.swift */; };
+		BA0681222EFB013D0035F5B8 /* PermissionsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681052EFB013D0035F5B8 /* PermissionsService.swift */; };
+		BA0681232EFB013D0035F5B8 /* ModeSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680EE2EFB013D0035F5B8 /* ModeSelectionView.swift */; };
+		BA0681242EFB013D0035F5B8 /* MindSyncApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680D72EFB013D0035F5B8 /* MindSyncApp.swift */; };
+		BA0681252EFB013D0035F5B8 /* ServiceContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681062EFB013D0035F5B8 /* ServiceContainer.swift */; };
+		BA0681262EFB013D0035F5B8 /* UserPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681012EFB013D0035F5B8 /* UserPreferences.swift */; };
+		BA0681272EFB013D0035F5B8 /* LightController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680E52EFB013D0035F5B8 /* LightController.swift */; };
+		BA0681282EFB013D0035F5B8 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680D62EFB013D0035F5B8 /* AppState.swift */; };
+		BA0681292EFB013D0035F5B8 /* View+Gestures.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA06810E2EFB013D0035F5B8 /* View+Gestures.swift */; };
+		BA06812A2EFB013D0035F5B8 /* SessionHistoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681072EFB013D0035F5B8 /* SessionHistoryService.swift */; };
+		BA06812B2EFB013D0035F5B8 /* LargeButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681092EFB013D0035F5B8 /* LargeButton.swift */; };
+		BA06812C2EFB013D0035F5B8 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681002EFB013D0035F5B8 /* Session.swift */; };
+		BA06812D2EFB013D0035F5B8 /* SessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680F82EFB013D0035F5B8 /* SessionViewModel.swift */; };
+		BA06812E2EFB013D0035F5B8 /* AudioPlaybackService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681032EFB013D0035F5B8 /* AudioPlaybackService.swift */; };
+		BA06812F2EFB013D0035F5B8 /* SessionControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680F62EFB013D0035F5B8 /* SessionControlsView.swift */; };
+		BA0681302EFB013D0035F5B8 /* EntrainmentEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680DF2EFB013D0035F5B8 /* EntrainmentEngine.swift */; };
+		BA0681322EFB013D0035F5B8 /* AnalysisProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680F52EFB013D0035F5B8 /* AnalysisProgressView.swift */; };
+		BA0681332EFB013D0035F5B8 /* SafetyLimits.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680EA2EFB013D0035F5B8 /* SafetyLimits.swift */; };
+		BA0681342EFB013D0035F5B8 /* MediaLibraryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681042EFB013D0035F5B8 /* MediaLibraryService.swift */; };
+		BA0681352EFB013D0035F5B8 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680FB2EFB013D0035F5B8 /* SettingsView.swift */; };
+		BA0681362EFB013D0035F5B8 /* WaveformGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680E22EFB013D0035F5B8 /* WaveformGenerator.swift */; };
+		BA0681372EFB013D0035F5B8 /* EntrainmentMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680FF2EFB013D0035F5B8 /* EntrainmentMode.swift */; };
+		BA0681382EFB013D0035F5B8 /* EpilepsyWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680F12EFB013D0035F5B8 /* EpilepsyWarningView.swift */; };
+		BA0681392EFB013D0035F5B8 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681102EFB013D0035F5B8 /* Constants.swift */; };
+		BA06813A2EFB013D0035F5B8 /* ProgressRing.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA06810A2EFB013D0035F5B8 /* ProgressRing.swift */; };
+		BA06813B2EFB013D0035F5B8 /* FallDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680E92EFB013D0035F5B8 /* FallDetector.swift */; };
+		BA06813C2EFB013D0035F5B8 /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680F32EFB013D0035F5B8 /* OnboardingViewModel.swift */; };
+		BA06813D2EFB013D0035F5B8 /* SessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680F72EFB013D0035F5B8 /* SessionView.swift */; };
+		BA06813E2EFB013D0035F5B8 /* BaseLightController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681402EFB013D0035F5B8 /* BaseLightController.swift */; };
+		BA06813F2EFB013D0035F5B8 /* AffirmationOverlayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681412EFB013D0035F5B8 /* AffirmationOverlayService.swift */; };
+		BA0681422EFB013D0035F5B8 /* AudioEnergyTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681432EFB013D0035F5B8 /* AudioEnergyTracker.swift */; };
+		BA0681452EFB013D0035F5B8 /* IsochronicAudioService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681442EFB013D0035F5B8 /* IsochronicAudioService.swift */; };
+		BA0681462EFB013D0035F5B8 /* SessionHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680F92EFB013D0035F5B9 /* SessionHistoryView.swift */; };
+		BA0681472EFB013D0035F5B8 /* SessionHistoryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680FA2EFB013D0035F5B9 /* SessionHistoryViewModel.swift */; };
+		BA0681482EFB013D0035F5B8 /* SessionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680FB2EFB013D0035F5B9 /* SessionDetailView.swift */; };
+		BA0681492EFB013D0035F5B8 /* VibrationEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681492EFB013D0035F5BA /* VibrationEvent.swift */; };
+		BA06814A2EFB013D0035F5B8 /* VibrationScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA06814A2EFB013D0035F5BA /* VibrationScript.swift */; };
+		BA06814B2EFB013D0035F5B8 /* VibrationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA06814B2EFB013D0035F5BA /* VibrationController.swift */; };
+		BA0681502EFB013D0035F5B8 /* MathHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681512EFB013D0035F5B8 /* MathHelpers.swift */; };
+		BA0685A32EFB013D0035F5B8 /* LatencyCalibrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0685A12EFB013D0035F5B8 /* LatencyCalibrationView.swift */; };
+		BA0685A42EFB013D0035F5B8 /* LatencyCalibrationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0685A22EFB013D0035F5B8 /* LatencyCalibrationViewModel.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BA9787132EFAF5990068BDEA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BA9786FD2EFAF5980068BDEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BA9787042EFAF5980068BDEA;
+			remoteInfo = MindSync;
+		};
+		BA97871D2EFAF5990068BDEA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BA9786FD2EFAF5980068BDEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BA9787042EFAF5980068BDEA;
+			remoteInfo = MindSync;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		313932366265313238323165346263626265306632323465 /* SpectralFluxDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpectralFluxDetector.swift; sourceTree = "<group>"; };
+		653862616434613531646362343731666131343735336434 /* BluetoothLatencyMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothLatencyMonitor.swift; sourceTree = "<group>"; };
+		BA0680D62EFB013D0035F5B8 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		BA0680D72EFB013D0035F5B8 /* MindSyncApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MindSyncApp.swift; sourceTree = "<group>"; };
+		BA0680D92EFB013D0035F5B8 /* AudioAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioAnalyzer.swift; sourceTree = "<group>"; };
+		BA0680DA2EFB013D0035F5B8 /* AudioFileReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFileReader.swift; sourceTree = "<group>"; };
+		BA0680DB2EFB013D0035F5B8 /* BeatDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatDetector.swift; sourceTree = "<group>"; };
+		BA0680DD2EFB013D0035F5B8 /* TempoEstimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempoEstimator.swift; sourceTree = "<group>"; };
+		BA0680DF2EFB013D0035F5B8 /* EntrainmentEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntrainmentEngine.swift; sourceTree = "<group>"; };
+		BA0680E02EFB013D0035F5B8 /* FrequencyMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrequencyMapper.swift; sourceTree = "<group>"; };
+		BA0680E12EFB013D0035F5B8 /* LightScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightScript.swift; sourceTree = "<group>"; };
+		BA0680E22EFB013D0035F5B8 /* WaveformGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformGenerator.swift; sourceTree = "<group>"; };
+		BA0680E42EFB013D0035F5B8 /* FlashlightController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlashlightController.swift; sourceTree = "<group>"; };
+		BA0680E52EFB013D0035F5B8 /* LightController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightController.swift; sourceTree = "<group>"; };
+		BA0680E62EFB013D0035F5B8 /* ScreenController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenController.swift; sourceTree = "<group>"; };
+		BA0680E72EFB013D0035F5B8 /* ThermalManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalManager.swift; sourceTree = "<group>"; };
+		BA0680E92EFB013D0035F5B8 /* FallDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FallDetector.swift; sourceTree = "<group>"; };
+		BA0680EA2EFB013D0035F5B8 /* SafetyLimits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafetyLimits.swift; sourceTree = "<group>"; };
+		BA0680ED2EFB013D0035F5B8 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		BA0680EE2EFB013D0035F5B8 /* ModeSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModeSelectionView.swift; sourceTree = "<group>"; };
+		BA0680EF2EFB013D0035F5B8 /* SourceSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceSelectionView.swift; sourceTree = "<group>"; };
+		BA0680F12EFB013D0035F5B8 /* EpilepsyWarningView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpilepsyWarningView.swift; sourceTree = "<group>"; };
+		BA0680F22EFB013D0035F5B8 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		BA0680F32EFB013D0035F5B8 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
+		BA0680F52EFB013D0035F5B8 /* AnalysisProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisProgressView.swift; sourceTree = "<group>"; };
+		BA0680F62EFB013D0035F5B8 /* SessionControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionControlsView.swift; sourceTree = "<group>"; };
+		BA0680F72EFB013D0035F5B8 /* SessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionView.swift; sourceTree = "<group>"; };
+		BA0680F82EFB013D0035F5B8 /* SessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionViewModel.swift; sourceTree = "<group>"; };
+		BA0680F92EFB013D0035F5B9 /* SessionHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionHistoryView.swift; sourceTree = "<group>"; };
+		BA0680FA2EFB013D0035F5B8 /* LightSourcePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightSourcePicker.swift; sourceTree = "<group>"; };
+		BA0680FA2EFB013D0035F5B9 /* SessionHistoryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionHistoryViewModel.swift; sourceTree = "<group>"; };
+		BA0680FB2EFB013D0035F5B8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		BA0680FB2EFB013D0035F5B9 /* SessionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDetailView.swift; sourceTree = "<group>"; };
+		BA0680FE2EFB013D0035F5B8 /* AudioTrack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioTrack.swift; sourceTree = "<group>"; };
+		BA0680FF2EFB013D0035F5B8 /* EntrainmentMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntrainmentMode.swift; sourceTree = "<group>"; };
+		BA0681002EFB013D0035F5B8 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
+		BA0681012EFB013D0035F5B8 /* UserPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPreferences.swift; sourceTree = "<group>"; };
+		BA0681032EFB013D0035F5B8 /* AudioPlaybackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackService.swift; sourceTree = "<group>"; };
+		BA0681042EFB013D0035F5B8 /* MediaLibraryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaLibraryService.swift; sourceTree = "<group>"; };
+		BA0681052EFB013D0035F5B8 /* PermissionsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsService.swift; sourceTree = "<group>"; };
+		BA0681062EFB013D0035F5B8 /* ServiceContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceContainer.swift; sourceTree = "<group>"; };
+		BA0681072EFB013D0035F5B8 /* SessionHistoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionHistoryService.swift; sourceTree = "<group>"; };
+		BA0681092EFB013D0035F5B8 /* LargeButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LargeButton.swift; sourceTree = "<group>"; };
+		BA06810A2EFB013D0035F5B8 /* ProgressRing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressRing.swift; sourceTree = "<group>"; };
+		BA06810B2EFB013D0035F5B8 /* SafetyBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafetyBanner.swift; sourceTree = "<group>"; };
+		BA06810D2EFB013D0035F5B8 /* Color+MindSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+MindSync.swift"; sourceTree = "<group>"; };
+		BA06810E2EFB013D0035F5B8 /* View+Gestures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Gestures.swift"; sourceTree = "<group>"; };
+		BA0681102EFB013D0035F5B8 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		BA0681402EFB013D0035F5B8 /* BaseLightController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseLightController.swift; sourceTree = "<group>"; };
+		BA0681412EFB013D0035F5B8 /* AffirmationOverlayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AffirmationOverlayService.swift; sourceTree = "<group>"; };
+		BA0681432EFB013D0035F5B8 /* AudioEnergyTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEnergyTracker.swift; sourceTree = "<group>"; };
+		BA0681442EFB013D0035F5B8 /* IsochronicAudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IsochronicAudioService.swift; sourceTree = "<group>"; };
+		BA0681492EFB013D0035F5BA /* VibrationEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VibrationEvent.swift; sourceTree = "<group>"; };
+		BA06814A2EFB013D0035F5BA /* VibrationScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VibrationScript.swift; sourceTree = "<group>"; };
+		BA06814B2EFB013D0035F5BA /* VibrationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VibrationController.swift; sourceTree = "<group>"; };
+		BA0681512EFB013D0035F5B8 /* MathHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathHelpers.swift; sourceTree = "<group>"; };
+		BA0685A12EFB013D0035F5B8 /* LatencyCalibrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatencyCalibrationView.swift; sourceTree = "<group>"; };
+		BA0685A22EFB013D0035F5B8 /* LatencyCalibrationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatencyCalibrationViewModel.swift; sourceTree = "<group>"; };
+		BA9787052EFAF5980068BDEA /* MindSync.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MindSync.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BA9787122EFAF5990068BDEA /* MindSyncTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MindSyncTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BA97871C2EFAF5990068BDEA /* MindSyncUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MindSyncUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		BA9787072EFAF5980068BDEA /* MindSync */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MindSync;
+			sourceTree = "<group>";
+		};
+		BA9787152EFAF5990068BDEA /* ../MindSyncTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ../MindSyncTests;
+			sourceTree = "<group>";
+		};
+		BA97871F2EFAF5990068BDEA /* ../MindSyncUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ../MindSyncUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		BA9787022EFAF5980068BDEA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BA97870F2EFAF5990068BDEA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BA9787192EFAF5990068BDEA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		616533636639383839383162343963656230333231303366 /* Sync */ = {
+			isa = PBXGroup;
+			children = (
+				653862616434613531646362343731666131343735336434 /* BluetoothLatencyMonitor.swift */,
+			);
+			path = Sync;
+			sourceTree = "<group>";
+		};
+		BA0680D82EFB013D0035F5B8 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				BA0680D62EFB013D0035F5B8 /* AppState.swift */,
+				BA0680D72EFB013D0035F5B8 /* MindSyncApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		BA0680DE2EFB013D0035F5B8 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				BA0680D92EFB013D0035F5B8 /* AudioAnalyzer.swift */,
+				BA0680DA2EFB013D0035F5B8 /* AudioFileReader.swift */,
+				BA0680DB2EFB013D0035F5B8 /* BeatDetector.swift */,
+				BA0680DD2EFB013D0035F5B8 /* TempoEstimator.swift */,
+				BA0681442EFB013D0035F5B8 /* IsochronicAudioService.swift */,
+				313932366265313238323165346263626265306632323465 /* SpectralFluxDetector.swift */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		BA0680E32EFB013D0035F5B8 /* Entrainment */ = {
+			isa = PBXGroup;
+			children = (
+				BA0680DF2EFB013D0035F5B8 /* EntrainmentEngine.swift */,
+				BA0680E02EFB013D0035F5B8 /* FrequencyMapper.swift */,
+				BA0680E12EFB013D0035F5B8 /* LightScript.swift */,
+				BA0680E22EFB013D0035F5B8 /* WaveformGenerator.swift */,
+			);
+			path = Entrainment;
+			sourceTree = "<group>";
+		};
+		BA0680E82EFB013D0035F5B8 /* Light */ = {
+			isa = PBXGroup;
+			children = (
+				BA0681402EFB013D0035F5B8 /* BaseLightController.swift */,
+				BA0680E42EFB013D0035F5B8 /* FlashlightController.swift */,
+				BA0680E52EFB013D0035F5B8 /* LightController.swift */,
+				BA0680E62EFB013D0035F5B8 /* ScreenController.swift */,
+			);
+			path = Light;
+			sourceTree = "<group>";
+		};
+		BA0680EB2EFB013D0035F5B8 /* Safety */ = {
+			isa = PBXGroup;
+			children = (
+				BA0680E92EFB013D0035F5B8 /* FallDetector.swift */,
+				BA0680EA2EFB013D0035F5B8 /* SafetyLimits.swift */,
+				BA0680E72EFB013D0035F5B8 /* ThermalManager.swift */,
+			);
+			path = Safety;
+			sourceTree = "<group>";
+		};
+		BA0680EC2EFB013D0035F5B8 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				BA0680DE2EFB013D0035F5B8 /* Audio */,
+				BA0680E32EFB013D0035F5B8 /* Entrainment */,
+				BA0680E82EFB013D0035F5B8 /* Light */,
+				BA06814C2EFB013D0035F5BA /* Vibration */,
+				BA0680EB2EFB013D0035F5B8 /* Safety */,
+				616533636639383839383162343963656230333231303366 /* Sync */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		BA0680F02EFB013D0035F5B8 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				BA0680ED2EFB013D0035F5B8 /* HomeView.swift */,
+				BA0680EE2EFB013D0035F5B8 /* ModeSelectionView.swift */,
+				BA0680EF2EFB013D0035F5B8 /* SourceSelectionView.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		BA0680F42EFB013D0035F5B8 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				BA0680F12EFB013D0035F5B8 /* EpilepsyWarningView.swift */,
+				BA0680F22EFB013D0035F5B8 /* OnboardingView.swift */,
+				BA0680F32EFB013D0035F5B8 /* OnboardingViewModel.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		BA0680F92EFB013D0035F5B8 /* Session */ = {
+			isa = PBXGroup;
+			children = (
+				BA0680F52EFB013D0035F5B8 /* AnalysisProgressView.swift */,
+				BA0680F62EFB013D0035F5B8 /* SessionControlsView.swift */,
+				BA0680F72EFB013D0035F5B8 /* SessionView.swift */,
+				BA0680F82EFB013D0035F5B8 /* SessionViewModel.swift */,
+			);
+			path = Session;
+			sourceTree = "<group>";
+		};
+		BA0680F92EFB013D0035F5BA /* History */ = {
+			isa = PBXGroup;
+			children = (
+				BA0680F92EFB013D0035F5B9 /* SessionHistoryView.swift */,
+				BA0680FA2EFB013D0035F5B9 /* SessionHistoryViewModel.swift */,
+				BA0680FB2EFB013D0035F5B9 /* SessionDetailView.swift */,
+			);
+			path = History;
+			sourceTree = "<group>";
+		};
+		BA0680FC2EFB013D0035F5B8 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				BA0680FA2EFB013D0035F5B8 /* LightSourcePicker.swift */,
+				BA0680FB2EFB013D0035F5B8 /* SettingsView.swift */,
+				BA0685A12EFB013D0035F5B8 /* LatencyCalibrationView.swift */,
+				BA0685A22EFB013D0035F5B8 /* LatencyCalibrationViewModel.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		BA0680FD2EFB013D0035F5B8 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				BA0680F02EFB013D0035F5B8 /* Home */,
+				BA0680F42EFB013D0035F5B8 /* Onboarding */,
+				BA0680F92EFB013D0035F5B8 /* Session */,
+				BA0680FC2EFB013D0035F5B8 /* Settings */,
+				BA0680F92EFB013D0035F5BA /* History */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		BA0681022EFB013D0035F5B8 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				BA0680FE2EFB013D0035F5B8 /* AudioTrack.swift */,
+				BA0680FF2EFB013D0035F5B8 /* EntrainmentMode.swift */,
+				BA0681002EFB013D0035F5B8 /* Session.swift */,
+				BA0681012EFB013D0035F5B8 /* UserPreferences.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		BA0681082EFB013D0035F5B8 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				BA0681032EFB013D0035F5B8 /* AudioPlaybackService.swift */,
+				BA0681412EFB013D0035F5B8 /* AffirmationOverlayService.swift */,
+				BA0681432EFB013D0035F5B8 /* AudioEnergyTracker.swift */,
+				BA0681042EFB013D0035F5B8 /* MediaLibraryService.swift */,
+				BA0681052EFB013D0035F5B8 /* PermissionsService.swift */,
+				BA0681062EFB013D0035F5B8 /* ServiceContainer.swift */,
+				BA0681072EFB013D0035F5B8 /* SessionHistoryService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		BA06810C2EFB013D0035F5B8 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				BA0681092EFB013D0035F5B8 /* LargeButton.swift */,
+				BA06810A2EFB013D0035F5B8 /* ProgressRing.swift */,
+				BA06810B2EFB013D0035F5B8 /* SafetyBanner.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		BA06810F2EFB013D0035F5B8 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				BA06810D2EFB013D0035F5B8 /* Color+MindSync.swift */,
+				BA06810E2EFB013D0035F5B8 /* View+Gestures.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		BA0681112EFB013D0035F5B8 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				BA06810C2EFB013D0035F5B8 /* Components */,
+				BA06810F2EFB013D0035F5B8 /* Extensions */,
+				BA0681102EFB013D0035F5B8 /* Constants.swift */,
+				BA0681512EFB013D0035F5B8 /* MathHelpers.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		BA06814C2EFB013D0035F5BA /* Vibration */ = {
+			isa = PBXGroup;
+			children = (
+				BA0681492EFB013D0035F5BA /* VibrationEvent.swift */,
+				BA06814A2EFB013D0035F5BA /* VibrationScript.swift */,
+				BA06814B2EFB013D0035F5BA /* VibrationController.swift */,
+			);
+			path = Vibration;
+			sourceTree = "<group>";
+		};
+		BA9786FC2EFAF5980068BDEA = {
+			isa = PBXGroup;
+			children = (
+				BA0680D82EFB013D0035F5B8 /* App */,
+				BA0680EC2EFB013D0035F5B8 /* Core */,
+				BA0680FD2EFB013D0035F5B8 /* Features */,
+				BA0681022EFB013D0035F5B8 /* Models */,
+				BA0681082EFB013D0035F5B8 /* Services */,
+				BA0681112EFB013D0035F5B8 /* Shared */,
+				BA9787072EFAF5980068BDEA /* MindSync */,
+				BA9787152EFAF5990068BDEA /* ../MindSyncTests */,
+				BA97871F2EFAF5990068BDEA /* ../MindSyncUITests */,
+				BA9787062EFAF5980068BDEA /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		BA9787062EFAF5980068BDEA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BA9787052EFAF5980068BDEA /* MindSync.app */,
+				BA9787122EFAF5990068BDEA /* MindSyncTests.xctest */,
+				BA97871C2EFAF5990068BDEA /* MindSyncUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		BA9787042EFAF5980068BDEA /* MindSync */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BA9787262EFAF5990068BDEA /* Build configuration list for PBXNativeTarget "MindSync" */;
+			buildPhases = (
+				BA9787012EFAF5980068BDEA /* Sources */,
+				BA9787022EFAF5980068BDEA /* Frameworks */,
+				BA9787032EFAF5980068BDEA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BA9787072EFAF5980068BDEA /* MindSync */,
+			);
+			name = MindSync;
+			packageProductDependencies = (
+			);
+			productName = MindSync;
+			productReference = BA9787052EFAF5980068BDEA /* MindSync.app */;
+			productType = "com.apple.product-type.application";
+		};
+		BA9787112EFAF5990068BDEA /* MindSyncTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BA9787292EFAF5990068BDEA /* Build configuration list for PBXNativeTarget "MindSyncTests" */;
+			buildPhases = (
+				BA97870E2EFAF5990068BDEA /* Sources */,
+				BA97870F2EFAF5990068BDEA /* Frameworks */,
+				BA9787102EFAF5990068BDEA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BA9787142EFAF5990068BDEA /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BA9787152EFAF5990068BDEA /* ../MindSyncTests */,
+			);
+			name = MindSyncTests;
+			packageProductDependencies = (
+			);
+			productName = MindSyncTests;
+			productReference = BA9787122EFAF5990068BDEA /* MindSyncTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		BA97871B2EFAF5990068BDEA /* MindSyncUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BA97872C2EFAF5990068BDEA /* Build configuration list for PBXNativeTarget "MindSyncUITests" */;
+			buildPhases = (
+				BA9787182EFAF5990068BDEA /* Sources */,
+				BA9787192EFAF5990068BDEA /* Frameworks */,
+				BA97871A2EFAF5990068BDEA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BA97871E2EFAF5990068BDEA /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BA97871F2EFAF5990068BDEA /* ../MindSyncUITests */,
+			);
+			name = MindSyncUITests;
+			packageProductDependencies = (
+			);
+			productName = MindSyncUITests;
+			productReference = BA97871C2EFAF5990068BDEA /* MindSyncUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		BA9786FD2EFAF5980068BDEA /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					BA9787042EFAF5980068BDEA = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					BA9787112EFAF5990068BDEA = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = BA9787042EFAF5980068BDEA;
+					};
+					BA97871B2EFAF5990068BDEA = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = BA9787042EFAF5980068BDEA;
+					};
+				};
+			};
+			buildConfigurationList = BA9787002EFAF5980068BDEA /* Build configuration list for PBXProject "MindSync" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = BA9786FC2EFAF5980068BDEA;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = BA9787062EFAF5980068BDEA /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				BA9787042EFAF5980068BDEA /* MindSync */,
+				BA9787112EFAF5990068BDEA /* MindSyncTests */,
+				BA97871B2EFAF5990068BDEA /* MindSyncUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BA9787032EFAF5980068BDEA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BA9787102EFAF5990068BDEA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BA97871A2EFAF5990068BDEA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		BA9787012EFAF5980068BDEA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BA0681122EFB013D0035F5B8 /* FrequencyMapper.swift in Sources */,
+				BA0681132EFB013D0035F5B8 /* TempoEstimator.swift in Sources */,
+				BA0681142EFB013D0035F5B8 /* ThermalManager.swift in Sources */,
+				BA06813E2EFB013D0035F5B8 /* BaseLightController.swift in Sources */,
+				BA0681152EFB013D0035F5B8 /* ScreenController.swift in Sources */,
+				BA0681162EFB013D0035F5B8 /* BeatDetector.swift in Sources */,
+				BA0681172EFB013D0035F5B8 /* FlashlightController.swift in Sources */,
+				BA0681182EFB013D0035F5B8 /* AudioFileReader.swift in Sources */,
+				BA0681192EFB013D0035F5B8 /* SafetyBanner.swift in Sources */,
+				BA06811A2EFB013D0035F5B8 /* AudioTrack.swift in Sources */,
+				BA06811B2EFB013D0035F5B8 /* AudioAnalyzer.swift in Sources */,
+				BA06811C2EFB013D0035F5B8 /* LightScript.swift in Sources */,
+				BA06811D2EFB013D0035F5B8 /* Color+MindSync.swift in Sources */,
+				BA06811E2EFB013D0035F5B8 /* LightSourcePicker.swift in Sources */,
+				BA06811F2EFB013D0035F5B8 /* HomeView.swift in Sources */,
+				BA0681202EFB013D0035F5B8 /* SourceSelectionView.swift in Sources */,
+				BA0681212EFB013D0035F5B8 /* OnboardingView.swift in Sources */,
+				BA0681222EFB013D0035F5B8 /* PermissionsService.swift in Sources */,
+				BA0681232EFB013D0035F5B8 /* ModeSelectionView.swift in Sources */,
+				BA0681242EFB013D0035F5B8 /* MindSyncApp.swift in Sources */,
+				BA0681252EFB013D0035F5B8 /* ServiceContainer.swift in Sources */,
+				BA0681262EFB013D0035F5B8 /* UserPreferences.swift in Sources */,
+				BA0681272EFB013D0035F5B8 /* LightController.swift in Sources */,
+				BA0681282EFB013D0035F5B8 /* AppState.swift in Sources */,
+				BA0681292EFB013D0035F5B8 /* View+Gestures.swift in Sources */,
+				BA06812A2EFB013D0035F5B8 /* SessionHistoryService.swift in Sources */,
+				BA06812B2EFB013D0035F5B8 /* LargeButton.swift in Sources */,
+				BA06812C2EFB013D0035F5B8 /* Session.swift in Sources */,
+				BA06812D2EFB013D0035F5B8 /* SessionViewModel.swift in Sources */,
+				BA06812E2EFB013D0035F5B8 /* AudioPlaybackService.swift in Sources */,
+				BA06813F2EFB013D0035F5B8 /* AffirmationOverlayService.swift in Sources */,
+				BA0681422EFB013D0035F5B8 /* AudioEnergyTracker.swift in Sources */,
+				BA0681452EFB013D0035F5B8 /* IsochronicAudioService.swift in Sources */,
+				BA0681462EFB013D0035F5B8 /* SessionHistoryView.swift in Sources */,
+				BA0681472EFB013D0035F5B8 /* SessionHistoryViewModel.swift in Sources */,
+				BA0681482EFB013D0035F5B8 /* SessionDetailView.swift in Sources */,
+				BA06812F2EFB013D0035F5B8 /* SessionControlsView.swift in Sources */,
+				BA0681302EFB013D0035F5B8 /* EntrainmentEngine.swift in Sources */,
+				BA0681322EFB013D0035F5B8 /* AnalysisProgressView.swift in Sources */,
+				BA0681332EFB013D0035F5B8 /* SafetyLimits.swift in Sources */,
+				BA0681342EFB013D0035F5B8 /* MediaLibraryService.swift in Sources */,
+				BA0681352EFB013D0035F5B8 /* SettingsView.swift in Sources */,
+				BA0685A32EFB013D0035F5B8 /* LatencyCalibrationView.swift in Sources */,
+				BA0685A42EFB013D0035F5B8 /* LatencyCalibrationViewModel.swift in Sources */,
+				BA0681362EFB013D0035F5B8 /* WaveformGenerator.swift in Sources */,
+				BA0681372EFB013D0035F5B8 /* EntrainmentMode.swift in Sources */,
+				BA0681382EFB013D0035F5B8 /* EpilepsyWarningView.swift in Sources */,
+				BA0681392EFB013D0035F5B8 /* Constants.swift in Sources */,
+				BA0681502EFB013D0035F5B8 /* MathHelpers.swift in Sources */,
+				633064626165323231623765343638656130306264383662 /* SpectralFluxDetector.swift in Sources */,
+				313231356664363636613366343537383862643366623036 /* BluetoothLatencyMonitor.swift in Sources */,
+				BA06813A2EFB013D0035F5B8 /* ProgressRing.swift in Sources */,
+				BA06813B2EFB013D0035F5B8 /* FallDetector.swift in Sources */,
+				BA06813C2EFB013D0035F5B8 /* OnboardingViewModel.swift in Sources */,
+				BA06813D2EFB013D0035F5B8 /* SessionView.swift in Sources */,
+				BA0681492EFB013D0035F5B8 /* VibrationEvent.swift in Sources */,
+				BA06814A2EFB013D0035F5B8 /* VibrationScript.swift in Sources */,
+				BA06814B2EFB013D0035F5B8 /* VibrationController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BA97870E2EFAF5990068BDEA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BA9787182EFAF5990068BDEA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BA9787142EFAF5990068BDEA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BA9787042EFAF5980068BDEA /* MindSync */;
+			targetProxy = BA9787132EFAF5990068BDEA /* PBXContainerItemProxy */;
+		};
+		BA97871E2EFAF5990068BDEA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BA9787042EFAF5980068BDEA /* MindSync */;
+			targetProxy = BA97871D2EFAF5990068BDEA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		BA9787242EFAF5990068BDEA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = R5J8377X89;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		BA9787252EFAF5990068BDEA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = R5J8377X89;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		BA9787272EFAF5990068BDEA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = R5J8377X89;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "MindSync benötigt Zugriff auf deine Musikbibliothek, um Songs zu analysieren und das Stroboskop-Licht mit dem Beat zu synchronisieren.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "MindSync benötigt Zugriff auf das Mikrofon, um externe Musik in Echtzeit zu analysieren und das Licht zu synchronisieren.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tensorvisualsone.MindSync;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BA9787282EFAF5990068BDEA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = R5J8377X89;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "MindSync benötigt Zugriff auf deine Musikbibliothek, um Songs zu analysieren und das Stroboskop-Licht mit dem Beat zu synchronisieren.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "MindSync benötigt Zugriff auf das Mikrofon, um externe Musik in Echtzeit zu analysieren und das Licht zu synchronisieren.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tensorvisualsone.MindSync;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		BA97872A2EFAF5990068BDEA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = R5J8377X89;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tensorvisualsone.MindSyncTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MindSync.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MindSync";
+			};
+			name = Debug;
+		};
+		BA97872B2EFAF5990068BDEA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = R5J8377X89;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tensorvisualsone.MindSyncTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MindSync.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MindSync";
+			};
+			name = Release;
+		};
+		BA97872D2EFAF5990068BDEA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = R5J8377X89;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tensorvisualsone.MindSyncUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = MindSync;
+			};
+			name = Debug;
+		};
+		BA97872E2EFAF5990068BDEA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = R5J8377X89;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tensorvisualsone.MindSyncUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = MindSync;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		BA9787002EFAF5980068BDEA /* Build configuration list for PBXProject "MindSync" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BA9787242EFAF5990068BDEA /* Debug */,
+				BA9787252EFAF5990068BDEA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BA9787262EFAF5990068BDEA /* Build configuration list for PBXNativeTarget "MindSync" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BA9787272EFAF5990068BDEA /* Debug */,
+				BA9787282EFAF5990068BDEA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BA9787292EFAF5990068BDEA /* Build configuration list for PBXNativeTarget "MindSyncTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BA97872A2EFAF5990068BDEA /* Debug */,
+				BA97872B2EFAF5990068BDEA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BA97872C2EFAF5990068BDEA /* Build configuration list for PBXNativeTarget "MindSyncUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BA97872D2EFAF5990068BDEA /* Debug */,
+				BA97872E2EFAF5990068BDEA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = BA9786FD2EFAF5980068BDEA /* Project object */;
+}

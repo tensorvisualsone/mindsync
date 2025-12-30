@@ -20,6 +20,8 @@ final class PermissionsService {
                 return .granted
             case .denied:
                 return .denied
+            case .undetermined:
+                return .undetermined
             @unknown default:
                 return .undetermined
             }
@@ -48,6 +50,8 @@ final class PermissionsService {
                         permission = .granted
                     case .denied:
                         permission = .denied
+                    case .undetermined:
+                        permission = .undetermined
                     @unknown default:
                         permission = .undetermined
                     }
