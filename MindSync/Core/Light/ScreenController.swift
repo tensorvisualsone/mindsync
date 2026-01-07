@@ -125,12 +125,15 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
                 let lightColor = event.color ?? defaultColor
                 let baseColor = lightColor.swiftUIColor(customRGB: customColorRGB?.tuple)
                 
+                // CRITICAL UPDATE: Use event-specific frequency if available, else global
+                let effectiveFrequency = event.frequencyOverride ?? script.targetFrequency
+                
                 // Apply intensity as opacity for smoother transitions
                 // Waveform affects how intensity is applied over time
                 let opacity = calculateOpacity(
                     event: event,
                     elapsed: result.elapsed - event.timestamp,
-                    targetFrequency: script.targetFrequency
+                    targetFrequency: effectiveFrequency
                 )
                 
                 currentColor = baseColor.opacity(opacity)

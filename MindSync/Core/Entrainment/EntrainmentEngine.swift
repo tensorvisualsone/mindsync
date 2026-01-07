@@ -695,3 +695,99 @@ final class EntrainmentEngine {
         return events
     }
 }
+
+extension EntrainmentEngine {
+    
+    /// Generiert den speziellen "Awakening Flow" Script.
+    /// Dieser ignoriert Audio-Beats und erzeugt eine feste 30-minütige Zeitreise durch die Gehirnwellen.
+    static func generateAwakeningScript() -> LightScript {
+        var events: [LightEvent] = []
+        var currentTime: TimeInterval = 0.0
+        
+        // --- PHASE 1: ARRIVAL (5 Min) ---
+        // Ramp von 12 Hz (Alpha) runter auf 8 Hz (Alpha/Theta Grenze)
+        // Wir erstellen kleine 1-Sekunden-Schnipsel für einen super-smoothen Übergang
+        let phase1Duration: TimeInterval = 300 // 5 Minuten
+        let startFreq = 12.0
+        let endFreq = 8.0
+        
+        for i in 0..<Int(phase1Duration) {
+            let progress = Double(i) / phase1Duration
+            // Smoothstep Interpolation für organisches Gefühl
+            let smoothProgress = MathHelpers.smoothstep(progress)
+            let currentFreq = startFreq + (endFreq - startFreq) * smoothProgress
+            
+            let event = LightEvent(
+                timestamp: currentTime,
+                intensity: 0.4, // Sanfter Start
+                duration: 1.0,
+                waveform: .sine,
+                color: .blue, // Falls Screen Mode genutzt wird
+                frequencyOverride: currentFreq // Dynamische Frequenz!
+            )
+            events.append(event)
+            currentTime += 1.0
+        }
+        
+        // --- PHASE 2: THE VOID (10 Min) ---
+        // Konstante 4 Hz (Tiefes Theta) - Dissoziation
+        let phase2Duration: TimeInterval = 600
+        events.append(LightEvent(
+            timestamp: currentTime,
+            intensity: 0.35, // Etwas dunkler für Trance
+            duration: phase2Duration,
+            waveform: .sine,
+            color: .purple,
+            frequencyOverride: 4.0
+        ))
+        currentTime += phase2Duration
+        
+        // --- PHASE 3: ACTIVATION (5 Min) ---
+        // 40 Hz Gamma - Synchronisation
+        let phase3Duration: TimeInterval = 300
+        events.append(LightEvent(
+            timestamp: currentTime,
+            intensity: 0.6, // Heller für Fokus
+            duration: phase3Duration,
+            waveform: .square, // Harte Kanten für Gamma-Sync
+            color: .orange,
+            frequencyOverride: 40.0
+        ))
+        currentTime += phase3Duration
+        
+        // --- PHASE 4: PEAK (5 Min) ---
+        // 100 Hz Lambda - "Awakening"
+        // Achtung: Das ist visuell fast Dauerlicht, aber das Nervensystem spürt den Takt.
+        let phase4Duration: TimeInterval = 300
+        events.append(LightEvent(
+            timestamp: currentTime,
+            intensity: 0.8, // Sehr hell
+            duration: phase4Duration,
+            waveform: .square,
+            color: .white,
+            frequencyOverride: 100.0 // Lambda!
+        ))
+        currentTime += phase4Duration
+        
+        // --- PHASE 5: GROUNDING (5 Min) ---
+        // 7.83 Hz Schumann Resonanz - Erdung
+        let phase5Duration: TimeInterval = 300
+        events.append(LightEvent(
+            timestamp: currentTime,
+            intensity: 0.4,
+            duration: phase5Duration,
+            waveform: .sine,
+            color: .green,
+            frequencyOverride: 7.83
+        ))
+        
+        // Dummy Audio Track ID (Da wir hier keine Musik analysieren, sondern Frequenzen vorgeben)
+        return LightScript(
+            trackId: UUID(),
+            mode: .gamma, // Technisch gesehen ein Mix, aber Gamma passt als "High Energy" Container
+            targetFrequency: 40.0,
+            multiplier: 1,
+            events: events
+        )
+    }
+}

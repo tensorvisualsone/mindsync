@@ -22,8 +22,9 @@ final class FlashlightController: BaseLightController, LightControlling {
     private var torchFailureNotified = false
     
     /// Precision timer interval shared across light controllers
-    /// 4ms (250 Hz) provides crisp pulse edges while remaining manageable for the system
-    static let precisionIntervalNanoseconds: Int = 4_000_000
+    /// OPTIMIZED FOR LAMBDA: 1ms (1000 Hz) resolution needed for stable 100 Hz output.
+    /// Previous 4ms was too slow for 10ms periods (100 Hz).
+    static let precisionIntervalNanoseconds: Int = 1_000_000
     private let precisionInterval: DispatchTimeInterval = .nanoseconds(FlashlightController.precisionIntervalNanoseconds)
     
     /// Torch "prewarm" configuration.
@@ -335,11 +336,14 @@ final class FlashlightController: BaseLightController, LightControlling {
                 // For other modes, use event-based intensity with waveform
                 let timeWithinEvent = result.elapsed - event.timestamp
                 
+                // CRITICAL UPDATE: Use event-specific frequency if available, else global
+                let effectiveFrequency = event.frequencyOverride ?? script.targetFrequency
+                
                 // Apply waveform-based intensity modulation (similar to ScreenController)
                 let intensity = calculateIntensity(
                     event: event,
                     timeWithinEvent: timeWithinEvent,
-                    targetFrequency: script.targetFrequency
+                    targetFrequency: effectiveFrequency
                 )
                 
                 setIntensity(intensity)

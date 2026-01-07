@@ -8,12 +8,17 @@ struct LightEvent: Codable {
     let waveform: Waveform         // Form des Lichtsignals
     let color: LightColor?         // Nur für Bildschirm-Modus
     
-    init(timestamp: TimeInterval, intensity: Float, duration: TimeInterval, waveform: Waveform, color: LightColor?) {
+    /// Optional: Allows specific events to override the global session frequency.
+    /// Crucial for "Awakening Flows" that change frequency over time (e.g. Ramp -> Theta -> Gamma).
+    let frequencyOverride: Double?
+    
+    init(timestamp: TimeInterval, intensity: Float, duration: TimeInterval, waveform: Waveform, color: LightColor?, frequencyOverride: Double? = nil) {
         self.timestamp = timestamp
         self.intensity = max(0.0, min(1.0, intensity)) // Clamp intensity to valid range
         self.duration = duration
         self.waveform = waveform
         self.color = color
+        self.frequencyOverride = frequencyOverride
     }
 
     /// Verfügbare Wellenformen
@@ -29,6 +34,8 @@ struct LightEvent: Codable {
         case red
         case blue
         case green
+        case purple
+        case orange
         case custom  // Für zukünftige RGB-Zyklen
         
         var id: String { rawValue }
@@ -40,6 +47,8 @@ struct LightEvent: Codable {
             case .red: return "Rot"
             case .blue: return "Blau"
             case .green: return "Grün"
+            case .purple: return "Lila"
+            case .orange: return "Orange"
             case .custom: return "Eigene Farbe"
             }
         }

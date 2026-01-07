@@ -901,6 +901,130 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
+    /// Starts an Awakening Flow session (30-minute timeline-based entrainment flow)
+    /// This session does not require audio analysis and uses a pre-generated script
+    /// with frequency overrides for different phases (12 Hz → 8 Hz → 4 Hz → 40 Hz → 100 Hz → 7.83 Hz)
+    func startAwakeningSession() async {
+        logger.info("Starting Awakening Flow session - BEGIN")
+        
+        guard state == .idle else {
+            logger.warning("Attempted to start Awakening session while state is \(String(describing: self.state))")
+            return
+        }
+        
+        logger.info("Setting state to analyzing")
+        state = .analyzing
+        analysisProgress = AnalysisProgress(phase: .analyzing, progress: 0.0, message: NSLocalizedString("analysis.analyzing", comment: ""))
+        stopPlaybackProgressUpdates()
+        
+        // Refresh cached preferences to ensure we use current user settings
+        logger.info("Loading cached preferences")
+        cachedPreferences = UserPreferences.load()
+        
+        // Set the light controller based on current preferences
+        logger.info("Setting light controller based on preferences: \(self.cachedPreferences.preferredLightSource.rawValue)")
+        switch cachedPreferences.preferredLightSource {
+        case .flashlight:
+            lightController = services.flashlightController
+        case .screen:
+            lightController = services.screenController
+        }
+        
+        // Pre-warm flashlight if needed
+        logger.info("Pre-warming flashlight if needed")
+        await prewarmFlashlightIfNeeded()
+        
+        do {
+            // Generate Awakening Script (no audio analysis needed)
+            logger.info("Generating Awakening Flow script")
+            let script = EntrainmentEngine.generateAwakeningScript()
+            currentScript = script
+            logger.info("Awakening Flow script generated")
+            
+            // Create session (no audio track, but we use .localFile as audioSource)
+            logger.info("Creating Awakening Flow session object")
+            let session = Session(
+                mode: .gamma, // Using gamma as container mode for high-energy flow
+                lightSource: cachedPreferences.preferredLightSource,
+                audioSource: .localFile,
+                trackTitle: "Awakening Flow",
+                trackArtist: nil,
+                trackBPM: nil
+            )
+            currentSession = session
+            updateAffirmationStatusForCurrentPreferences()
+            
+            // Set custom color RGB if screen mode and custom color is selected
+            if cachedPreferences.preferredLightSource == .screen, cachedPreferences.screenColor == .custom,
+               let screenController = lightController as? ScreenController {
+                screenController.setCustomColorRGB(cachedPreferences.customColorRGB)
+            }
+            
+            // Apply audio latency offset from user preferences for Bluetooth compensation
+            if let baseController = lightController as? BaseLightController {
+                baseController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+                // No audio playback for Awakening Flow, but we keep the reference for consistency
+                baseController.audioPlayback = nil
+            }
+            
+            // Start light controller and execute script
+            logger.info("Starting light controller")
+            let startTime = Date()
+            sessionStartTime = startTime
+            updateCurrentFrequency()
+            startFrequencyUpdates()
+            
+            try await lightController?.start()
+            lightController?.execute(script: script, syncedTo: startTime)
+            logger.info("Light controller started successfully")
+            
+            // Start playback progress updates for 30-minute duration
+            startPlaybackProgressUpdates(for: script.duration)
+            
+            // Vibration is optional (if enabled in preferences)
+            // Note: We don't generate a vibration script for Awakening Flow as it's audio-independent
+            // If vibration is desired, it would need a separate vibration script generator
+            vibrationController = nil
+            currentVibrationScript = nil
+            
+            // No audio energy tracking needed (no audio playback)
+            // No Bluetooth latency monitoring needed (no audio synchronization)
+            
+            // Prevent screen from turning off during session
+            UIApplication.shared.isIdleTimerDisabled = true
+            
+            logger.info("Setting state to running")
+            state = .running
+            affirmationPlayed = false
+            
+            // Start observing for affirmation trigger
+            startAffirmationObserver()
+            
+            // Haptic feedback for session start (if enabled)
+            if cachedPreferences.hapticFeedbackEnabled {
+                HapticFeedback.medium()
+            }
+            
+            logger.info("Awakening Flow session started successfully - END")
+            
+        } catch is CancellationError {
+            logger.info("Awakening Flow session start cancelled")
+            lightController?.stop()
+            vibrationController?.stop()
+            stopPlaybackProgressUpdates()
+            UIApplication.shared.isIdleTimerDisabled = false
+            state = .idle
+        } catch {
+            logger.error("Awakening Flow session start failed: \(error.localizedDescription, privacy: .public)")
+            errorMessage = error.localizedDescription
+            state = .error
+            
+            lightController?.stop()
+            vibrationController?.stop()
+            stopPlaybackProgressUpdates()
+        }
+    }
+    
     /// Pauses the current session
     func pauseSession() {
         guard state == .running else { return }
