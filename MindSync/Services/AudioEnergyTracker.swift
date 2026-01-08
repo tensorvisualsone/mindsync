@@ -143,8 +143,8 @@ final class AudioEnergyTracker {
             
             // Publish active energy metric based on mode
             if self.useSpectralFlux {
-                // Use spectral flux for cinematic mode (better beat detection)
-                self.energyPublisher.send(flux)
+                // Use smoothed spectral flux for cinematic mode (better beat detection)
+                self.energyPublisher.send(averageSpectralFlux)
             } else {
                 // Use RMS for general energy tracking
                 self.energyPublisher.send(averageEnergy)
