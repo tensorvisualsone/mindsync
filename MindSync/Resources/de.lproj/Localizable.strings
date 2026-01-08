@@ -93,7 +93,7 @@
 "settings.lightSource" = "Lichtquelle";
 "settings.lightSourceDescription" = "Wähle zwischen Taschenlampe (heller) oder Bildschirm (mit Farben).";
 "settings.entrainmentMode" = "Entrainment-Modus";
-"settings.entrainmentModeDescription" = "Alpha: Entspannung, Theta: Trip, Gamma: Fokus, Cinematic: Flow State";
+"settings.entrainmentModeDescription" = "Alpha: entspannter Fokus, Theta: tiefe Kreativität, Gamma: höchste Konzentration, Cinematic: Flow State";
 "settings.mode" = "Modus";
 "settings.safetyAndFeedback" = "Sicherheit & Feedback";
 "settings.fallDetection" = "Sturzerkennung";
@@ -175,14 +175,14 @@
 "modeSelection.description" = "Wähle einen Modus basierend auf deinem gewünschten Bewusstseinszustand.";
 
 // MARK: - Entrainment Modes
-"mode.alpha.displayName" = "Entspannung";
-"mode.alpha.description" = "Entspannte Wachheit, leichte Meditation, Stressabbau";
-"mode.theta.displayName" = "Trip";
-"mode.theta.description" = "Tiefe Meditation, Kreativität, traumähnliche Zustände";
-"mode.gamma.displayName" = "Fokus";
-"mode.gamma.description" = "Hohe Konzentration, kognitive Klarheit, Einsicht";
-"mode.cinematic.displayName" = "Cinematic";
-"mode.cinematic.description" = "Flow State Sync - Dynamisch & Reaktiv";
+"mode.alpha.displayName" = "Alpha (8-12 Hz)";
+"mode.alpha.description" = "Entspannter Fokus, Stressabbau, ruhige Achtsamkeit";
+"mode.theta.displayName" = "Theta (4-8 Hz)";
+"mode.theta.description" = "Tiefe Kreativität, Meditation, Unterbewusstsein";
+"mode.gamma.displayName" = "Gamma (40 Hz)";
+"mode.gamma.description" = "Höchste Konzentration, Gedächtnis, kognitive Einsicht";
+"mode.cinematic.displayName" = "Cinematic (6,5 Hz)";
+"mode.cinematic.description" = "Flow State Sync – Audio-reaktive Immersion";
 
 // MARK: - Safety Banner
 "safety.thermalReduced" = "Intensität reduziert wegen Gerätewärme";

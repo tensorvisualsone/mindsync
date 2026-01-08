@@ -91,7 +91,7 @@
 "settings.lightSource" = "Light Source";
 "settings.lightSourceDescription" = "Choose between flashlight (brighter) or screen (with colors).";
 "settings.entrainmentMode" = "Entrainment Mode";
-"settings.entrainmentModeDescription" = "Alpha: calm, Theta: trip, Gamma: focus, Cinematic: flow state";
+"settings.entrainmentModeDescription" = "Alpha: relaxed focus, Theta: deep creativity, Gamma: peak concentration, Cinematic: flow state";
 "settings.mode" = "Mode";
 "settings.safetyAndFeedback" = "Safety & Feedback";
 "settings.fallDetection" = "Fall Detection";
@@ -161,14 +161,14 @@
 "modeSelection.description" = "Select a mode based on your desired state of mind.";
 
 // MARK: - Entrainment Modes
-"mode.alpha.displayName" = "Relaxation";
-"mode.alpha.description" = "Relaxed wakefulness, light meditation, stress relief";
-"mode.theta.displayName" = "Trip";
-"mode.theta.description" = "Deep meditation, creativity, dreamlike states";
-"mode.gamma.displayName" = "Focus";
-"mode.gamma.description" = "High concentration, mental clarity, insight";
-"mode.cinematic.displayName" = "Cinematic";
-"mode.cinematic.description" = "Flow State Sync – dynamic & reactive";
+"mode.alpha.displayName" = "Alpha (8-12 Hz)";
+"mode.alpha.description" = "Relaxed focus, stress relief, calm awareness";
+"mode.theta.displayName" = "Theta (4-8 Hz)";
+"mode.theta.description" = "Deep creativity, meditation, subconscious access";
+"mode.gamma.displayName" = "Gamma (40 Hz)";
+"mode.gamma.description" = "Peak concentration, memory, cognitive insight";
+"mode.cinematic.displayName" = "Cinematic (6.5 Hz)";
+"mode.cinematic.description" = "Flow state sync – audio-reactive immersion";
 
 // MARK: - Safety Banner
 "safety.thermalReduced" = "Intensity reduced due to device heat";

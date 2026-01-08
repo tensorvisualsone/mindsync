@@ -225,32 +225,32 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
-    /// Configures spectral flux for cinematic mode
+    /// Configures spectral flux for all audio-reactive modes
     private func enableSpectralFluxForCinematicMode(_ mode: EntrainmentMode) {
-        guard mode == .cinematic else {
-            logger.debug("[CINEMATIC] Not cinematic mode, skipping spectral flux setup")
-            return
-        }
+        // ALL modes now use audio-reactive modulation
+        // Cinematic mode uses spectral flux for bass-focused beat tracking
+        // Other modes (Alpha, Theta, Gamma) also use spectral flux for dynamic intensity modulation
         
         // Guard against duplicate calls to prevent multiple taps on mixer node
         // This can happen during session restart, error recovery, or rapid mode switching
         guard !audioEnergyTracker.isActive else {
-            logger.debug("[CINEMATIC] Spectral flux tracking already active, skipping duplicate setup")
+            logger.debug("[AUDIO-REACTIVE] Spectral flux tracking already active, skipping duplicate setup")
             return
         }
         
         if let mixerNode = audioPlayback.getMainMixerNode() {
-            // Enable spectral flux for better beat detection in cinematic mode
+            // Enable spectral flux for all modes
+            // Provides dynamic audio-reactive intensity modulation for immersive experience
             audioEnergyTracker.useSpectralFlux = true
             audioEnergyTracker.startTracking(mixerNode: mixerNode)
-            logger.info("[CINEMATIC] Spectral flux enabled and tracking started on mixer node")
+            logger.info("[AUDIO-REACTIVE] Spectral flux enabled for \(mode.rawValue) mode")
         } else {
-            logger.error("[CINEMATIC] FAILED to get mixer node - spectral flux will not work!")
+            logger.error("[AUDIO-REACTIVE] FAILED to get mixer node - spectral flux will not work!")
         }
         
         // Attach audio energy tracker to light controller for dynamic intensity modulation
         lightController?.audioEnergyTracker = audioEnergyTracker
-        logger.info("[CINEMATIC] AudioEnergyTracker attached to light controller")
+        logger.info("[AUDIO-REACTIVE] AudioEnergyTracker attached to light controller for \(mode.rawValue) mode")
     }
     
     /// Sets up Bluetooth latency monitoring for dynamic audio synchronization

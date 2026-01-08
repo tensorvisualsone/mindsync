@@ -426,20 +426,44 @@ final class FlashlightController: BaseLightController, LightControlling {
                 
                 setIntensity(finalIntensity)
             } else if let event = result.event {
-                // For other modes, use event-based intensity with waveform
+                // For other modes (Alpha, Theta, Gamma): Event-based with audio-reactive modulation
                 let timeWithinEvent = result.elapsed - event.timestamp
                 
                 // CRITICAL UPDATE: Use event-specific frequency if available, else global
                 let effectiveFrequency = event.frequencyOverride ?? script.targetFrequency
                 
-                // Apply waveform-based intensity modulation (similar to ScreenController)
-                let intensity = calculateIntensity(
+                // Calculate base intensity from waveform
+                let baseIntensity = calculateIntensity(
                     event: event,
                     timeWithinEvent: timeWithinEvent,
                     targetFrequency: effectiveFrequency
                 )
                 
-                setIntensity(intensity)
+                // Apply audio-reactive modulation if tracker is available
+                let finalIntensity: Float
+                if let tracker = audioEnergyTracker {
+                    // Use spectral flux for dynamic modulation
+                    let energy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
+                    
+                    // Update smoothing buffer for stable modulation
+                    recentFluxValues.append(energy)
+                    if recentFluxValues.count > 8 {  // Medium buffer for smooth but reactive modulation
+                        recentFluxValues.removeFirst()
+                    }
+                    
+                    let smoothedEnergy = recentFluxValues.count > 0 ? recentFluxValues.reduce(0, +) / Float(recentFluxValues.count) : 0.0
+                    
+                    // Map to modulation range (0.7 - 1.0) to preserve base intensity while adding dynamics
+                    let audioModulation = 0.7 + (smoothedEnergy * 0.3)
+                    
+                    // Apply modulation to base intensity
+                    finalIntensity = baseIntensity * audioModulation
+                } else {
+                    // No audio tracking - use base intensity only
+                    finalIntensity = baseIntensity
+                }
+                
+                setIntensity(finalIntensity)
             } else {
                 // Between events or no active event, turn off
                 setIntensity(0.0)
