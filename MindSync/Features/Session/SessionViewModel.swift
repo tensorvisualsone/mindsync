@@ -698,10 +698,6 @@ final class SessionViewModel: ObservableObject {
             updateCurrentFrequency()
             startFrequencyUpdates()
 
-            // If cinematic mode, start audio energy tracking BEFORE starting lights
-            // This ensures audioEnergyTracker is attached when updateLight() begins
-            enableSpectralFluxForCinematicMode(mode)
-            
             // Start audio playback and light
             try await startPlaybackAndLight(url: assetURL, script: script, startTime: startTime)
             logger.info("Playback and light started successfully")
@@ -868,10 +864,6 @@ final class SessionViewModel: ObservableObject {
             // Update frequency now that sessionStartTime is set (timer will continue updating)
             updateCurrentFrequency()
             startFrequencyUpdates()
-            
-            // If cinematic mode, start audio energy tracking BEFORE starting lights
-            // This ensures audioEnergyTracker is attached when updateLight() begins
-            enableSpectralFluxForCinematicMode(mode)
             
             // Start audio playback and light
             try await startPlaybackAndLight(url: audioFileURL, script: script, startTime: startTime)
@@ -1249,6 +1241,12 @@ final class SessionViewModel: ObservableObject {
         if currentSession?.mode == .cinematic, let engine = audioPlayback.getAudioEngine() {
             IsochronicAudioService.shared.carrierFrequency = 150.0
             IsochronicAudioService.shared.start(mode: currentSession!.mode, attachToEngine: engine)
+        }
+        
+        // If cinematic mode, start audio energy tracking AFTER audio engine is running
+        // This ensures the mixer node exists when we attach the tracker
+        if let mode = currentSession?.mode {
+            enableSpectralFluxForCinematicMode(mode)
         }
 
         logger.info("startPlaybackAndLight: audio started, starting light controller with 5s timeout")
