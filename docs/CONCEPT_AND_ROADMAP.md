@@ -64,11 +64,12 @@ Neural Entrainment basiert auf jahrzehntelanger Forschung:
 - **Intensität**: 50%
 - **Ideal für**: Lernen, intensive Denkaufgaben, Flow-Zustände
 
-### Cinematic-Modus – Dynamischer Flow
-- **Ziel**: Immersive, filmische Erfahrung
-- **Besonderheit**: Lichtintensität moduliert dynamisch mit Audio-Energie
-- **Technik**: Frequenz-Drift + Audio-reaktive Modulation + Lens-Flare-Effekt
-- **Ideal für**: Musikgenuss, visuelle Reisen, kreative Inspiration
+### Cinematic-Modus – Beat-Locked Audio-Visual Synchronization
+- **Ziel**: Immersive, filmische Erfahrung mit echter Audio-Synchronisation
+- **Besonderheit**: Flashlight-Pulse direkt synchronisiert mit Audio-Beats
+- **Technik**: Beat-Detection → Diskrete 40ms Pulse bei jedem Beat → Audio-modulierte Intensität
+- **Wissenschaftliche Basis**: Audio-visuelle Entrainment erfordert zeitliche Koinzidenz (Lakatos et al., 2008)
+- **Ideal für**: Musikgenuss, Photo Diving mit geschlossenen Augen, kreative Inspiration
 
 ---
 
@@ -152,7 +153,7 @@ for beat in beats {
 }
 ```
 
-Im **Cinematic Mode** wird die Intensität zusätzlich mit der aktuellen Audio-Energie moduliert.
+Im **Cinematic Mode** werden diskrete Lichtpulse bei jedem erkannten Beat getriggert (40ms Pulsdauer). Die Pulsintensität wird zusätzlich mit der aktuellen Audio-Energie moduliert, sodass stärkere Beats hellere Pulse erzeugen. Dies ermöglicht echte Audio-Visual Synchronisation statt eines festen Stroboskop-Rhythmus.
 
 ---
 

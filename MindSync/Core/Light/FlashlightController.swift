@@ -347,51 +347,67 @@ final class FlashlightController: BaseLightController, LightControlling {
         }
         
         if let script = currentScript {
-            // Check if cinematic mode - rhythmic strobe synchronized to audio
+            // Check if cinematic mode - beat-locked pulses synchronized to audio
             if script.mode == .cinematic {
-                // PHOTO DIVING APPROACH: Hard ON/OFF pulses at a fixed frequency
-                // This creates the stroboscopic effect needed for visual entrainment
-                // The frequency is derived from the audio's dominant rhythm (BPM)
+                // BEAT-LOCKED APPROACH: Discrete pulses triggered by audio beat timestamps
+                // This synchronizes the flashlight directly to the music's rhythm for true
+                // audio-visual entrainment. Each beat in the music triggers a short pulse.
+                //
+                // Scientific basis: Audio-visual synchronization requires temporal coincidence
+                // between auditory and visual stimuli. Fixed-frequency strobes cannot achieve
+                // this - the timing must be driven by actual audio events.
+                // (Ref: Lakatos et al., 2008; Comstock & Balasubramaniam, 2018)
+                
+                guard let event = result.event else {
+                    // Between beats - turn off
+                    setIntensity(0.0)
+                    return
+                }
                 
                 let elapsed = result.elapsed
-                let targetFreq = script.targetFrequency > 0 ? script.targetFrequency : 6.5
+                let timeWithinEvent = elapsed - event.timestamp
                 
-                // Calculate square wave phase (hard ON/OFF)
-                let period = 1.0 / targetFreq
-                let phase = (elapsed.truncatingRemainder(dividingBy: period)) / period  // 0.0 to 1.0
+                // Pulse parameters
+                // Duration: 40ms pulse creates clear, visible flash without excessive brightness
+                // This is short enough to be perceived as a discrete event (human flicker fusion
+                // threshold is ~50ms at high brightness) while long enough to be clearly visible
+                let pulseDuration: TimeInterval = 0.04  // 40ms
                 
-                // HYBRID: Modulate intensity with audio energy for immersive effect
+                // Audio-reactive intensity modulation
                 let audioModulation: Float
                 if let tracker = audioEnergyTracker {
-                    // Use audio energy to modulate pulse intensity
+                    // Use spectral flux to modulate pulse intensity based on beat strength
                     let energy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
                     
-                    // Update smoothing buffer
+                    // Update smoothing buffer for stable modulation
                     recentFluxValues.append(energy)
-                    if recentFluxValues.count > 10 {  // Longer buffer for stable modulation
+                    if recentFluxValues.count > 5 {  // Shorter buffer for reactive pulses
                         recentFluxValues.removeFirst()
                     }
                     
                     let smoothedEnergy = recentFluxValues.reduce(0, +) / Float(recentFluxValues.count)
                     
-                    // Map to intensity multiplier (0.5 - 1.0 range)
-                    // Never go below 50% to keep pulses visible
+                    // Map to intensity range (0.5 - 1.0)
+                    // Stronger beats = brighter pulses
                     audioModulation = 0.5 + (smoothedEnergy * 0.5)
                 } else {
-                    // No audio modulation - use full intensity
+                    // No audio tracking - use full intensity
                     audioModulation = 1.0
                 }
                 
-                // Generate square wave with frequency-dependent duty cycle
-                let dutyCycle = calculateDutyCycle(for: targetFreq)
-                let isOn = phase < dutyCycle
+                // Generate pulse: ON during pulse duration, OFF after
+                let finalIntensity: Float
+                if timeWithinEvent < pulseDuration {
+                    // Within pulse window - full brightness modulated by audio
+                    finalIntensity = audioModulation
+                } else {
+                    // After pulse - dark until next beat
+                    finalIntensity = 0.0
+                }
                 
-                // Apply intensity: ON = full intensity * audio modulation, OFF = completely dark
-                let finalIntensity: Float = isOn ? audioModulation : 0.0
-                
-                // Log every 200ms for diagnostics
-                if Int(elapsed * 1000) % 200 == 0 {
-                    logger.debug("[CINEMATIC] freq=\(String(format: "%.1f", targetFreq))Hz phase=\(String(format: "%.2f", phase)) duty=\(String(format: "%.2f", dutyCycle)) on=\(isOn) mod=\(String(format: "%.2f", audioModulation)) out=\(String(format: "%.2f", finalIntensity))")
+                // Log diagnostics (every 100ms)
+                if Int(elapsed * 1000) % 100 == 0 {
+                    logger.debug("[CINEMATIC] t=\(String(format: "%.3f", elapsed))s beat=\(String(format: "%.3f", event.timestamp))s dt=\(String(format: "%.3f", timeWithinEvent))s mod=\(String(format: "%.2f", audioModulation)) out=\(String(format: "%.2f", finalIntensity))")
                 }
                 
                 setIntensity(finalIntensity)
