@@ -17,6 +17,11 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
     /// Precision timer interval shared across light controllers (250 Hz)
     private let precisionInterval: DispatchTimeInterval = .nanoseconds(FlashlightController.precisionIntervalNanoseconds)
     
+    // Cinematic mode smoothing buffers (matching FlashlightController)
+    private var recentFluxValues: [Float] = []
+    private var fluxHistory: [Float] = []
+    private let maxAdaptiveHistorySize = 200
+    
     override init() {
         super.init()
         // Screen controller uses SwiftUI views for display
@@ -62,6 +67,9 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
         invalidatePrecisionTimer()
         resetScriptExecution()
         currentColor = .black
+        // Reset cinematic mode buffers
+        recentFluxValues.removeAll()
+        fluxHistory.removeAll()
     }
     
     func pauseExecution() {
@@ -93,33 +101,62 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
         }
         
         if let script = currentScript {
-            // Check if cinematic mode - apply dynamic intensity modulation
+            // Check if cinematic mode - continuous audio-reactive pulsation
             if script.mode == .cinematic {
-                // For cinematic mode, use spectral flux if available (better beat detection)
-                // Otherwise fall back to RMS energy
+                // Same approach as FlashlightController: direct audio-reactive intensity mapping
                 let audioEnergy: Float
-                if let tracker = audioEnergyTracker, tracker.useSpectralFlux {
-                    audioEnergy = tracker.currentSpectralFlux
+                if let tracker = audioEnergyTracker {
+                    if tracker.useSpectralFlux {
+                        audioEnergy = tracker.currentSpectralFlux
+                    } else {
+                        audioEnergy = tracker.currentEnergy
+                    }
                 } else {
-                    audioEnergy = audioEnergyTracker?.currentEnergy ?? 0.0
+                    // No tracker - use base frequency oscillation as fallback
+                    let elapsed = result.elapsed
+                    let baseFreq = script.targetFrequency > 0 ? script.targetFrequency : 6.5
+                    let phase = elapsed * baseFreq * 2.0 * .pi
+                    audioEnergy = Float((sin(phase) + 1.0) / 2.0) * 0.5
                 }
                 
-                let baseFreq = script.targetFrequency
-                let elapsed = result.elapsed
+                // Update smoothing buffer
+                recentFluxValues.append(audioEnergy)
+                if recentFluxValues.count > 5 {
+                    recentFluxValues.removeFirst()
+                }
                 
-                // Calculate cinematic intensity with audio reactivity
-                let cinematicIntensity = EntrainmentEngine.calculateCinematicIntensity(
-                    baseFrequency: baseFreq,
-                    currentTime: elapsed,
-                    audioEnergy: audioEnergy
-                )
+                let smoothedEnergy = recentFluxValues.reduce(0, +) / Float(recentFluxValues.count)
                 
-                // Get color from default (cinematic mode doesn't use event colors)
+                // Update running statistics
+                fluxHistory.append(smoothedEnergy)
+                if fluxHistory.count > maxAdaptiveHistorySize {
+                    fluxHistory.removeFirst()
+                }
+                
+                // Adaptive normalization
+                let recentMin: Float
+                let recentMax: Float
+                if fluxHistory.count >= 10 {
+                    recentMin = fluxHistory.min() ?? 0.0
+                    recentMax = max(fluxHistory.max() ?? 0.1, recentMin + 0.05)
+                } else {
+                    recentMin = 0.0
+                    recentMax = 0.3
+                }
+                
+                let normalizedEnergy = (smoothedEnergy - recentMin) / (recentMax - recentMin)
+                let clampedEnergy = max(0.0, min(1.0, normalizedEnergy))
+                let curvedEnergy = pow(clampedEnergy, 0.7)
+                
+                let minIntensity: Float = 0.05
+                let maxIntensity: Float = 1.0
+                let finalIntensity = minIntensity + curvedEnergy * (maxIntensity - minIntensity)
+                
+                // Get color from default
                 let lightColor = defaultColor
                 let baseColor = lightColor.swiftUIColor(customRGB: customColorRGB?.tuple)
                 
-                // Use cinematic intensity directly as opacity
-                currentColor = baseColor.opacity(Double(cinematicIntensity))
+                currentColor = baseColor.opacity(Double(finalIntensity))
             } else if let event = result.event {
                 // For other modes, use event-based intensity with waveform
                 let lightColor = event.color ?? defaultColor

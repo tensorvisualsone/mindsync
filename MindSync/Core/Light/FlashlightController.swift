@@ -347,119 +347,76 @@ final class FlashlightController: BaseLightController, LightControlling {
         }
         
         if let script = currentScript {
-            // Check if cinematic mode - apply dynamic intensity modulation with pulse decay
+            // Check if cinematic mode - continuous audio-reactive pulsation
             if script.mode == .cinematic {
-                // For cinematic mode, use spectral flux if available (better beat detection)
-                // Otherwise fall back to RMS energy
+                // NEW APPROACH: Direct audio-reactive intensity mapping
+                // Instead of complex peak detection, we directly map audio energy to light intensity
+                // This creates a continuous, immersive pulsation synchronized to the audio
+                
                 let audioEnergy: Float
-                if let tracker = audioEnergyTracker, tracker.useSpectralFlux {
-                    audioEnergy = tracker.currentSpectralFlux
-                } else if let tracker = audioEnergyTracker {
-                    // Tracker exists but spectral flux not enabled - use RMS
-                    audioEnergy = tracker.currentEnergy
-                    logger.warning("[CINEMATIC] Using RMS energy instead of spectral flux (flux not enabled)")
+                if let tracker = audioEnergyTracker {
+                    // Use spectral flux for more responsive beat detection
+                    // Spectral flux captures changes in the audio spectrum, ideal for rhythmic content
+                    if tracker.useSpectralFlux {
+                        audioEnergy = tracker.currentSpectralFlux
+                    } else {
+                        // Fallback to RMS energy
+                        audioEnergy = tracker.currentEnergy
+                    }
                 } else {
-                    // No tracker at all - this is a problem
-                    audioEnergy = 0.0
-                    logger.error("[CINEMATIC] NO audioEnergyTracker attached - flashlight will remain dark!")
+                    // No tracker - use base frequency oscillation as fallback
+                    let elapsed = result.elapsed
+                    let baseFreq = script.targetFrequency > 0 ? script.targetFrequency : 6.5
+                    let phase = elapsed * baseFreq * 2.0 * .pi
+                    audioEnergy = Float((sin(phase) + 1.0) / 2.0) * 0.5
+                    logger.warning("[CINEMATIC] No tracker - using base frequency oscillation")
                 }
                 
                 let elapsed = result.elapsed
                 
-                // Peak detection: Only trigger pulses on significant rises (transients),
-                // not on sustained high values. This prevents continuous lighting.
-                let finalIntensity: Float
-                
-                // Update flux history (ring buffer for local average)
+                // Update smoothing buffer for responsive but stable output
                 recentFluxValues.append(audioEnergy)
-                if recentFluxValues.count > maxFluxHistorySize {
+                if recentFluxValues.count > 5 {  // Short buffer for fast response
                     recentFluxValues.removeFirst()
                 }
                 
-                // Update adaptive threshold history (longer history)
-                fluxHistory.append(audioEnergy)
+                // Calculate smoothed energy (average of recent values)
+                let smoothedEnergy = recentFluxValues.reduce(0, +) / Float(recentFluxValues.count)
+                
+                // Update running statistics for adaptive scaling
+                fluxHistory.append(smoothedEnergy)
                 if fluxHistory.count > maxAdaptiveHistorySize {
                     fluxHistory.removeFirst()
                 }
                 
-                // Calculate adaptive threshold (mean + 0.3 * stdDev) for better sensitivity
-                let adaptiveThreshold: Float
-                if fluxHistory.count >= 20 {
-                    // Enough history for meaningful statistics
-                    let sum = fluxHistory.reduce(0, +)
-                    let mean = sum / Float(fluxHistory.count)
-                    
-                    // Calculate variance and standard deviation
-                    let sumOfSquares = fluxHistory.map { ($0 - mean) * ($0 - mean) }.reduce(0, +)
-                    let variance = sumOfSquares / Float(fluxHistory.count)
-                    let stdDev = sqrt(max(0, variance))  // max(0, ...) to handle floating point errors
-                    
-                    // Adaptive threshold: mean + 0.3 * stdDev (reduced multiplier for better sensitivity)
-                    adaptiveThreshold = mean + adaptiveThresholdMultiplier * stdDev
+                // Calculate adaptive min/max for dynamic range normalization
+                let recentMin: Float
+                let recentMax: Float
+                if fluxHistory.count >= 10 {
+                    recentMin = fluxHistory.min() ?? 0.0
+                    recentMax = max(fluxHistory.max() ?? 0.1, recentMin + 0.05)  // Ensure non-zero range
                 } else {
-                    // Not enough history, use fixed threshold
-                    adaptiveThreshold = fixedThreshold
+                    recentMin = 0.0
+                    recentMax = 0.3  // Conservative default
                 }
                 
-                // Calculate local average of recent flux values (for transient detection)
-                let localAverage: Float
-                if recentFluxValues.count >= 3 {
-                    // Use at least 3 values for meaningful average
-                    let sum = recentFluxValues.reduce(0, +)
-                    localAverage = sum / Float(recentFluxValues.count)
-                } else {
-                    // Not enough history yet, use current value as baseline
-                    localAverage = audioEnergy
-                }
+                // Normalize to 0-1 range based on recent dynamics
+                let normalizedEnergy = (smoothedEnergy - recentMin) / (recentMax - recentMin)
+                let clampedEnergy = max(0.0, min(1.0, normalizedEnergy))
                 
-                // Detect peak: Either significant rise OR above adaptive threshold (less restrictive)
-                let fluxRise = audioEnergy - localAverage
-                let isSignificantRise = fluxRise > peakRiseThreshold
-                let isAboveAdaptiveThreshold = audioEnergy > adaptiveThreshold
-                let isAboveMinimum = audioEnergy > absoluteMinimumThreshold
-                let timeSinceLastPeak = elapsed - lastPeakTime
-                let cooldownExpired = timeSinceLastPeak >= peakCooldownDuration
+                // Apply non-linear curve for more dramatic pulses
+                // This makes quiet parts darker and loud parts brighter
+                let curvedEnergy = pow(clampedEnergy, 0.7)  // Gamma < 1 = brighter response
                 
-                // Peak detected if:
-                // 1. (Significant rise above local average OR above adaptive threshold) - less restrictive
-                // 2. Above absolute minimum threshold
-                // 3. Cooldown period has expired
-                // This allows peaks to be detected either through transient detection OR adaptive threshold,
-                // making the system more responsive while still preventing continuous lighting
-                let isPeakDetected = (isSignificantRise || isAboveAdaptiveThreshold) && isAboveMinimum && cooldownExpired
+                // Scale to target intensity range (0.1 - 1.0)
+                // Minimum 0.1 ensures visible baseline, maximum 1.0 for peaks
+                let minIntensity: Float = 0.05
+                let maxIntensity: Float = 1.0
+                let finalIntensity = minIntensity + curvedEnergy * (maxIntensity - minIntensity)
                 
-                // Log every 100 cycles (~100ms at 1kHz) for diagnostics
-                if Int(elapsed * 1000) % 100 == 0 {
-                    logger.debug("[CINEMATIC] energy=\(String(format: "%.3f", audioEnergy)) peak=\(isPeakDetected) rise=\(String(format: "%.3f", fluxRise)) thresh=\(String(format: "%.3f", adaptiveThreshold))")
-                }
-                
-                if isPeakDetected {
-                    // Peak detected: Start a new pulse
-                    // Scale intensity based on rise amount and absolute flux value
-                    let baseIntensity = min(1.0, 0.5 + (audioEnergy * 0.5))  // 0.5-1.0 range
-                    let riseMultiplier = min(2.0, 1.0 + (fluxRise * 2.0))  // Boost for larger rises
-                    let peakIntensity = min(1.0, baseIntensity * riseMultiplier)
-                    
-                    lastPeakTime = elapsed
-                    lastBeatTime = elapsed
-                    lastBeatIntensity = peakIntensity
-                    finalIntensity = peakIntensity
-                } else {
-                    // No peak detected: Apply exponential decay from last beat
-                    let timeSinceLastBeat = elapsed - lastBeatTime
-                    if timeSinceLastBeat < pulseDecayDuration && lastBeatIntensity > 0.0 {
-                        // Decay exponentially: intensity = base * exp(-time / decay)
-                        // Using a moderate decay rate (8.0) for visible but distinct pulses
-                        let decayRate: Float = 8.0
-                        let decayFactor = exp(-Float(timeSinceLastBeat) * decayRate / Float(pulseDecayDuration))
-                        finalIntensity = lastBeatIntensity * decayFactor
-                    } else {
-                        // Pulse has decayed completely or exceeded duration, turn off
-                        finalIntensity = 0.0
-                        if timeSinceLastBeat >= pulseDecayDuration {
-                            lastBeatIntensity = 0.0
-                        }
-                    }
+                // Log every 200ms for diagnostics
+                if Int(elapsed * 1000) % 200 == 0 {
+                    logger.debug("[CINEMATIC] raw=\(String(format: "%.3f", audioEnergy)) smooth=\(String(format: "%.3f", smoothedEnergy)) norm=\(String(format: "%.3f", clampedEnergy)) out=\(String(format: "%.3f", finalIntensity))")
                 }
                 
                 setIntensity(finalIntensity)
