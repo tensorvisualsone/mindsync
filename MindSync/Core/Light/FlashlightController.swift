@@ -416,31 +416,45 @@ final class FlashlightController: BaseLightController, LightControlling {
                     
                     let smoothedEnergy = recentFluxValues.count > 0 ? recentFluxValues.reduce(0, +) / Float(recentFluxValues.count) : 0.0
                     
-                    // Enhanced amplification and dynamic range mapping
-                    // Problem: Previous 10x amplification + sqrt was too conservative
-                    // Solution: Higher amplification (15x) + steeper curve for better contrast
-                    // This creates more dramatic pulses: dark silence → bright beats
-                    let amplified = min(smoothedEnergy * 15.0, 1.0)
+                    // FIXED: Proper dynamic range mapping without premature clipping
+                    // Problem: Previous 15x amplification caused all values >0.067 to clamp to 1.0
+                    //          This removed all audio reactivity since typical values (0.1-0.17) 
+                    //          were immediately clamped to maximum
+                    //
+                    // Solution: Use moderate amplification (5x) that preserves dynamic range
+                    //          and apply proper contrast stretching that maps the full range
+                    //          to a visible output range
+                    //
+                    // Spectral flux typical ranges:
+                    //   - Silence/quiet: 0.0-0.05 → should be dark (0.0-0.15)
+                    //   - Low energy: 0.05-0.12 → should be dim (0.15-0.4)
+                    //   - Moderate: 0.12-0.25 → should be visible (0.4-0.75)
+                    //   - Strong beats: 0.25+ → should be bright (0.75-1.0)
                     
-                    // Use power curve (x^0.7 instead of sqrt) for better dynamic range
-                    // This preserves subtle variations while emphasizing strong beats
-                    // - Low energy (0.0-0.3): Maps to very dark (0.0-0.15) - nearly off
-                    // - Mid energy (0.3-0.7): Maps to moderate (0.15-0.6) - visible
-                    // - High energy (0.7-1.0): Maps to bright (0.6-1.0) - strong pulses
-                    let curved = pow(amplified, 0.7)
+                    // Moderate amplification to preserve dynamic range
+                    // 0.25 * 5 = 1.25, but we want strong beats to map to ~1.0
+                    let amplified = smoothedEnergy * 4.0  // Don't clamp yet - preserve range
                     
-                    // Apply contrast stretching: emphasize beats more strongly
-                    // Map the lower range (0.0-0.2) to near-darkness (0.0-0.1)
-                    // Map the upper range (0.2-1.0) to visible-bright range (0.1-1.0)
-                    // This ensures quiet passages are nearly off, beats are clearly visible
-                    let minThreshold: Float = 0.2
+                    // Apply power curve for perceptual linearity (preserves relative differences)
+                    // Lower exponent (0.6) gives more dynamic range in lower values
+                    let curved = pow(min(amplified, 1.0), 0.6)
+                    
+                    // Map to full intensity range with contrast stretching
+                    // This ensures the full 0.0-1.0 output range is used
+                    // Threshold-based mapping: values below threshold are nearly dark,
+                    // values above threshold scale to bright
+                    let energyThreshold: Float = 0.08  // Below this is considered "quiet"
+                    let quietMax: Float = 0.2          // Maximum for quiet passages
+                    
                     let rawModulation: Float
-                    if curved < minThreshold {
-                        // Quiet: map 0.0-0.2 → 0.0-0.1 (nearly dark)
-                        rawModulation = (curved / minThreshold) * 0.1
+                    if curved < energyThreshold {
+                        // Quiet: map 0.0-0.08 → 0.0-0.2 (nearly dark but slightly visible)
+                        rawModulation = (curved / energyThreshold) * quietMax
                     } else {
-                        // Active: map 0.2-1.0 → 0.1-1.0 (visible to bright)
-                        rawModulation = 0.1 + ((curved - minThreshold) / (1.0 - minThreshold)) * 0.9
+                        // Active: map 0.08-1.0 → 0.2-1.0 (visible to bright)
+                        // This ensures beats are clearly visible while preserving dynamics
+                        let activeRange = 1.0 - quietMax  // 0.8 range for active passages
+                        rawModulation = quietMax + ((curved - energyThreshold) / (1.0 - energyThreshold)) * activeRange
                     }
                     
                     // Clamp to valid range
