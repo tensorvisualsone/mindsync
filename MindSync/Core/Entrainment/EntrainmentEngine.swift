@@ -328,15 +328,21 @@ final class EntrainmentEngine {
         trackDuration: TimeInterval,
         lightSource: LightSource
     ) -> [LightEvent] {
-        // SPECIAL CASE: Cinematic mode ALWAYS uses uniform pulsation for continuous entrainment
-        // Beat timestamps would cause gaps in pulsation which breaks neural synchronization
+        // SPECIAL CASE: Cinematic mode uses purely audio-reactive approach without discrete events
+        // The FlashlightController modulates light intensity directly from audio energy in real-time
+        // We generate a single long event for script validation, but the controller doesn't use it
         if mode == .cinematic {
-            return generateFallbackEvents(
-                frequency: targetFrequency,
+            // Create a single event spanning the full track duration for validation purposes
+            // The actual light intensity is calculated from real-time audio modulation
+            let event = LightEvent(
+                timestamp: 0.0,
                 duration: trackDuration,
-                mode: mode,
-                lightSource: lightSource
+                intensity: 0.5,  // Base intensity (not used by controller)
+                color: nil,
+                waveform: .sine,
+                frequencyOverride: nil
             )
+            return [event]
         }
         
         guard !beatTimestamps.isEmpty else {

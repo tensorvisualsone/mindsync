@@ -357,6 +357,7 @@ final class FlashlightController: BaseLightController, LightControlling {
         }
         
         if let script = currentScript {
+#if DEBUG
             // Debug: Log when no event is found (first few times to diagnose)
             if result.event == nil {
                 self.noEventLogCount += 1
@@ -372,6 +373,7 @@ final class FlashlightController: BaseLightController, LightControlling {
                 // Reset counter when event is found
                 self.noEventLogCount = 0
             }
+#endif
             
             // Check if cinematic mode - fully audio-reactive pulsation
             if script.mode == .cinematic {
@@ -473,20 +475,24 @@ final class FlashlightController: BaseLightController, LightControlling {
                     // Clamp to valid range
                     audioModulation = max(0.0, min(1.0, boostedModulation))
                     
+#if DEBUG
                     // Debug: Log audio energy approximately every second
                     if elapsed - lastAudioLogTime >= 1.0 {
                         let historySize = self.fluxHistory.count  // Extract before closure
                         logger.debug("[CINEMATIC AUDIO] useSpectralFlux=\(tracker.useSpectralFlux) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) historySize=\(historySize) historyMin=\(String(format: "%.3f", historyMin)) historyMax=\(String(format: "%.3f", historyMax)) range=\(String(format: "%.3f", historyRange)) normalized=\(String(format: "%.3f", normalizedEnergy)) rawMod=\(String(format: "%.3f", rawModulation)) boosted=\(String(format: "%.3f", boostedModulation)) final=\(String(format: "%.3f", audioModulation))")
                         lastAudioLogTime = elapsed
                     }
+#endif
                 } else {
                     // No audio tracking - use moderate intensity (not full, to show difference)
                     audioModulation = 0.5
                     
+#if DEBUG
                     // Debug: Log missing tracker
                     if Int(elapsed * 1000) % 2000 == 0 {
                         logger.warning("[CINEMATIC AUDIO] audioEnergyTracker is NIL - audio modulation disabled! Using fallback intensity 0.5")
                     }
+#endif
                 }
                 
                 // CRITICAL FIX: Remove fixed square wave - light follows audio directly
@@ -520,10 +526,12 @@ final class FlashlightController: BaseLightController, LightControlling {
                     finalIntensity = 0.25 + (normalizedMod * intensityRange)  // 0.25 to 1.0
                 }
                 
+#if DEBUG
                 // Log diagnostics (every 200ms)
                 if Int(elapsed * 1000) % 200 == 0 {
                     logger.debug("[CINEMATIC] t=\(String(format: "%.3f", elapsed))s mod=\(String(format: "%.2f", audioModulation)) out=\(String(format: "%.2f", finalIntensity))")
                 }
+#endif
                 
                 setIntensity(finalIntensity)
             } else if let event = result.event {
@@ -628,28 +636,34 @@ final class FlashlightController: BaseLightController, LightControlling {
                     let audioBoost = audioModulation > 0.05 ? audioModulation : 0.0  // Boost if audio is above noise threshold
                     finalIntensity = min(1.0, baseIntensity + (baseIntensity * audioBoost * 0.7))  // Add up to 70% boost
                     
+#if DEBUG
                     // Debug logging for troubleshooting
                     if Int(result.elapsed * 1000) % 500 == 0 {  // Every 500ms
                         let historySizeForLog = self.fluxHistory.count
                         logger.debug("[NON-CINEMATIC] t=\(String(format: "%.3f", result.elapsed))s baseInt=\(String(format: "%.3f", baseIntensity)) eventInt=\(String(format: "%.3f", event.intensity)) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) historySize=\(historySizeForLog) historyMin=\(String(format: "%.3f", historyMin)) historyMax=\(String(format: "%.3f", historyMax)) range=\(String(format: "%.3f", historyRange)) normalized=\(String(format: "%.3f", normalizedEnergy)) curved=\(String(format: "%.3f", curved)) rawMod=\(String(format: "%.3f", rawModulation)) boosted=\(String(format: "%.3f", boostedModulation)) audioMod=\(String(format: "%.3f", audioModulation)) boost=\(String(format: "%.3f", audioBoost)) final=\(String(format: "%.3f", finalIntensity))")
                     }
+#endif
                 } else {
                     // No audio tracking - use base intensity only
                     finalIntensity = baseIntensity
                     
+#if DEBUG
                     // Debug logging for troubleshooting
                     if Int(result.elapsed * 1000) % 500 == 0 {  // Every 500ms
                         logger.debug("[NON-CINEMATIC NO-AUDIO] t=\(String(format: "%.3f", result.elapsed))s baseInt=\(String(format: "%.3f", baseIntensity)) eventInt=\(String(format: "%.3f", event.intensity)) final=\(String(format: "%.3f", finalIntensity))")
                     }
+#endif
                 }
                 
                 setIntensity(finalIntensity)
             } else {
                 // Between events or no active event, turn off
+#if DEBUG
                 // Debug: Log when we're between events (every 500ms to avoid spam)
                 if Int(result.elapsed * 1000) % 500 == 0 {
                     logger.debug("[FLASHLIGHT DEBUG] Between events or no active event. elapsed=\(String(format: "%.3f", result.elapsed))s mode=\(script.mode.rawValue) eventsCount=\(script.events.count)")
                 }
+#endif
                 setIntensity(0.0)
             }
         } else {
