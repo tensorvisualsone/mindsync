@@ -440,13 +440,18 @@ final class FlashlightController: BaseLightController, LightControlling {
                     
                     // Normalize current energy to 0-1 range based on long-term history
                     // This ensures proper contrast stretching across the full track dynamic range
+                    // IMPORTANT: Only trust normalization when we have a meaningful range.
+                    // If the long-term range is very small (highly compressed track or steady section),
+                    // normalize against absolute thresholds instead. This avoids the situation where
+                    // historyMin ≈ historyMax and everything is mapped to ~0.
                     let normalizedEnergy: Float
-                    if historyRange > 0.001 && historyMax > 0.0 {
+                    let minimumUsefulRange: Float = 0.05 // 5% absolute range required for adaptive normalization
+                    if historyRange >= minimumUsefulRange && historyMax > 0.0 {
                         normalizedEnergy = min(1.0, max(0.0, (smoothedEnergy - historyMin) / historyRange))
                     } else {
                         // Fallback: Use absolute thresholds based on typical flux values
-                        // Typical spectral flux: 0.05-0.20, map directly with amplification
-                        normalizedEnergy = min(smoothedEnergy * 5.0, 1.0)
+                        // Typical spectral flux: 0.05-0.20, map directly with aggressive amplification
+                        normalizedEnergy = min(smoothedEnergy * 6.0, 1.0)
                     }
                     
                     // EXTREME contrast stretching for maximum visual impact
@@ -517,7 +522,8 @@ final class FlashlightController: BaseLightController, LightControlling {
                 // If audio is very low, light is off regardless of square wave phase
                 // If audio is high and square wave is "ON", light is bright
                 // This creates beat-synchronized pulses instead of fixed rhythm
-                let audioThreshold: Float = 0.2  // Below this, light is off (even during ON phase)
+                // Lower threshold so that even moderate spectral flux produces visible pulses.
+                let audioThreshold: Float = 0.1  // Below this, light is off (even during ON phase)
                 let finalIntensity: Float
                 
                 if audioModulation < audioThreshold {
