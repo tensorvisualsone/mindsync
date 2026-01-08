@@ -382,11 +382,17 @@ final class EntrainmentEngine {
         let waveform = waveformSelector(mode)
         let baseIntensity = intensitySelector(mode)
         
+        // Normalize timestamps to start at 0.0
+        // This ensures events begin immediately when the session starts,
+        // even if beat detection skipped the beginning of the track
+        let firstTimestamp = beatTimestamps.first ?? 0.0
+        let normalizedTimestamps = beatTimestamps.map { $0 - firstTimestamp }
+        
         // Ramping parameters
         let startFreq = mode.startFrequency
         let rampTime = mode.rampDuration
         
-        for (index, timestamp) in beatTimestamps.enumerated() {
+        for (index, timestamp) in normalizedTimestamps.enumerated() {
             // Calculate current frequency based on ramping
             let progress = rampTime > 0 ? min(timestamp / rampTime, 1.0) : 1.0
             let smooth = MathHelpers.smoothstep(progress)
@@ -403,11 +409,11 @@ final class EntrainmentEngine {
                 // Duration extends to next beat timestamp (or end of track)
                 // This ensures continuous pulsation without gaps
                 let nextTimestamp: TimeInterval
-                if index + 1 < beatTimestamps.count {
-                    nextTimestamp = beatTimestamps[index + 1]
+                if index + 1 < normalizedTimestamps.count {
+                    nextTimestamp = normalizedTimestamps[index + 1]
                 } else {
-                    // Last beat: extend to end of track
-                    nextTimestamp = trackDuration
+                    // Last beat: extend to end of track (normalized)
+                    nextTimestamp = max(trackDuration - firstTimestamp, timestamp + period)
                 }
                 // Duration = time until next beat, but at least one period
                 eventDuration = max(period, nextTimestamp - timestamp)
@@ -562,11 +568,15 @@ final class EntrainmentEngine {
         var events: [VibrationEvent] = []
         let waveform = waveformSelector(mode)
         
+        // Normalize timestamps to start at 0.0 (same as light events)
+        let firstTimestamp = beatTimestamps.first ?? 0.0
+        let normalizedTimestamps = beatTimestamps.map { $0 - firstTimestamp }
+        
         // Ramping parameters
         let startFreq = mode.startFrequency
         let rampTime = mode.rampDuration
         
-        for (index, timestamp) in beatTimestamps.enumerated() {
+        for (index, timestamp) in normalizedTimestamps.enumerated() {
             // Calculate current frequency based on ramping
             let progress = rampTime > 0 ? min(timestamp / rampTime, 1.0) : 1.0
             let smooth = MathHelpers.smoothstep(progress)
@@ -582,10 +592,10 @@ final class EntrainmentEngine {
             } else {
                 // Duration extends to next beat timestamp (or end of track)
                 let nextTimestamp: TimeInterval
-                if index + 1 < beatTimestamps.count {
-                    nextTimestamp = beatTimestamps[index + 1]
+                if index + 1 < normalizedTimestamps.count {
+                    nextTimestamp = normalizedTimestamps[index + 1]
                 } else {
-                    nextTimestamp = trackDuration
+                    nextTimestamp = max(trackDuration - firstTimestamp, timestamp + period)
                 }
                 eventDuration = max(period, nextTimestamp - timestamp)
             }
