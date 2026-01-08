@@ -359,9 +359,9 @@ final class FlashlightController: BaseLightController, LightControlling {
         if let script = currentScript {
             // Debug: Log when no event is found (first few times to diagnose)
             if result.event == nil {
-                noEventLogCount += 1
-                if noEventLogCount <= 10 || noEventLogCount % 100 == 0 {
-                    logger.warning("[FLASHLIGHT DEBUG] No event found! count=\(noEventLogCount) elapsed=\(String(format: "%.3f", result.elapsed))s mode=\(script.mode.rawValue) eventsCount=\(script.events.count) isComplete=\(result.isComplete)")
+                self.noEventLogCount += 1
+                if self.noEventLogCount <= 10 || self.noEventLogCount % 100 == 0 {
+                    logger.warning("[FLASHLIGHT DEBUG] No event found! count=\(self.noEventLogCount) elapsed=\(String(format: "%.3f", result.elapsed))s mode=\(script.mode.rawValue) eventsCount=\(script.events.count) isComplete=\(result.isComplete)")
                     if script.events.count > 0 && result.elapsed < 5.0 {
                         let firstEvent = script.events[0]
                         logger.warning("[FLASHLIGHT DEBUG] First event: timestamp=\(String(format: "%.3f", firstEvent.timestamp))s duration=\(String(format: "%.3f", firstEvent.duration))s intensity=\(String(format: "%.3f", firstEvent.intensity))")
@@ -369,7 +369,7 @@ final class FlashlightController: BaseLightController, LightControlling {
                 }
             } else {
                 // Reset counter when event is found
-                noEventLogCount = 0
+                self.noEventLogCount = 0
             }
             
             // Check if cinematic mode - continuous audio-reactive pulsation
@@ -384,7 +384,7 @@ final class FlashlightController: BaseLightController, LightControlling {
                 // neural entrainment. Gaps in stimulation break synchronization.
                 // (Ref: Nozaradan et al., 2011; Lakatos et al., 2008)
                 
-                guard let event = result.event else {
+                guard result.event != nil else {
                     // No active event - turn off
                     setIntensity(0.0)
                     return
