@@ -465,12 +465,11 @@ final class FlashlightController: BaseLightController, LightControlling {
                     let amplified = min(smoothedEnergy * 10.0, 1.0)
                     let curved = sqrt(amplified)
                     
-                    // Beat threshold: Turn light completely off when spectral flux is below threshold
-                    // This creates sharp pulses synchronized to beats with complete darkness between
-                    // Lower threshold (0.20) for binaural beats which have minimal spectral flux
-                    // Raw threshold ~0.004 filters background noise while allowing beat detection
-                    let beatThreshold: Float = 0.20
-                    let audioModulation: Float = curved >= beatThreshold ? curved : 0.0
+                    // Apply contrast stretching: map [0.0-1.0] to [0.0-1.0] with enhanced dynamic range
+                    // This ensures strong pulses (0.0 → 1.0) while filtering very low background noise
+                    // Values below 0.05 map to 0.0, above that scales linearly to full range
+                    let minThreshold: Float = 0.05
+                    let audioModulation: Float = curved > minThreshold ? (curved - minThreshold) / (1.0 - minThreshold) : 0.0
                     
                     // Use audio modulation directly (not as multiplier)
                     // This creates the same strong pulse effect as cinematic mode
