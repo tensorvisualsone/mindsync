@@ -339,10 +339,10 @@ final class EntrainmentEngine {
             let cinematicBaseIntensity: Float = 0.5
             let event = LightEvent(
                 timestamp: 0.0,
-                duration: trackDuration,
                 intensity: cinematicBaseIntensity,
-                color: nil,
+                duration: trackDuration,
                 waveform: .sine,
+                color: nil,
                 frequencyOverride: nil
             )
             return [event]
