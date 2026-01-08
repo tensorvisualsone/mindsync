@@ -90,8 +90,6 @@ enum WaveformGenerator {
             dutyCycle: dutyCycle
         )
     }
-        )
-    }
     
     /// Calculates intensity with smooth fade-out for signal pausing (microphone mode)
     /// - Parameters:
