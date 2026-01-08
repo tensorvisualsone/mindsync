@@ -698,6 +698,10 @@ final class SessionViewModel: ObservableObject {
             updateCurrentFrequency()
             startFrequencyUpdates()
 
+            // If cinematic mode, start audio energy tracking BEFORE starting lights
+            // This ensures audioEnergyTracker is attached when updateLight() begins
+            enableSpectralFluxForCinematicMode(mode)
+            
             // Start audio playback and light
             try await startPlaybackAndLight(url: assetURL, script: script, startTime: startTime)
             logger.info("Playback and light started successfully")
@@ -713,9 +717,6 @@ final class SessionViewModel: ObservableObject {
                 try await vibrationController.start()
                 vibrationController.execute(script: vibrationScript, syncedTo: startTime)
             }
-
-            // If cinematic mode, start audio energy tracking and attach to light controller
-            enableSpectralFluxForCinematicMode(mode)
 
             // Start Bluetooth latency monitoring for dynamic synchronization
             setupBluetoothLatencyMonitoring()
@@ -868,6 +869,10 @@ final class SessionViewModel: ObservableObject {
             updateCurrentFrequency()
             startFrequencyUpdates()
             
+            // If cinematic mode, start audio energy tracking BEFORE starting lights
+            // This ensures audioEnergyTracker is attached when updateLight() begins
+            enableSpectralFluxForCinematicMode(mode)
+            
             // Start audio playback and light
             try await startPlaybackAndLight(url: audioFileURL, script: script, startTime: startTime)
             
@@ -884,9 +889,6 @@ final class SessionViewModel: ObservableObject {
                 try await vibrationController.start()
                 vibrationController.execute(script: vibrationScript, syncedTo: startTime)
             }
-            
-            // If cinematic mode, start audio energy tracking and attach to light controller
-            enableSpectralFluxForCinematicMode(mode)
             
             // Start Bluetooth latency monitoring for dynamic synchronization
             setupBluetoothLatencyMonitoring()
@@ -1123,17 +1125,18 @@ final class SessionViewModel: ObservableObject {
         // Stop controllers in order: Light first (stops timer), then audio, then vibration
         // This order prevents race conditions where timer callbacks try to access stopped services
         lightController?.stop()
+        
+        // CRITICAL: Stop audio energy tracking BEFORE stopping audio playback
+        // The tracker needs to remove its tap from the mixer node while the engine is still running
+        audioEnergyTracker.stopTracking()
+        audioEnergyTracker.useSpectralFlux = false // Reset for next session
+        lightController?.audioEnergyTracker = nil
+        
         audioPlayback.stop()
         vibrationController?.stop()
 
         // Stop isochronic audio if active
         IsochronicAudioService.shared.stop()
-
-        // Stop audio energy tracking if active (cinematic mode)
-        // Must happen after light controller stops to avoid accessing stopped tracker
-        audioEnergyTracker.stopTracking()
-        audioEnergyTracker.useSpectralFlux = false // Reset for next session
-        lightController?.audioEnergyTracker = nil
 
         // Stop Bluetooth latency monitoring
         bluetoothLatencyMonitor.stopMonitoring()
