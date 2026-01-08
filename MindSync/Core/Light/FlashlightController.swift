@@ -393,10 +393,16 @@ final class FlashlightController: BaseLightController, LightControlling {
                     
                     let smoothedEnergy = recentFluxValues.count > 0 ? recentFluxValues.reduce(0, +) / Float(recentFluxValues.count) : 0.0
                     
-                    // Map to intensity range (0.0 - 1.0)
-                    // Stronger audio = brighter pulses, dark moments when audio is low
-                    // This creates the sharp pulse effect similar to Lumenate app
-                    audioModulation = smoothedEnergy
+                    // Amplify and apply power curve to spread values across 0.0-1.0 range
+                    // The spectral flux is already normalized but often stays in lower range due to smoothing
+                    // Power curve (sqrt) lifts quiet values while preserving loud peaks
+                    // Scale factor (3.0) amplifies the signal before curve to make quiet passages visible
+                    let amplified = min(smoothedEnergy * 3.0, 1.0)
+                    let curved = sqrt(amplified)  // Power curve to spread dynamic range
+                    
+                    // Map to full intensity range (0.0 - 1.0)
+                    // This creates strong pulse effect: completely dark (0.0) to bright (1.0)
+                    audioModulation = curved
                     
                     // Debug: Log audio energy approximately every second
                     if elapsed - lastAudioLogTime >= 1.0 {
@@ -454,9 +460,14 @@ final class FlashlightController: BaseLightController, LightControlling {
                     
                     let smoothedEnergy = recentFluxValues.count > 0 ? recentFluxValues.reduce(0, +) / Float(recentFluxValues.count) : 0.0
                     
-                    // Map to modulation range (0.0 - 1.0) for strong pulse effect
+                    // Amplify and apply power curve to spread values across 0.0-1.0 range
+                    // Same transformation as cinematic mode for consistency
+                    let amplified = min(smoothedEnergy * 3.0, 1.0)
+                    let curved = sqrt(amplified)
+                    
+                    // Map to full modulation range (0.0 - 1.0) for strong pulse effect
                     // Dark moments (0.0) between bright pulses create intense closed-eye stimulation
-                    let audioModulation = smoothedEnergy
+                    let audioModulation = curved
                     
                     // Apply modulation to base intensity
                     finalIntensity = baseIntensity * audioModulation
