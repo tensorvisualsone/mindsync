@@ -471,9 +471,11 @@ final class FlashlightController: BaseLightController, LightControlling {
                     let minThreshold: Float = 0.05
                     let audioModulation: Float = curved > minThreshold ? (curved - minThreshold) / (1.0 - minThreshold) : 0.0
                     
-                    // Use audio modulation directly (not as multiplier)
-                    // This creates the same strong pulse effect as cinematic mode
-                    finalIntensity = audioModulation
+                    // Use audio modulation as multiplier for base intensity
+                    // This ensures the base waveform is always visible, modulated by audio energy
+                    // Minimum modulation of 0.3 ensures base waveform remains visible even with low audio
+                    let modulationFactor = max(0.3, audioModulation)
+                    finalIntensity = baseIntensity * modulationFactor
                 } else {
                     // No audio tracking - use base intensity only
                     finalIntensity = baseIntensity
