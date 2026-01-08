@@ -384,14 +384,24 @@ final class FlashlightController: BaseLightController, LightControlling {
                         recentFluxValues.removeFirst()
                     }
                     
-                    let smoothedEnergy = recentFluxValues.reduce(0, +) / Float(recentFluxValues.count)
+                    let smoothedEnergy = recentFluxValues.count > 0 ? recentFluxValues.reduce(0, +) / Float(recentFluxValues.count) : 0.0
                     
                     // Map to intensity range (0.4 - 1.0)
                     // Stronger audio = brighter pulses, but always visible
                     audioModulation = 0.4 + (smoothedEnergy * 0.6)
+                    
+                    // Debug: Log audio energy every second
+                    if Int(elapsed * 1000) % 1000 == 0 {
+                        logger.debug("[CINEMATIC AUDIO] useSpectralFlux=\(tracker.useSpectralFlux) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) modulation=\(String(format: "%.3f", audioModulation))")
+                    }
                 } else {
                     // No audio tracking - use full intensity
                     audioModulation = 1.0
+                    
+                    // Debug: Log missing tracker
+                    if Int(elapsed * 1000) % 2000 == 0 {
+                        logger.warning("[CINEMATIC AUDIO] audioEnergyTracker is NIL - audio modulation disabled!")
+                    }
                 }
                 
                 // Generate square wave with frequency-dependent duty cycle
