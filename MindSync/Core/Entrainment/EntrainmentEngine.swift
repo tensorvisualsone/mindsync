@@ -127,15 +127,26 @@ final class EntrainmentEngine {
         lightSource: LightSource,
         screenColor: LightEvent.LightColor? = nil
     ) -> LightScript {
-        // Calculate multiplier N so that f_target is in target band
-        let multiplier = calculateMultiplier(
-            bpm: track.bpm,
-            targetRange: mode.frequencyRange,
-            maxFrequency: lightSource.maxFrequency
-        )
+        // SPECIAL CASE: Cinematic mode uses fixed target frequency for photo diving
+        // instead of BPM-derived frequency
+        let targetFrequency: Double
+        let multiplier: Int
         
-        // Calculate target frequency: f_target = (BPM / 60) × N
-        let targetFrequency = (track.bpm / 60.0) * Double(multiplier)
+        if mode == .cinematic {
+            // Use mode's target frequency directly (6.5 Hz for photo diving effect)
+            targetFrequency = mode.targetFrequency
+            multiplier = 1  // No BPM multiplication for cinematic mode
+        } else {
+            // Calculate multiplier N so that f_target is in target band
+            multiplier = calculateMultiplier(
+                bpm: track.bpm,
+                targetRange: mode.frequencyRange,
+                maxFrequency: lightSource.maxFrequency
+            )
+            
+            // Calculate target frequency: f_target = (BPM / 60) × N
+            targetFrequency = (track.bpm / 60.0) * Double(multiplier)
+        }
         
         // Generate light events based on beat timestamps
         let events = generateLightEvents(
