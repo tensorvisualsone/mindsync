@@ -84,6 +84,14 @@ struct Session: Codable, Identifiable {
         self.endReason = nil
     }
     
+    // MARK: - Codable Implementation
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, startedAt, endedAt, mode, lightSource, audioSource
+        case trackTitle, trackArtist, trackBPM
+        case actualDuration, averageIntensity, thermalWarningOccurred, manuallyPaused, endReason
+    }
+    
     // Custom decoder to handle migration from older versions that had .screen case
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -117,12 +125,6 @@ struct Session: Codable, Identifiable {
             // Fallback if decoding fails
             lightSource = .flashlight
         }
-    }
-    
-    private enum CodingKeys: String, CodingKey {
-        case id, startedAt, endedAt, mode, lightSource, audioSource
-        case trackTitle, trackArtist, trackBPM
-        case actualDuration, averageIntensity, thermalWarningOccurred, manuallyPaused, endReason
     }
 
     /// Berechnet Dauer basierend auf Start/Ende

@@ -334,10 +334,13 @@ final class EntrainmentEngine {
         if mode == .cinematic {
             // Create a single event spanning the full track duration for validation purposes
             // The actual light intensity is calculated from real-time audio modulation
+            // Base intensity is set to 0.5 (50%) - this value is not used by the controller,
+            // but provides a reasonable fallback if cinematic mode is ever used with event-based rendering
+            let cinematicBaseIntensity: Float = 0.5
             let event = LightEvent(
                 timestamp: 0.0,
                 duration: trackDuration,
-                intensity: 0.5,  // Base intensity (not used by controller)
+                intensity: cinematicBaseIntensity,
                 color: nil,
                 waveform: .sine,
                 frequencyOverride: nil
