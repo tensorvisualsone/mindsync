@@ -35,7 +35,7 @@ final class SpectralFluxDetectorTests: XCTestCase {
         let frameCount = 2048
         let buffer = createAudioBuffer(frameCount: frameCount, frequency: 0, amplitude: 0.0)
         
-        let flux = detector.calculateFlux(from: buffer)
+        let flux = detector.calculateBassFlux(from: buffer)
         
         // Silence should produce zero or near-zero flux
         XCTAssertEqual(flux, 0.0, accuracy: 0.01)
@@ -47,10 +47,10 @@ final class SpectralFluxDetectorTests: XCTestCase {
         let buffer = createAudioBuffer(frameCount: frameCount, frequency: 100, amplitude: 0.5)
         
         // First call establishes baseline
-        _ = detector.calculateFlux(from: buffer)
+        _ = detector.calculateBassFlux(from: buffer)
         
         // Second call with same signal should show low flux (no change)
-        let flux = detector.calculateFlux(from: buffer)
+        let flux = detector.calculateBassFlux(from: buffer)
         
         XCTAssertLessThan(flux, 0.2, "Constant tone should have low flux")
     }
@@ -60,11 +60,11 @@ final class SpectralFluxDetectorTests: XCTestCase {
         
         // First buffer: silence
         let silentBuffer = createAudioBuffer(frameCount: frameCount, frequency: 0, amplitude: 0.0)
-        _ = detector.calculateFlux(from: silentBuffer)
+        _ = detector.calculateBassFlux(from: silentBuffer)
         
         // Second buffer: loud bass tone (simulates kick drum)
         let loudBuffer = createAudioBuffer(frameCount: frameCount, frequency: 80, amplitude: 0.8)
-        let flux = detector.calculateFlux(from: loudBuffer)
+        let flux = detector.calculateBassFlux(from: loudBuffer)
         
         // Transient from silence to loud should produce high flux
         XCTAssertGreaterThan(flux, 0.1, "Transient should produce noticeable flux")
@@ -75,10 +75,10 @@ final class SpectralFluxDetectorTests: XCTestCase {
         
         // Create extremely loud signal
         let silentBuffer = createAudioBuffer(frameCount: frameCount, frequency: 0, amplitude: 0.0)
-        _ = detector.calculateFlux(from: silentBuffer)
+        _ = detector.calculateBassFlux(from: silentBuffer)
         
         let extremeBuffer = createAudioBuffer(frameCount: frameCount, frequency: 100, amplitude: 1.0)
-        let flux = detector.calculateFlux(from: extremeBuffer)
+        let flux = detector.calculateBassFlux(from: extremeBuffer)
         
         // Flux should be normalized to [0, 1]
         XCTAssertGreaterThanOrEqual(flux, 0.0)
@@ -90,18 +90,18 @@ final class SpectralFluxDetectorTests: XCTestCase {
         
         // First: silence
         let silentBuffer = createAudioBuffer(frameCount: frameCount, frequency: 0, amplitude: 0.0)
-        _ = detector.calculateFlux(from: silentBuffer)
+        _ = detector.calculateBassFlux(from: silentBuffer)
         
         // Second: high frequency tone (5000 Hz - outside bass range 0-1400 Hz)
         // Should contribute less to flux than bass frequencies
         let highFreqBuffer = createAudioBuffer(frameCount: frameCount, frequency: 5000, amplitude: 0.8)
-        let highFreqFlux = detector.calculateFlux(from: highFreqBuffer)
+        let highFreqFlux = detector.calculateBassFlux(from: highFreqBuffer)
         
         // Third: bass frequency tone (100 Hz - in bass range)
         detector.reset()
-        _ = detector.calculateFlux(from: silentBuffer)
+        _ = detector.calculateBassFlux(from: silentBuffer)
         let bassBuffer = createAudioBuffer(frameCount: frameCount, frequency: 100, amplitude: 0.8)
-        let bassFlux = detector.calculateFlux(from: bassBuffer)
+        let bassFlux = detector.calculateBassFlux(from: bassBuffer)
         
         // Bass should produce higher flux (bass is isolated in this detector)
         XCTAssertGreaterThan(bassFlux, highFreqFlux, "Bass frequencies should dominate flux calculation")
@@ -114,13 +114,13 @@ final class SpectralFluxDetectorTests: XCTestCase {
         
         // Calculate flux with some signal
         let buffer = createAudioBuffer(frameCount: frameCount, frequency: 100, amplitude: 0.5)
-        _ = detector.calculateFlux(from: buffer)
+        _ = detector.calculateBassFlux(from: buffer)
         
         // Reset detector
         detector.reset()
         
         // After reset, same signal should produce flux again (no previous magnitude)
-        let fluxAfterReset = detector.calculateFlux(from: buffer)
+        let fluxAfterReset = detector.calculateBassFlux(from: buffer)
         
         // First measurement after reset uses zero as previous magnitude,
         // so flux should be non-zero for non-silent signal
@@ -134,13 +134,13 @@ final class SpectralFluxDetectorTests: XCTestCase {
         let buffer1 = createAudioBuffer(frameCount: frameCount, frequency: 100, amplitude: 0.3)
         let buffer2 = createAudioBuffer(frameCount: frameCount, frequency: 100, amplitude: 0.7)
         
-        _ = detector.calculateFlux(from: buffer1)
-        let fluxBefore = detector.calculateFlux(from: buffer2)
+        _ = detector.calculateBassFlux(from: buffer1)
+        let fluxBefore = detector.calculateBassFlux(from: buffer2)
         
         // Reset and measure again
         detector.reset()
-        _ = detector.calculateFlux(from: buffer1)
-        let fluxAfter = detector.calculateFlux(from: buffer2)
+        _ = detector.calculateBassFlux(from: buffer1)
+        let fluxAfter = detector.calculateBassFlux(from: buffer2)
         
         // After reset, flux should be similar (same signal transition)
         XCTAssertEqual(fluxBefore, fluxAfter, accuracy: 0.1)
@@ -155,7 +155,7 @@ final class SpectralFluxDetectorTests: XCTestCase {
         buffer.frameLength = 1
         
         // Should not crash with very small buffer
-        let flux = detector.calculateFlux(from: buffer)
+        let flux = detector.calculateBassFlux(from: buffer)
         
         // With insufficient data, flux should be minimal
         XCTAssertEqual(flux, 0.0, accuracy: 0.01)
@@ -166,10 +166,10 @@ final class SpectralFluxDetectorTests: XCTestCase {
         
         // Test with maximum amplitude signal
         let silentBuffer = createAudioBuffer(frameCount: frameCount, frequency: 0, amplitude: 0.0)
-        _ = detector.calculateFlux(from: silentBuffer)
+        _ = detector.calculateBassFlux(from: silentBuffer)
         
         let maxBuffer = createAudioBuffer(frameCount: frameCount, frequency: 100, amplitude: 1.0)
-        let flux = detector.calculateFlux(from: maxBuffer)
+        let flux = detector.calculateBassFlux(from: maxBuffer)
         
         // Should handle max amplitude without issues
         XCTAssertGreaterThan(flux, 0.0)
@@ -183,7 +183,7 @@ final class SpectralFluxDetectorTests: XCTestCase {
         for i in 0..<10 {
             let amplitude = Double(i) / 10.0
             let buffer = createAudioBuffer(frameCount: frameCount, frequency: 100, amplitude: amplitude)
-            let flux = detector.calculateFlux(from: buffer)
+            let flux = detector.calculateBassFlux(from: buffer)
             
             // Each calculation should return valid flux
             XCTAssertGreaterThanOrEqual(flux, 0.0)
@@ -201,18 +201,18 @@ final class SpectralFluxDetectorTests: XCTestCase {
         
         detector.reset()
         let silentBuffer = createAudioBuffer(frameCount: frameCount, frequency: 0, amplitude: 0.0)
-        _ = detector.calculateFlux(from: silentBuffer)
+        _ = detector.calculateBassFlux(from: silentBuffer)
         
         // Bass-heavy signal (100 Hz)
         let bassBuffer = createAudioBuffer(frameCount: frameCount, frequency: 100, amplitude: 0.7)
-        let bassFlux = detector.calculateFlux(from: bassBuffer)
+        let bassFlux = detector.calculateBassFlux(from: bassBuffer)
         
         detector.reset()
-        _ = detector.calculateFlux(from: silentBuffer)
+        _ = detector.calculateBassFlux(from: silentBuffer)
         
         // Treble signal (4000 Hz)
         let trebleBuffer = createAudioBuffer(frameCount: frameCount, frequency: 4000, amplitude: 0.7)
-        let trebleFlux = detector.calculateFlux(from: trebleBuffer)
+        let trebleFlux = detector.calculateBassFlux(from: trebleBuffer)
         
         // Bass should produce significantly more flux due to bass range isolation (0-1400 Hz)
         XCTAssertGreaterThan(bassFlux, trebleFlux)

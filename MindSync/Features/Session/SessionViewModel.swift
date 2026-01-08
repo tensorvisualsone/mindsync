@@ -1099,34 +1099,39 @@ final class SessionViewModel: ObservableObject {
         
         logger.info("Stopping session")
         
+        // CRITICAL: Stop timers FIRST to prevent race conditions
+        // This must happen before any other cleanup to avoid hanging
+        stopPlaybackProgressUpdates()
+        affirmationTimer?.invalidate()
+        affirmationTimer = nil
+        
+        // Cancel any active task (e.g. screen switch) before cleanup
+        activeTask?.cancel()
+        activeTask = nil
+        
         // Re-enable idle timer when session stops
         UIApplication.shared.isIdleTimerDisabled = false
         
-        audioPlayback.stop()
+        // Stop controllers in order: Light first (stops timer), then audio, then vibration
+        // This order prevents race conditions where timer callbacks try to access stopped services
         lightController?.stop()
+        audioPlayback.stop()
         vibrationController?.stop()
 
         // Stop isochronic audio if active
         IsochronicAudioService.shared.stop()
-        
+
         // Stop audio energy tracking if active (cinematic mode)
+        // Must happen after light controller stops to avoid accessing stopped tracker
         audioEnergyTracker.stopTracking()
         audioEnergyTracker.useSpectralFlux = false // Reset for next session
         lightController?.audioEnergyTracker = nil
-        
+
         // Stop Bluetooth latency monitoring
         bluetoothLatencyMonitor.stopMonitoring()
-        
+
         // Stop fall detection
         fallDetector.stopMonitoring()
-        
-        // Invalidate affirmation timer
-        affirmationTimer?.invalidate()
-        affirmationTimer = nil
-        
-        // Cancel any active task (e.g. screen switch)
-        activeTask?.cancel()
-        activeTask = nil
         
         // End session and save to history only if it was running or paused
         let shouldSaveSession = state == .running || state == .paused

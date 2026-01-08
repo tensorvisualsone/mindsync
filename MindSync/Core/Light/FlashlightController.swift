@@ -24,7 +24,9 @@ final class FlashlightController: BaseLightController, LightControlling {
     // Cinematic mode pulse state tracking
     private var lastBeatTime: TimeInterval = 0
     private var lastBeatIntensity: Float = 0.0
+    private var previousAudioEnergy: Float = 0.0 // Track previous energy to detect transients
     private let pulseDecayDuration: TimeInterval = 0.1 // 100ms pulse duration for sharp beat flashes
+    private let beatRiseThreshold: Float = 0.1 // Minimum increase in energy to trigger a new beat
     
     /// Precision timer interval shared across light controllers
     /// OPTIMIZED FOR LAMBDA: 1ms (1000 Hz) resolution needed for stable 100 Hz output.
@@ -161,13 +163,24 @@ final class FlashlightController: BaseLightController, LightControlling {
     }
 
     func stop() {
+        // CRITICAL: Stop timer FIRST to prevent race conditions and hanging
+        // This ensures no more updateLight() calls happen during cleanup
+        invalidatePrecisionTimer()
+        
+        // Then perform cleanup
         if let device = device, isLocked {
             device.torchMode = .off
             device.unlockForConfiguration()
             isLocked = false
         }
         torchFailureNotified = false
-        cancelExecution()
+        
+        // Reset state
+        setIntensity(0.0)
+        resetScriptExecution()
+        lastBeatTime = 0
+        lastBeatIntensity = 0.0
+        previousAudioEnergy = 0.0
     }
     
     /// Performs a brief torch activation to warm up the hardware and reduce cold-start latency.
@@ -292,6 +305,7 @@ final class FlashlightController: BaseLightController, LightControlling {
         // Reset cinematic mode pulse state
         lastBeatTime = 0
         lastBeatIntensity = 0.0
+        previousAudioEnergy = 0.0
     }
     
     func pauseExecution() {
@@ -338,17 +352,22 @@ final class FlashlightController: BaseLightController, LightControlling {
                     audioEnergy: audioEnergy
                 )
                 
-                // Apply pulse decay logic: If a beat was detected (intensity > 0), create a short pulse
-                // that decays quickly. This ensures the light flashes sharply on beats and
-                // turns off between beats, rather than staying continuously on.
+                // Apply pulse decay logic with transient detection: Only trigger new pulses on
+                // energy increases (transients), not on sustained high energy. This prevents
+                // continuous lighting and creates distinct beat-synchronized flashes.
                 let finalIntensity: Float
-                if cinematicIntensity > 0.0 {
-                    // Beat detected: Start a new pulse
+                
+                // Detect beat transient: Energy must be above threshold AND show a significant increase
+                let energyIncrease = audioEnergy - previousAudioEnergy
+                let isBeatTransient = cinematicIntensity > 0.0 && energyIncrease > beatRiseThreshold
+                
+                if isBeatTransient {
+                    // Beat transient detected: Start a new pulse
                     lastBeatTime = elapsed
                     lastBeatIntensity = cinematicIntensity
                     finalIntensity = cinematicIntensity
                 } else {
-                    // No beat detected: Apply exponential decay from last beat
+                    // No beat transient: Apply exponential decay from last beat
                     let timeSinceLastBeat = elapsed - lastBeatTime
                     if timeSinceLastBeat < pulseDecayDuration && lastBeatIntensity > 0.0 {
                         // Decay exponentially: intensity = base * exp(-time / decay)
@@ -364,6 +383,9 @@ final class FlashlightController: BaseLightController, LightControlling {
                         }
                     }
                 }
+                
+                // Update previous energy for next frame's transient detection
+                previousAudioEnergy = audioEnergy
                 
                 setIntensity(finalIntensity)
             } else if let event = result.event {
