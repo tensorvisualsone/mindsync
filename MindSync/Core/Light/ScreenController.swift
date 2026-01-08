@@ -150,13 +150,36 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
     /// Calculates opacity based on waveform and time within event
     /// Uses WaveformGenerator for consistency with other controllers
     private func calculateOpacity(event: LightEvent, elapsed: TimeInterval, targetFrequency: Double) -> Double {
-        // Use centralized WaveformGenerator (standard 50% duty cycle for square wave)
+        // Calculate frequency-dependent duty cycle (same logic as FlashlightController)
+        let dutyCycle = calculateDutyCycle(for: targetFrequency)
+        
         return Double(WaveformGenerator.calculateIntensity(
             waveform: event.waveform,
             time: elapsed,
             frequency: targetFrequency,
             baseIntensity: event.intensity,
-            dutyCycle: 0.5 // Standard duty cycle for screen
+            dutyCycle: dutyCycle
         ))
+    }
+    
+    /// Calculates optimal duty cycle based on frequency
+    /// Matches FlashlightController logic for consistent entrainment effectiveness
+    /// At high frequencies, shorter duty cycles create sharper visual pulses
+    private func calculateDutyCycle(for frequency: Double) -> Double {
+        // Frequency thresholds (same as FlashlightController)
+        let highThreshold: Double = 30.0  // Gamma band
+        let midThreshold: Double = 20.0   // Alpha/Beta boundary
+        let lowThreshold: Double = 10.0   // Theta/Alpha boundary
+        
+        // Duty cycles by frequency band
+        if frequency > highThreshold {
+            return 0.15  // 15% for gamma (>30 Hz)
+        } else if frequency > midThreshold {
+            return 0.20  // 20% for high alpha/beta (20-30 Hz)
+        } else if frequency > lowThreshold {
+            return 0.30  // 30% for alpha (10-20 Hz)
+        } else {
+            return 0.45  // 45% for theta (<10 Hz)
+        }
     }
 }
