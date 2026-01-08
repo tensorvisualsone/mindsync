@@ -15,15 +15,13 @@ final class PermissionsService {
         if #available(iOS 17.0, *) {
             // Convert AVAudioApplication.recordPermission to AVAudioSession.RecordPermission
             let appPermission = AVAudioApplication.shared.recordPermission
-            switch appPermission {
-            case AVAudioApplication.recordPermission.granted:
-                return .granted
-            case AVAudioApplication.recordPermission.denied:
-                return .denied
-            case AVAudioApplication.recordPermission.undetermined:
-                return .undetermined
-            @unknown default:
-                return .undetermined
+            // Use the new iOS 17+ API directly
+            if appPermission == AVAudioApplication.recordPermission.granted {
+                return AVAudioSession.RecordPermission.granted
+            } else if appPermission == AVAudioApplication.recordPermission.denied {
+                return AVAudioSession.RecordPermission.denied
+            } else {
+                return AVAudioSession.RecordPermission.undetermined
             }
         } else {
             return AVAudioSession.sharedInstance().recordPermission
@@ -45,15 +43,13 @@ final class PermissionsService {
                     // to handle cases where the user dismisses without choosing
                     let appPermission = AVAudioApplication.shared.recordPermission
                     let permission: AVAudioSession.RecordPermission
-                    switch appPermission {
-                    case AVAudioApplication.recordPermission.granted:
-                        permission = .granted
-                    case AVAudioApplication.recordPermission.denied:
-                        permission = .denied
-                    case AVAudioApplication.recordPermission.undetermined:
-                        permission = .undetermined
-                    @unknown default:
-                        permission = .undetermined
+                    // Use the new iOS 17+ API directly
+                    if appPermission == AVAudioApplication.recordPermission.granted {
+                        permission = AVAudioSession.RecordPermission.granted
+                    } else if appPermission == AVAudioApplication.recordPermission.denied {
+                        permission = AVAudioSession.RecordPermission.denied
+                    } else {
+                        permission = AVAudioSession.RecordPermission.undetermined
                     }
                     continuation.resume(returning: permission)
                 }
