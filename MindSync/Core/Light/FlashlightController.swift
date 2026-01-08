@@ -465,9 +465,12 @@ final class FlashlightController: BaseLightController, LightControlling {
                     let amplified = min(smoothedEnergy * 10.0, 1.0)
                     let curved = sqrt(amplified)
                     
-                    // Audio modulation directly controls intensity (0.0-1.0) for strong pulse effect
-                    // This matches cinematic mode behavior: complete darkness → full brightness
-                    let audioModulation = curved
+                    // Beat threshold: Turn light completely off when spectral flux is below threshold
+                    // This creates sharp pulses synchronized to beats with complete darkness between
+                    // Same threshold as cinematic mode (0.55 after ×10 amplification + sqrt)
+                    // Raw threshold ~0.03 ensures background noise doesn't trigger light
+                    let beatThreshold: Float = 0.55
+                    let audioModulation: Float = curved >= beatThreshold ? curved : 0.0
                     
                     // Use audio modulation directly (not as multiplier)
                     // This creates the same strong pulse effect as cinematic mode
