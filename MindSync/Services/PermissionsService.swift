@@ -16,11 +16,11 @@ final class PermissionsService {
             // Convert AVAudioApplication.recordPermission to AVAudioSession.RecordPermission
             let appPermission = AVAudioApplication.shared.recordPermission
             switch appPermission {
-            case .granted:
+            case AVAudioApplication.recordPermission.granted:
                 return .granted
-            case .denied:
+            case AVAudioApplication.recordPermission.denied:
                 return .denied
-            case .undetermined:
+            case AVAudioApplication.recordPermission.undetermined:
                 return .undetermined
             @unknown default:
                 return .undetermined
@@ -46,11 +46,11 @@ final class PermissionsService {
                     let appPermission = AVAudioApplication.shared.recordPermission
                     let permission: AVAudioSession.RecordPermission
                     switch appPermission {
-                    case .granted:
+                    case AVAudioApplication.recordPermission.granted:
                         permission = .granted
-                    case .denied:
+                    case AVAudioApplication.recordPermission.denied:
                         permission = .denied
-                    case .undetermined:
+                    case AVAudioApplication.recordPermission.undetermined:
                         permission = .undetermined
                     @unknown default:
                         permission = .undetermined
