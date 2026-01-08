@@ -332,6 +332,18 @@ final class EntrainmentEngine {
         lightSource: LightSource,
         screenColor: LightEvent.LightColor?
     ) -> [LightEvent] {
+        // SPECIAL CASE: Cinematic mode ALWAYS uses uniform pulsation for continuous entrainment
+        // Beat timestamps would cause gaps in pulsation which breaks neural synchronization
+        if mode == .cinematic {
+            return generateFallbackEvents(
+                frequency: targetFrequency,
+                duration: trackDuration,
+                mode: mode,
+                lightSource: lightSource,
+                screenColor: screenColor
+            )
+        }
+        
         guard !beatTimestamps.isEmpty else {
             // Fallback: uniform pulsation if no beats detected
             return generateFallbackEvents(
