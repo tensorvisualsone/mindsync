@@ -84,7 +84,16 @@ final class SpectralFluxDetector {
         }
         
         // Perform FFT
-        let magnitude = performFFT(on: frame)
+        var magnitude = performFFT(on: frame)
+        
+        // Normalize magnitudes to 0-1 range based on maximum in bass range
+        // This makes flux calculation independent of absolute volume levels
+        let maxMagnitude = magnitude[bassRange].max() ?? 1.0
+        if maxMagnitude > 0.001 {
+            for i in bassRange {
+                magnitude[i] /= maxMagnitude
+            }
+        }
         
         // Calculate spectral flux: sum of positive differences in bass range
         var flux: Float = 0.0
