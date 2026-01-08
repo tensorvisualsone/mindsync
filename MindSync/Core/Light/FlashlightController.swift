@@ -407,61 +407,71 @@ final class FlashlightController: BaseLightController, LightControlling {
                     // Use spectral flux to modulate pulse intensity based on beat strength
                     let energy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
                     
-                    // Reduced smoothing buffer for faster audio response (4 instead of 8)
-                    // This makes the light react more quickly to audio changes
+                    // Smoothing buffer for stable audio response
                     recentFluxValues.append(energy)
-                    if recentFluxValues.count > 4 {  // Smaller buffer for faster, more reactive modulation
+                    if recentFluxValues.count > 4 {  // Small buffer for fast response
                         recentFluxValues.removeFirst()
                     }
                     
                     let smoothedEnergy = recentFluxValues.count > 0 ? recentFluxValues.reduce(0, +) / Float(recentFluxValues.count) : 0.0
                     
-                    // CRITICAL FIX: Strong contrast mapping for visible audio reactivity
-                    // Problem: Previous mapping (0.53-0.81 range) had insufficient contrast
-                    //          All values were relatively high, making audio changes invisible
+                    // CRITICAL FIX: Use long-term history for proper dynamic range normalization
+                    // Problem: Previous approach used only 4-value buffer (recentFluxValues)
+                    //          This made historyMin ≈ historyMax, causing normalized=1.0 always
+                    //          Result: No contrast, modulation always high (0.85-1.0)
                     //
-                    // Solution: Aggressive contrast stretching with adaptive thresholds
-                    //          Low values → very dark (0.0-0.15), high values → bright (0.7-1.0)
-                    //
-                    // Based on log analysis, typical rawEnergy values are:
-                    //   - Low: 0.07-0.11 → should map to dark (0.15-0.35)
-                    //   - Medium: 0.11-0.15 → should map to visible (0.35-0.65)
-                    //   - High: 0.15-0.17+ → should map to bright (0.65-1.0)
+                    // Solution: Use fluxHistory for long-term min/max tracking (100+ values)
+                    //          This captures the full dynamic range of the track over time
                     
-                    // Calculate adaptive min/max from recent history for better dynamic range
-                    // This adapts to the actual track's dynamic range
-                    let historyMin: Float = recentFluxValues.min() ?? 0.0
-                    let historyMax: Float = recentFluxValues.max() ?? smoothedEnergy
-                    let historyRange = max(historyMax - historyMin, 0.01) // Prevent division by zero
-                    
-                    // Normalize to 0-1 range based on observed range
-                    let normalizedEnergy: Float
-                    if historyRange > 0.01 {
-                        normalizedEnergy = (smoothedEnergy - historyMin) / historyRange
-                    } else {
-                        // Fallback: direct mapping with fixed thresholds
-                        normalizedEnergy = min(smoothedEnergy * 6.0, 1.0)
+                    // Build long-term history for proper dynamic range calculation
+                    fluxHistory.append(smoothedEnergy)
+                    let historySize = 100  // Keep last 100 smoothed values (~10-20 seconds)
+                    if fluxHistory.count > historySize {
+                        fluxHistory.removeFirst()
                     }
                     
-                    // Aggressive contrast stretching for maximum visibility
-                    // Map normalized energy (0-1) to output (0-1) with strong contrast
+                    // Calculate min/max from long-term history for accurate normalization
+                    // This ensures we capture the full dynamic range of the track
+                    let historyMin: Float = fluxHistory.count > 0 ? (fluxHistory.min() ?? 0.0) : 0.0
+                    let historyMax: Float = fluxHistory.count > 0 ? (fluxHistory.max() ?? smoothedEnergy) : smoothedEnergy
+                    
+                    // Calculate dynamic range with fallback to prevent division by zero
+                    let historyRange = max(historyMax - historyMin, 0.001) // Small but non-zero threshold
+                    
+                    // Normalize current energy to 0-1 range based on long-term history
+                    // This ensures proper contrast stretching across the full track dynamic range
+                    let normalizedEnergy: Float
+                    if historyRange > 0.001 && historyMax > 0.0 {
+                        normalizedEnergy = min(1.0, max(0.0, (smoothedEnergy - historyMin) / historyRange))
+                    } else {
+                        // Fallback: Use absolute thresholds based on typical flux values
+                        // Typical spectral flux: 0.05-0.20, map directly with amplification
+                        normalizedEnergy = min(smoothedEnergy * 5.0, 1.0)
+                    }
+                    
+                    // EXTREME contrast stretching for maximum visual impact
+                    // Goal: Make beats POP, make quiet passages nearly invisible
+                    // Map normalized (0-1) to output with extreme contrast:
+                    //   - Bottom 30% → nearly dark (0.0-0.15) - barely visible
+                    //   - Middle 30% → dim (0.15-0.50) - visible but subtle
+                    //   - Top 40% → bright (0.50-1.0) - strong, clear beats
                     let rawModulation: Float
                     if normalizedEnergy < 0.3 {
-                        // Low energy: map 0.0-0.3 → 0.0-0.25 (very dark)
-                        rawModulation = (normalizedEnergy / 0.3) * 0.25
+                        // Quiet: map 0.0-0.3 → 0.0-0.15 (nearly dark)
+                        rawModulation = (normalizedEnergy / 0.3) * 0.15
                     } else if normalizedEnergy < 0.6 {
-                        // Medium energy: map 0.3-0.6 → 0.25-0.55 (dim to visible)
-                        rawModulation = 0.25 + ((normalizedEnergy - 0.3) / 0.3) * 0.30
+                        // Medium: map 0.3-0.6 → 0.15-0.50 (dim to moderate)
+                        rawModulation = 0.15 + ((normalizedEnergy - 0.3) / 0.3) * 0.35
                     } else {
-                        // High energy: map 0.6-1.0 → 0.55-1.0 (visible to bright)
-                        rawModulation = 0.55 + ((normalizedEnergy - 0.6) / 0.4) * 0.45
+                        // Loud: map 0.6-1.0 → 0.50-1.0 (bright to maximum)
+                        rawModulation = 0.50 + ((normalizedEnergy - 0.6) / 0.4) * 0.50
                     }
                     
-                    // Apply additional boost for very high values to make beats pop
+                    // Additional boost for very high values to make strong beats pop
                     let boostedModulation: Float
-                    if rawModulation > 0.7 {
-                        // Strong beats: boost from 0.7-1.0 to 0.85-1.0 for maximum visibility
-                        boostedModulation = 0.85 + ((rawModulation - 0.7) / 0.3) * 0.15
+                    if rawModulation > 0.75 {
+                        // Strong beats: boost from 0.75-1.0 to 0.90-1.0 for maximum visibility
+                        boostedModulation = 0.90 + ((rawModulation - 0.75) / 0.25) * 0.10
                     } else {
                         boostedModulation = rawModulation
                     }
@@ -471,7 +481,7 @@ final class FlashlightController: BaseLightController, LightControlling {
                     
                     // Debug: Log audio energy approximately every second
                     if elapsed - lastAudioLogTime >= 1.0 {
-                        logger.debug("[CINEMATIC AUDIO] useSpectralFlux=\(tracker.useSpectralFlux) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) historyMin=\(String(format: "%.3f", historyMin)) historyMax=\(String(format: "%.3f", historyMax)) normalized=\(String(format: "%.3f", normalizedEnergy)) rawMod=\(String(format: "%.3f", rawModulation)) boosted=\(String(format: "%.3f", boostedModulation)) final=\(String(format: "%.3f", audioModulation))")
+                        logger.debug("[CINEMATIC AUDIO] useSpectralFlux=\(tracker.useSpectralFlux) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) historySize=\(fluxHistory.count) historyMin=\(String(format: "%.3f", historyMin)) historyMax=\(String(format: "%.3f", historyMax)) range=\(String(format: "%.3f", historyRange)) normalized=\(String(format: "%.3f", normalizedEnergy)) rawMod=\(String(format: "%.3f", rawModulation)) boosted=\(String(format: "%.3f", boostedModulation)) final=\(String(format: "%.3f", audioModulation))")
                         lastAudioLogTime = elapsed
                     }
                 } else {
