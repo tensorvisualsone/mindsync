@@ -547,8 +547,10 @@ final class FlashlightController: BaseLightController, LightControlling {
                     let energy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
                     
                     // Update smoothing buffer for stable modulation (shared with cinematic mode)
+                    // IMPROVED: Reduced buffer size from 8 to 4 for faster response (matching cinematic mode)
+                    // This ensures audio reactivity is visible in real-time, not delayed
                     recentFluxValues.append(energy)
-                    if recentFluxValues.count > 8 {  // Medium buffer for smooth but reactive modulation
+                    if recentFluxValues.count > 4 {  // Small buffer for fast response (matching cinematic mode)
                         recentFluxValues.removeFirst()
                     }
                     
@@ -568,31 +570,50 @@ final class FlashlightController: BaseLightController, LightControlling {
                     let historyRange = max(historyMax - historyMin, 0.001) // Small but non-zero threshold
                     
                     // Normalize current energy to 0-1 range based on long-term history
+                    // IMPORTANT: Only trust normalization when we have a meaningful range.
+                    // If the long-term range is very small (highly compressed track or steady section),
+                    // normalize against absolute thresholds instead. This avoids the situation where
+                    // historyMin ≈ historyMax and everything is mapped to ~0.
                     let normalizedEnergy: Float
-                    if historyRange > 0.001 && historyMax > 0.0 {
+                    let minimumUsefulRange: Float = 0.05 // 5% absolute range required for adaptive normalization
+                    if historyRange >= minimumUsefulRange && historyMax > 0.0 {
                         normalizedEnergy = min(1.0, max(0.0, (smoothedEnergy - historyMin) / historyRange))
                     } else {
                         // Fallback: Use absolute thresholds based on typical flux values
-                        normalizedEnergy = min(smoothedEnergy * 5.0, 1.0)
+                        // Typical spectral flux: 0.05-0.20, map directly with aggressive amplification
+                        normalizedEnergy = min(smoothedEnergy * 6.0, 1.0)
                     }
                     
                     // Apply power curve for perceptual linearity (preserves relative differences)
-                    let curved = pow(normalizedEnergy, 0.7)
+                    let curved = pow(normalizedEnergy, 0.6)  // Slightly steeper curve (0.6 vs 0.7) for better contrast
                     
-                    // Contrast stretching for visible audio reactivity
-                    // Map normalized (0-1) to modulation (0-1) with good contrast:
-                    //   - Bottom 40% → low boost (0.0-0.3)
-                    //   - Top 60% → higher boost (0.3-1.0)
+                    // IMPROVED: Enhanced contrast stretching (matching cinematic mode approach)
+                    // Map normalized (0-1) to modulation (0-1) with strong contrast:
+                    //   - Bottom 30% → very low boost (0.0-0.15) - subtle enhancement
+                    //   - Middle 30% → moderate boost (0.15-0.50) - visible enhancement
+                    //   - Top 40% → strong boost (0.50-1.0) - maximum enhancement
                     let rawModulation: Float
-                    if curved < 0.4 {
-                        // Low energy: map 0.0-0.4 → 0.0-0.3 (subtle boost)
-                        rawModulation = (curved / 0.4) * 0.3
+                    if curved < 0.3 {
+                        // Low energy: map 0.0-0.3 → 0.0-0.15 (subtle boost)
+                        rawModulation = (curved / 0.3) * 0.15
+                    } else if curved < 0.6 {
+                        // Medium energy: map 0.3-0.6 → 0.15-0.50 (moderate boost)
+                        rawModulation = 0.15 + ((curved - 0.3) / 0.3) * 0.35
                     } else {
-                        // High energy: map 0.4-1.0 → 0.3-1.0 (strong boost)
-                        rawModulation = 0.3 + ((curved - 0.4) / 0.6) * 0.7
+                        // High energy: map 0.6-1.0 → 0.50-1.0 (strong boost)
+                        rawModulation = 0.50 + ((curved - 0.6) / 0.4) * 0.50
                     }
                     
-                    let audioModulation = max(0.0, min(1.0, rawModulation))
+                    // Additional boost for very high values to make strong beats pop
+                    let boostedModulation: Float
+                    if rawModulation > 0.75 {
+                        // Strong beats: boost from 0.75-1.0 to 0.90-1.0 for maximum visibility
+                        boostedModulation = 0.90 + ((rawModulation - 0.75) / 0.25) * 0.10
+                    } else {
+                        boostedModulation = rawModulation
+                    }
+                    
+                    let audioModulation = max(0.0, min(1.0, boostedModulation))
                     
                     // Use audio modulation as additive enhancement, not replacement
                     // Base waveform should always be visible, audio adds dynamic variation
@@ -607,7 +628,7 @@ final class FlashlightController: BaseLightController, LightControlling {
                     // Debug logging for troubleshooting
                     if Int(result.elapsed * 1000) % 500 == 0 {  // Every 500ms
                         let historySizeForLog = self.fluxHistory.count
-                        logger.debug("[NON-CINEMATIC] t=\(String(format: "%.3f", result.elapsed))s baseInt=\(String(format: "%.3f", baseIntensity)) eventInt=\(String(format: "%.3f", event.intensity)) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) historySize=\(historySizeForLog) historyMin=\(String(format: "%.3f", historyMin)) historyMax=\(String(format: "%.3f", historyMax)) normalized=\(String(format: "%.3f", normalizedEnergy)) curved=\(String(format: "%.3f", curved)) audioMod=\(String(format: "%.3f", audioModulation)) boost=\(String(format: "%.3f", audioBoost)) final=\(String(format: "%.3f", finalIntensity))")
+                        logger.debug("[NON-CINEMATIC] t=\(String(format: "%.3f", result.elapsed))s baseInt=\(String(format: "%.3f", baseIntensity)) eventInt=\(String(format: "%.3f", event.intensity)) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) historySize=\(historySizeForLog) historyMin=\(String(format: "%.3f", historyMin)) historyMax=\(String(format: "%.3f", historyMax)) range=\(String(format: "%.3f", historyRange)) normalized=\(String(format: "%.3f", normalizedEnergy)) curved=\(String(format: "%.3f", curved)) rawMod=\(String(format: "%.3f", rawModulation)) boosted=\(String(format: "%.3f", boostedModulation)) audioMod=\(String(format: "%.3f", audioModulation)) boost=\(String(format: "%.3f", audioBoost)) final=\(String(format: "%.3f", finalIntensity))")
                     }
                 } else {
                     // No audio tracking - use base intensity only
