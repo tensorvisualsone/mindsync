@@ -575,9 +575,10 @@ final class SessionViewModel: ObservableObject {
             return
         }
 
+        // Set state to analyzing IMMEDIATELY to show progress UI
         logger.info("Setting state to analyzing")
         state = .analyzing
-        analysisProgress = AnalysisProgress(phase: .analyzing, progress: 0.0, message: NSLocalizedString("analysis.analyzing", comment: ""))
+        analysisProgress = AnalysisProgress(phase: .loading, progress: 0.0, message: NSLocalizedString("analysis.loading", comment: ""))
         stopPlaybackProgressUpdates()
 
         // Refresh cached preferences to ensure we use current user settings
@@ -599,11 +600,19 @@ final class SessionViewModel: ObservableObject {
 
         do {
             logger.info("Getting asset URL for analysis")
-            // Check if item can be analyzed
-            let assetURL = try await services.mediaLibraryService.assetURLForAnalysis(of: mediaItem)
+            // Update progress to show we're validating the asset
+            analysisProgress = AnalysisProgress(phase: .loading, progress: 0.1, message: NSLocalizedString("analysis.loading", comment: ""))
+            
+            // Check if item can be analyzed with timeout to prevent hanging
+            let assetURL = try await withTimeout(seconds: 10.0) {
+                try await services.mediaLibraryService.assetURLForAnalysis(of: mediaItem)
+            }
             logger.info("Asset URL obtained: \(assetURL.lastPathComponent)")
 
             logger.info("Starting audio analysis")
+            // Update progress to show we're analyzing
+            analysisProgress = AnalysisProgress(phase: .analyzing, progress: 0.2, message: NSLocalizedString("analysis.analyzing", comment: ""))
+            
             // Analyze audio (use quick mode if enabled in preferences)
             let track = try await audioAnalyzer.analyze(url: assetURL, mediaItem: mediaItem, quickMode: cachedPreferences.quickAnalysisEnabled)
             currentTrack = track
@@ -729,6 +738,15 @@ final class SessionViewModel: ObservableObject {
             bluetoothLatencyMonitor.stopMonitoring()
             UIApplication.shared.isIdleTimerDisabled = false
             state = .idle
+        } catch let timeoutError as TimeoutError {
+            logger.error("Session start timed out: \(timeoutError.localizedDescription, privacy: .public)")
+            errorMessage = NSLocalizedString("error.audio.timeout", comment: "")
+            state = .error
+
+            audioPlayback.stop()
+            lightController?.stop()
+            vibrationController?.stop()
+            stopPlaybackProgressUpdates()
         } catch {
             logger.error("Session start failed: \(error.localizedDescription, privacy: .public)")
             errorMessage = error.localizedDescription
@@ -749,8 +767,9 @@ final class SessionViewModel: ObservableObject {
         }
         
         logger.info("Starting session with audio file: \(audioFileURL.lastPathComponent)")
+        // Set state to analyzing IMMEDIATELY to show progress UI
         state = .analyzing
-        analysisProgress = AnalysisProgress(phase: .analyzing, progress: 0.0, message: NSLocalizedString("analysis.analyzing", comment: ""))
+        analysisProgress = AnalysisProgress(phase: .loading, progress: 0.0, message: NSLocalizedString("analysis.loading", comment: ""))
         stopPlaybackProgressUpdates()
         
         // Refresh cached preferences to ensure we use current user settings
