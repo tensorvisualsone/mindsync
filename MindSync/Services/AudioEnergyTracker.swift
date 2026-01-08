@@ -21,7 +21,9 @@ final class AudioEnergyTracker {
     
     // Moving Average for smoothing
     private var averageEnergy: Float = 0.0
-    private let smoothingFactor: Float = 0.95  // 95% old, 5% new
+    private var averageSpectralFlux: Float = 0.0
+    private let smoothingFactor: Float = 0.95  // 95% old, 5% new for RMS energy
+    private let fluxSmoothingFactor: Float = 0.85  // 85% old, 15% new for spectral flux (faster response)
     private let bufferSize: AVAudioFrameCount = 4096
     
     /// Current energy value (0.0 - 1.0) - RMS-based
@@ -60,6 +62,7 @@ final class AudioEnergyTracker {
         
         // Reset state
         averageEnergy = 0.0
+        averageSpectralFlux = 0.0
         currentEnergy = 0.0
         
         // Install tap on mixer node
@@ -90,6 +93,7 @@ final class AudioEnergyTracker {
         
         // Reset state
         averageEnergy = 0.0
+        averageSpectralFlux = 0.0
         currentEnergy = 0.0
         currentSpectralFlux = 0.0
         spectralFluxDetector?.reset()
@@ -119,21 +123,29 @@ final class AudioEnergyTracker {
             flux = detector.calculateBassFlux(from: buffer)
         }
         
+        // Apply moving average smoothing to spectral flux (faster response than RMS)
+        if averageSpectralFlux == 0.0 {
+            // Initialize with first value
+            averageSpectralFlux = flux
+        } else {
+            averageSpectralFlux = (averageSpectralFlux * fluxSmoothingFactor) + (flux * (1.0 - fluxSmoothingFactor))
+        }
+        
         // Update on main thread (audio callbacks run on audio thread)
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             
             // Update current energy
             self.currentEnergy = averageEnergy
-            self.currentSpectralFlux = flux
+            self.currentSpectralFlux = averageSpectralFlux
             
             // Always publish raw spectral flux for subscribers interested in beat detection
             self.spectralFluxPublisher.send(flux)
             
             // Publish active energy metric based on mode
             if self.useSpectralFlux {
-                // Use spectral flux for cinematic mode (better beat detection)
-                self.energyPublisher.send(flux)
+                // Use smoothed spectral flux for cinematic mode (better beat detection)
+                self.energyPublisher.send(averageSpectralFlux)
             } else {
                 // Use RMS for general energy tracking
                 self.energyPublisher.send(averageEnergy)

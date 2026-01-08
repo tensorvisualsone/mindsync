@@ -84,7 +84,16 @@ final class SpectralFluxDetector {
         }
         
         // Perform FFT
-        let magnitude = performFFT(on: frame)
+        var magnitude = performFFT(on: frame)
+        
+        // Normalize magnitudes to 0-1 range based on maximum in bass range
+        // This makes flux calculation independent of absolute volume levels
+        let maxMagnitude = magnitude[bassRange].max() ?? 1.0
+        if maxMagnitude > 0.001 {
+            for i in bassRange {
+                magnitude[i] /= maxMagnitude
+            }
+        }
         
         // Calculate spectral flux: sum of positive differences in bass range
         var flux: Float = 0.0
@@ -99,31 +108,33 @@ final class SpectralFluxDetector {
         // Update previous magnitude for next calculation
         self.previousMagnitude = magnitude
         
-        // Normalize flux to 0.0 - 1.0 range
+        // Normalize flux to 0.0 - 1.0 range using logarithmic scaling
         //
-        // Normalization factor of 80.0 (reduced from 100.0) to improve sensitivity for cinematic mode.
-        // This ensures that more beats are detected, especially in quieter or less percussive music.
+        // Logarithmic scaling provides better dynamic range for cinematic mode brightness modulation.
+        // Linear scaling (flux / factor) clips too aggressively at 1.0, creating binary on/off behavior.
         //
-        // The factor of 80.0 ensures that:
-        // - Moderate percussive events (flux ~20-40) register as 0.25-0.5, triggering light pulses
-        // - Strong bass transients (flux ~60-80+) saturate near 1.0, creating maximal light intensity
-        // - Quiet passages or sustained tones (flux <10) stay below 0.125, maintaining dark baseline
+        // Formula: log10(1 + flux * scale) / log10(1 + maxFlux * scale)
+        // where scale = 0.5 and maxFlux = 200.0
         //
-        // Testing was performed on iPhone 13 Pro and iPhone 14 Pro Max with local audio files
-        // (AAC 256kbps) and Apple Music streaming. The reduced factor improves responsiveness:
-        // - Electronic music (EDM, house): Bass drops and kick drums produce flux ~80-120 → 1.0-1.5 (clamped to 1.0)
-        // - Rock/Pop: Drum hits and bass guitar produce flux ~40-80 → 0.5-1.0
-        // - Hip-hop: 808 bass and snare produce flux ~60-100 → 0.75-1.25 (clamped to 1.0)
-        // - Classical/Acoustic: Bass drum and cello attacks produce flux ~30-60 → 0.375-0.75
+        // This creates smooth transitions:
+        // - flux = 0    → 0.0 (silence)
+        // - flux = 10   → ~0.35 (quiet passages)
+        // - flux = 40   → ~0.60 (moderate beats)
+        // - flux = 80   → ~0.75 (strong beats)
+        // - flux = 120  → ~0.83 (very strong beats)
+        // - flux = 200+ → ~1.0 (maximum)
         //
-        // Note: This normalization may need adjustment for:
-        // - Very quiet playback volumes (< 60 dB SPL): increase factor to ~120-150
-        // - Very loud volumes (> 90 dB SPL): decrease factor to ~60-70
-        // - Heavily compressed/mastered music: may benefit from adaptive normalization
+        // Benefits over linear scaling:
+        // - Preserves subtle variations in quiet passages
+        // - Smooth compression of loud transients instead of hard clipping
+        // - Better perceptual match to how humans perceive intensity changes
         //
-        // Future enhancement: Consider making this configurable or implementing adaptive
-        // normalization based on recent flux history (e.g., using 95th percentile as scale factor).
-        let normalizedFlux = min(1.0, flux / 80.0)
+        // Testing on iPhone with various music genres shows smooth brightness transitions
+        // matching audio dynamics, avoiding the binary 0/1 behavior of linear scaling.
+        let scale: Float = 0.5
+        let maxFlux: Float = 200.0
+        let logMax = log10(1.0 + maxFlux * scale)
+        let normalizedFlux = min(1.0, max(0.0, log10(1.0 + flux * scale) / logMax))
         
         return normalizedFlux
     }

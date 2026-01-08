@@ -26,6 +26,10 @@ final class FlashlightController: BaseLightController, LightControlling {
     private var lastBeatIntensity: Float = 0.0
     private let pulseDecayDuration: TimeInterval = 0.12 // 120ms pulse duration for visible beat flashes
     
+    // Debug logging timestamp tracking
+    private var lastAudioLogTime: TimeInterval = -1.0  // Last time we logged audio energy
+    private var noEventLogCount: Int = 0  // Counter for no-event debug logs
+    
     // Peak detection for cinematic mode
     private var recentFluxValues: [Float] = []  // Ring buffer for last N flux values (for local average)
     private var fluxHistory: [Float] = []  // Longer history for adaptive threshold calculation
@@ -194,6 +198,9 @@ final class FlashlightController: BaseLightController, LightControlling {
         recentFluxValues.removeAll()
         fluxHistory.removeAll()
         lastPeakTime = 0
+        // Reset debug logging timestamp
+        lastAudioLogTime = -1.0
+        noEventLogCount = 0
     }
     
     /// Performs a brief torch activation to warm up the hardware and reduce cold-start latency.
@@ -322,6 +329,9 @@ final class FlashlightController: BaseLightController, LightControlling {
         recentFluxValues.removeAll()
         fluxHistory.removeAll()
         lastPeakTime = 0
+        // Reset debug logging timestamp
+        lastAudioLogTime = -1.0
+        noEventLogCount = 0
     }
     
     func pauseExecution() {
@@ -347,71 +357,313 @@ final class FlashlightController: BaseLightController, LightControlling {
         }
         
         if let script = currentScript {
-            // Check if cinematic mode - rhythmic strobe synchronized to audio
+#if DEBUG
+            // Debug: Log when no event is found (first few times to diagnose)
+            if result.event == nil {
+                self.noEventLogCount += 1
+                let count = self.noEventLogCount
+                if count <= 10 || count % 100 == 0 {
+                    logger.warning("[FLASHLIGHT DEBUG] No event found! count=\(count) elapsed=\(String(format: "%.3f", result.elapsed))s mode=\(script.mode.rawValue) eventsCount=\(script.events.count) isComplete=\(result.isComplete)")
+                    if script.events.count > 0 && result.elapsed < 5.0 {
+                        let firstEvent = script.events[0]
+                        logger.warning("[FLASHLIGHT DEBUG] First event: timestamp=\(String(format: "%.3f", firstEvent.timestamp))s duration=\(String(format: "%.3f", firstEvent.duration))s intensity=\(String(format: "%.3f", firstEvent.intensity))")
+                    }
+                }
+            } else {
+                // Reset counter when event is found
+                self.noEventLogCount = 0
+            }
+#endif
+            
+            // Check if cinematic mode - fully audio-reactive pulsation
             if script.mode == .cinematic {
-                // PHOTO DIVING APPROACH: Hard ON/OFF pulses at a fixed frequency
-                // This creates the stroboscopic effect needed for visual entrainment
-                // The frequency is derived from the audio's dominant rhythm (BPM)
+                // PURELY AUDIO-REACTIVE APPROACH: Light intensity follows audio energy directly
+                // No fixed square wave - the light reacts to beats and audio dynamics in real-time
+                // This creates truly audio-synchronized pulsation that follows the music, not a fixed rhythm
+                //
+                // Note: We only check that event exists for script validation
+                // Actual light intensity is calculated from audio modulation, not from event
+                if result.event == nil {
+                    // No active event - turn off
+                    setIntensity(0.0)
+                    return
+                }
                 
                 let elapsed = result.elapsed
-                let targetFreq = script.targetFrequency > 0 ? script.targetFrequency : 6.5
                 
-                // Calculate square wave phase (hard ON/OFF)
-                let period = 1.0 / targetFreq
-                let phase = (elapsed.truncatingRemainder(dividingBy: period)) / period  // 0.0 to 1.0
-                
-                // HYBRID: Modulate intensity with audio energy for immersive effect
+                // Audio-reactive intensity modulation
+                // IMPROVED: Stronger audio response with better dynamic range
                 let audioModulation: Float
                 if let tracker = audioEnergyTracker {
-                    // Use audio energy to modulate pulse intensity
+                    // Use spectral flux to modulate pulse intensity based on beat strength
                     let energy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
                     
-                    // Update smoothing buffer
+                    // Smoothing buffer for stable audio response
                     recentFluxValues.append(energy)
-                    if recentFluxValues.count > 10 {  // Longer buffer for stable modulation
+                    if recentFluxValues.count > 4 {  // Small buffer for fast response
                         recentFluxValues.removeFirst()
                     }
                     
-                    let smoothedEnergy = recentFluxValues.reduce(0, +) / Float(recentFluxValues.count)
+                    let smoothedEnergy = recentFluxValues.count > 0 ? recentFluxValues.reduce(0, +) / Float(recentFluxValues.count) : 0.0
                     
-                    // Map to intensity multiplier (0.5 - 1.0 range)
-                    // Never go below 50% to keep pulses visible
-                    audioModulation = 0.5 + (smoothedEnergy * 0.5)
+                    // CRITICAL FIX: Use long-term history for proper dynamic range normalization
+                    // Problem: Previous approach used only 4-value buffer (recentFluxValues)
+                    //          This made historyMin ≈ historyMax, causing normalized=1.0 always
+                    //          Result: No contrast, modulation always high (0.85-1.0)
+                    //
+                    // Solution: Use fluxHistory for long-term min/max tracking (100+ values)
+                    //          This captures the full dynamic range of the track over time
+                    
+                    // Build long-term history for proper dynamic range calculation
+                    fluxHistory.append(smoothedEnergy)
+                    let historySize = 100  // Keep last 100 smoothed values (~10-20 seconds)
+                    if fluxHistory.count > historySize {
+                        fluxHistory.removeFirst()
+                    }
+                    
+                    // Calculate min/max from long-term history for accurate normalization
+                    // This ensures we capture the full dynamic range of the track
+                    let historyMin: Float = fluxHistory.count > 0 ? (fluxHistory.min() ?? 0.0) : 0.0
+                    let historyMax: Float = fluxHistory.count > 0 ? (fluxHistory.max() ?? smoothedEnergy) : smoothedEnergy
+                    
+                    // Calculate dynamic range with fallback to prevent division by zero
+                    let historyRange = max(historyMax - historyMin, 0.001) // Small but non-zero threshold
+                    
+                    // Normalize current energy to 0-1 range based on long-term history
+                    // This ensures proper contrast stretching across the full track dynamic range
+                    // IMPORTANT: Only trust normalization when we have a meaningful range.
+                    // If the long-term range is very small (highly compressed track or steady section),
+                    // normalize against absolute thresholds instead. This avoids the situation where
+                    // historyMin ≈ historyMax and everything is mapped to ~0.
+                    let normalizedEnergy: Float
+                    let minimumUsefulRange: Float = 0.05 // 5% absolute range required for adaptive normalization
+                    if historyRange >= minimumUsefulRange && historyMax > 0.0 {
+                        normalizedEnergy = min(1.0, max(0.0, (smoothedEnergy - historyMin) / historyRange))
+                    } else {
+                        // Fallback: Use absolute thresholds based on typical flux values
+                        // Typical spectral flux: 0.05-0.20, map directly with aggressive amplification
+                        normalizedEnergy = min(smoothedEnergy * 6.0, 1.0)
+                    }
+                    
+                    // EXTREME contrast stretching for maximum visual impact
+                    // Goal: Make beats POP, make quiet passages nearly invisible
+                    // Map normalized (0-1) to output with extreme contrast:
+                    //   - Bottom 30% → nearly dark (0.0-0.15) - barely visible
+                    //   - Middle 30% → dim (0.15-0.50) - visible but subtle
+                    //   - Top 40% → bright (0.50-1.0) - strong, clear beats
+                    let rawModulation: Float
+                    if normalizedEnergy < 0.3 {
+                        // Quiet: map 0.0-0.3 → 0.0-0.15 (nearly dark)
+                        rawModulation = (normalizedEnergy / 0.3) * 0.15
+                    } else if normalizedEnergy < 0.6 {
+                        // Medium: map 0.3-0.6 → 0.15-0.50 (dim to moderate)
+                        rawModulation = 0.15 + ((normalizedEnergy - 0.3) / 0.3) * 0.35
+                    } else {
+                        // Loud: map 0.6-1.0 → 0.50-1.0 (bright to maximum)
+                        rawModulation = 0.50 + ((normalizedEnergy - 0.6) / 0.4) * 0.50
+                    }
+                    
+                    // Additional boost for very high values to make strong beats pop
+                    let boostedModulation: Float
+                    if rawModulation > 0.75 {
+                        // Strong beats: boost from 0.75-1.0 to 0.90-1.0 for maximum visibility
+                        boostedModulation = 0.90 + ((rawModulation - 0.75) / 0.25) * 0.10
+                    } else {
+                        boostedModulation = rawModulation
+                    }
+                    
+                    // Clamp to valid range
+                    audioModulation = max(0.0, min(1.0, boostedModulation))
+                    
+#if DEBUG
+                    // Debug: Log audio energy approximately every second
+                    if elapsed - lastAudioLogTime >= 1.0 {
+                        let historySize = self.fluxHistory.count  // Extract before closure
+                        logger.debug("[CINEMATIC AUDIO] useSpectralFlux=\(tracker.useSpectralFlux) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) historySize=\(historySize) historyMin=\(String(format: "%.3f", historyMin)) historyMax=\(String(format: "%.3f", historyMax)) range=\(String(format: "%.3f", historyRange)) normalized=\(String(format: "%.3f", normalizedEnergy)) rawMod=\(String(format: "%.3f", rawModulation)) boosted=\(String(format: "%.3f", boostedModulation)) final=\(String(format: "%.3f", audioModulation))")
+                        lastAudioLogTime = elapsed
+                    }
+#endif
                 } else {
-                    // No audio modulation - use full intensity
-                    audioModulation = 1.0
+                    // No audio tracking - use moderate intensity (not full, to show difference)
+                    audioModulation = 0.5
+                    
+#if DEBUG
+                    // Debug: Log missing tracker
+                    if Int(elapsed * 1000) % 2000 == 0 {
+                        logger.warning("[CINEMATIC AUDIO] audioEnergyTracker is NIL - audio modulation disabled! Using fallback intensity 0.5")
+                    }
+#endif
                 }
                 
-                // Generate square wave with frequency-dependent duty cycle
-                let dutyCycle = calculateDutyCycle(for: targetFreq)
-                let isOn = phase < dutyCycle
+                // CRITICAL FIX: Remove fixed square wave - light follows audio directly
+                // Problem: Previous approach used fixed 6.5 Hz square wave with audio modulation
+                //          This created pulsation in own rhythm, not synchronized to audio beats
+                //          The light pulsed at 6.5 Hz regardless of music timing
+                //
+                // Solution: Completely remove square wave - use pure audio-reactive approach
+                //          Light intensity = audioModulation directly
+                //          Low audio = dim/off, High audio = bright
+                //          This makes the light truly follow the music beats, not a fixed rhythm
                 
-                // Apply intensity: ON = full intensity * audio modulation, OFF = completely dark
-                let finalIntensity: Float = isOn ? audioModulation : 0.0
+                // Map audioModulation directly to intensity
+                // Use a minimum threshold to prevent flickering on very quiet passages
+                // But above threshold, intensity follows audio directly for true beat synchronization
+                let minimumThreshold: Float = 0.15  // Below this, light is off (prevents noise flickering)
+                let finalIntensity: Float
                 
-                // Log every 200ms for diagnostics
+                if audioModulation < minimumThreshold {
+                    // Very low audio: completely off (beat-synchronized silence)
+                    finalIntensity = 0.0
+                } else {
+                    // Audio is significant: map modulation (0.15-1.0) to intensity (0.25-1.0)
+                    // This ensures:
+                    // - Minimum visible intensity when audio is just above threshold (0.25)
+                    // - Maximum intensity when audio is at peak (1.0)
+                    // - Smooth linear mapping in between for natural responsiveness
+                    let mappedRange = 1.0 - minimumThreshold  // 0.85
+                    let intensityRange: Float = 1.0 - 0.25  // 0.75 (from 0.25 to 1.0)
+                    let normalizedMod = (audioModulation - minimumThreshold) / mappedRange  // 0.0 to 1.0
+                    finalIntensity = 0.25 + (normalizedMod * intensityRange)  // 0.25 to 1.0
+                }
+                
+#if DEBUG
+                // Log diagnostics (every 200ms)
                 if Int(elapsed * 1000) % 200 == 0 {
-                    logger.debug("[CINEMATIC] freq=\(String(format: "%.1f", targetFreq))Hz phase=\(String(format: "%.2f", phase)) duty=\(String(format: "%.2f", dutyCycle)) on=\(isOn) mod=\(String(format: "%.2f", audioModulation)) out=\(String(format: "%.2f", finalIntensity))")
+                    logger.debug("[CINEMATIC] t=\(String(format: "%.3f", elapsed))s mod=\(String(format: "%.2f", audioModulation)) out=\(String(format: "%.2f", finalIntensity))")
                 }
+#endif
                 
                 setIntensity(finalIntensity)
             } else if let event = result.event {
-                // For other modes, use event-based intensity with waveform
+                // For other modes (Alpha, Theta, Gamma): Event-based with audio-reactive modulation
                 let timeWithinEvent = result.elapsed - event.timestamp
                 
                 // CRITICAL UPDATE: Use event-specific frequency if available, else global
                 let effectiveFrequency = event.frequencyOverride ?? script.targetFrequency
                 
-                // Apply waveform-based intensity modulation (similar to ScreenController)
-                let intensity = calculateIntensity(
+                // Calculate base intensity from waveform
+                let baseIntensity = calculateIntensity(
                     event: event,
                     timeWithinEvent: timeWithinEvent,
                     targetFrequency: effectiveFrequency
                 )
                 
-                setIntensity(intensity)
+                // Apply audio-reactive modulation if tracker is available
+                let finalIntensity: Float
+                if let tracker = audioEnergyTracker {
+                    // Use spectral flux for dynamic modulation
+                    let energy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
+                    
+                    // Update smoothing buffer for stable modulation (shared with cinematic mode)
+                    // IMPROVED: Reduced buffer size from 8 to 4 for faster response (matching cinematic mode)
+                    // This ensures audio reactivity is visible in real-time, not delayed
+                    recentFluxValues.append(energy)
+                    if recentFluxValues.count > 4 {  // Small buffer for fast response (matching cinematic mode)
+                        recentFluxValues.removeFirst()
+                    }
+                    
+                    let smoothedEnergy = recentFluxValues.count > 0 ? recentFluxValues.reduce(0, +) / Float(recentFluxValues.count) : 0.0
+                    
+                    // IMPROVED: Use long-term history for better dynamic range (same as cinematic mode)
+                    // This ensures proper contrast stretching across the full track dynamic range
+                    fluxHistory.append(smoothedEnergy)
+                    let historySize = 100  // Keep last 100 smoothed values (~10-20 seconds)
+                    if fluxHistory.count > historySize {
+                        fluxHistory.removeFirst()
+                    }
+                    
+                    // Calculate min/max from long-term history for accurate normalization
+                    let historyMin: Float = fluxHistory.count > 0 ? (fluxHistory.min() ?? 0.0) : 0.0
+                    let historyMax: Float = fluxHistory.count > 0 ? (fluxHistory.max() ?? smoothedEnergy) : smoothedEnergy
+                    let historyRange = max(historyMax - historyMin, 0.001) // Small but non-zero threshold
+                    
+                    // Normalize current energy to 0-1 range based on long-term history
+                    // IMPORTANT: Only trust normalization when we have a meaningful range.
+                    // If the long-term range is very small (highly compressed track or steady section),
+                    // normalize against absolute thresholds instead. This avoids the situation where
+                    // historyMin ≈ historyMax and everything is mapped to ~0.
+                    let normalizedEnergy: Float
+                    let minimumUsefulRange: Float = 0.05 // 5% absolute range required for adaptive normalization
+                    if historyRange >= minimumUsefulRange && historyMax > 0.0 {
+                        normalizedEnergy = min(1.0, max(0.0, (smoothedEnergy - historyMin) / historyRange))
+                    } else {
+                        // Fallback: Use absolute thresholds based on typical flux values
+                        // Typical spectral flux: 0.05-0.20, map directly with aggressive amplification
+                        normalizedEnergy = min(smoothedEnergy * 6.0, 1.0)
+                    }
+                    
+                    // Apply power curve for perceptual linearity (preserves relative differences)
+                    let curved = pow(normalizedEnergy, 0.6)  // Slightly steeper curve (0.6 vs 0.7) for better contrast
+                    
+                    // IMPROVED: Enhanced contrast stretching (matching cinematic mode approach)
+                    // Map normalized (0-1) to modulation (0-1) with strong contrast:
+                    //   - Bottom 30% → very low boost (0.0-0.15) - subtle enhancement
+                    //   - Middle 30% → moderate boost (0.15-0.50) - visible enhancement
+                    //   - Top 40% → strong boost (0.50-1.0) - maximum enhancement
+                    let rawModulation: Float
+                    if curved < 0.3 {
+                        // Low energy: map 0.0-0.3 → 0.0-0.15 (subtle boost)
+                        rawModulation = (curved / 0.3) * 0.15
+                    } else if curved < 0.6 {
+                        // Medium energy: map 0.3-0.6 → 0.15-0.50 (moderate boost)
+                        rawModulation = 0.15 + ((curved - 0.3) / 0.3) * 0.35
+                    } else {
+                        // High energy: map 0.6-1.0 → 0.50-1.0 (strong boost)
+                        rawModulation = 0.50 + ((curved - 0.6) / 0.4) * 0.50
+                    }
+                    
+                    // Additional boost for very high values to make strong beats pop
+                    let boostedModulation: Float
+                    if rawModulation > 0.75 {
+                        // Strong beats: boost from 0.75-1.0 to 0.90-1.0 for maximum visibility
+                        boostedModulation = 0.90 + ((rawModulation - 0.75) / 0.25) * 0.10
+                    } else {
+                        boostedModulation = rawModulation
+                    }
+                    
+                    let audioModulation = max(0.0, min(1.0, boostedModulation))
+                    
+                    // Use audio modulation as additive enhancement, not replacement
+                    // Base waveform should always be visible, audio adds dynamic variation
+                    // When audioModulation is high, boost intensity; when low, use base waveform
+                    // This ensures continuous entrainment even without strong audio beats
+                    // 
+                    // IMPROVED: Lowered threshold from 0.1 to 0.05 to catch more subtle audio changes
+                    // This ensures that even moderate audio modulation (0.05-0.1) produces visible enhancement
+                    // Previously, audioModulation between 0.05-0.1 was ignored, resulting in no boost
+                    // IMPROVED: Increased boost multiplier from 0.5 to 0.7 for better visibility
+                    // This makes audio-reactive changes more noticeable while preserving base waveform
+                    let audioBoost = audioModulation > 0.05 ? audioModulation : 0.0  // Boost if audio is above noise threshold
+                    finalIntensity = min(1.0, baseIntensity + (baseIntensity * audioBoost * 0.7))  // Add up to 70% boost
+                    
+#if DEBUG
+                    // Debug logging for troubleshooting
+                    if Int(result.elapsed * 1000) % 500 == 0 {  // Every 500ms
+                        let historySizeForLog = self.fluxHistory.count
+                        logger.debug("[NON-CINEMATIC] t=\(String(format: "%.3f", result.elapsed))s baseInt=\(String(format: "%.3f", baseIntensity)) eventInt=\(String(format: "%.3f", event.intensity)) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) historySize=\(historySizeForLog) historyMin=\(String(format: "%.3f", historyMin)) historyMax=\(String(format: "%.3f", historyMax)) range=\(String(format: "%.3f", historyRange)) normalized=\(String(format: "%.3f", normalizedEnergy)) curved=\(String(format: "%.3f", curved)) rawMod=\(String(format: "%.3f", rawModulation)) boosted=\(String(format: "%.3f", boostedModulation)) audioMod=\(String(format: "%.3f", audioModulation)) boost=\(String(format: "%.3f", audioBoost)) final=\(String(format: "%.3f", finalIntensity))")
+                    }
+#endif
+                } else {
+                    // No audio tracking - use base intensity only
+                    finalIntensity = baseIntensity
+                    
+#if DEBUG
+                    // Debug logging for troubleshooting
+                    if Int(result.elapsed * 1000) % 500 == 0 {  // Every 500ms
+                        logger.debug("[NON-CINEMATIC NO-AUDIO] t=\(String(format: "%.3f", result.elapsed))s baseInt=\(String(format: "%.3f", baseIntensity)) eventInt=\(String(format: "%.3f", event.intensity)) final=\(String(format: "%.3f", finalIntensity))")
+                    }
+#endif
+                }
+                
+                setIntensity(finalIntensity)
             } else {
                 // Between events or no active event, turn off
+#if DEBUG
+                // Debug: Log when we're between events (every 500ms to avoid spam)
+                if Int(result.elapsed * 1000) % 500 == 0 {
+                    logger.debug("[FLASHLIGHT DEBUG] Between events or no active event. elapsed=\(String(format: "%.3f", result.elapsed))s mode=\(script.mode.rawValue) eventsCount=\(script.events.count)")
+                }
+#endif
                 setIntensity(0.0)
             }
         } else {

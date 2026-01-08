@@ -95,10 +95,6 @@ final class SessionViewModel: ObservableObject {
     @Published var affirmationStatus: String?
     @Published var currentFrequency: Double? = nil
     
-    // Screen controller for UI binding (only published when screen mode is active)
-    var screenController: ScreenController? {
-        lightController as? ScreenController
-    }
     
     // Cancellables
     private var cancellables = Set<AnyCancellable>()
@@ -225,32 +221,32 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
-    /// Configures spectral flux for cinematic mode
+    /// Configures spectral flux for all audio-reactive modes
     private func enableSpectralFluxForCinematicMode(_ mode: EntrainmentMode) {
-        guard mode == .cinematic else {
-            logger.debug("[CINEMATIC] Not cinematic mode, skipping spectral flux setup")
-            return
-        }
+        // ALL modes now use audio-reactive modulation
+        // Cinematic mode uses spectral flux for bass-focused beat tracking
+        // Other modes (Alpha, Theta, Gamma) also use spectral flux for dynamic intensity modulation
         
         // Guard against duplicate calls to prevent multiple taps on mixer node
         // This can happen during session restart, error recovery, or rapid mode switching
         guard !audioEnergyTracker.isActive else {
-            logger.debug("[CINEMATIC] Spectral flux tracking already active, skipping duplicate setup")
+            logger.debug("[AUDIO-REACTIVE] Spectral flux tracking already active, skipping duplicate setup")
             return
         }
         
         if let mixerNode = audioPlayback.getMainMixerNode() {
-            // Enable spectral flux for better beat detection in cinematic mode
+            // Enable spectral flux for all modes
+            // Provides dynamic audio-reactive intensity modulation for immersive experience
             audioEnergyTracker.useSpectralFlux = true
             audioEnergyTracker.startTracking(mixerNode: mixerNode)
-            logger.info("[CINEMATIC] Spectral flux enabled and tracking started on mixer node")
+            logger.info("[AUDIO-REACTIVE] Spectral flux enabled for \(mode.rawValue) mode")
         } else {
-            logger.error("[CINEMATIC] FAILED to get mixer node - spectral flux will not work!")
+            logger.error("[AUDIO-REACTIVE] FAILED to get mixer node - spectral flux will not work!")
         }
         
         // Attach audio energy tracker to light controller for dynamic intensity modulation
         lightController?.audioEnergyTracker = audioEnergyTracker
-        logger.info("[CINEMATIC] AudioEnergyTracker attached to light controller")
+        logger.info("[AUDIO-REACTIVE] AudioEnergyTracker attached to light controller for \(mode.rawValue) mode")
     }
     
     /// Sets up Bluetooth latency monitoring for dynamic audio synchronization
@@ -312,29 +308,27 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
-    /// Handles critical thermal state - attempts fallback to screen mode
+    /// Handles critical thermal state - stops session since screen mode is removed
     private func handleCriticalThermalState() {
-        guard let currentScript = currentScript,
-              let session = currentSession,
-              lightController?.source == .flashlight else {
+        guard lightController?.source == .flashlight else {
             return
         }
         
         markSessionAsThermallyLimited()
-        switchToScreenController(using: currentScript, session: session)
+        // Screen mode removed - stop session instead of switching
+        stopSession()
     }
     
     private func handleTorchFailureEvent() {
         guard state == .running,
-              let currentScript = currentScript,
-              let session = currentSession,
               lightController?.source == .flashlight else {
             return
         }
         
         thermalWarningLevel = .critical
         markSessionAsThermallyLimited()
-        switchToScreenController(using: currentScript, session: session)
+        // Screen mode removed - stop session instead of switching
+        stopSession()
     }
     
     private func handleAudioSessionInterruption(_ notification: Notification) {
@@ -402,34 +396,6 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
-    private func switchToScreenController(using script: LightScript, session: Session) {
-        // Prevent race conditions by checking if a task is already running
-        // Bail out if there's an active task that hasn't been cancelled
-        if let task = activeTask, !task.isCancelled {
-            logger.warning("switchToScreenController called while previous task is still running")
-            return
-        }
-        
-        lightController?.stop()
-        lightController = services.screenController
-        
-        // Cancel any existing task
-        activeTask?.cancel()
-        activeTask = Task {
-            do {
-                try await lightController?.start()
-                
-                // Resume from current session position using original session start time
-                lightController?.execute(script: script, syncedTo: session.startedAt)
-                
-            } catch {
-                // If screen controller also fails, inform the user and stop the session
-                errorMessage = NSLocalizedString("session.screenController.error", 
-                                                comment: "Shown when switching to the screen-based light controller fails")
-                stopSession()
-            }
-        }
-    }
     
     private func markSessionAsThermallyLimited() {
         if var session = currentSession {
@@ -595,12 +561,8 @@ final class SessionViewModel: ObservableObject {
 
         // Set the light controller based on current preferences
         logger.info("Setting light controller based on preferences: \(self.cachedPreferences.preferredLightSource.rawValue)")
-        switch cachedPreferences.preferredLightSource {
-        case .flashlight:
-            lightController = services.flashlightController
-        case .screen:
-            lightController = services.screenController
-        }
+        // Always use flashlight (screen mode removed)
+        lightController = services.flashlightController
 
         // Pre-warm flashlight if needed
         logger.info("Pre-warming flashlight if needed")
@@ -629,14 +591,12 @@ final class SessionViewModel: ObservableObject {
             // Generate LightScript using cached preferences
             let mode = cachedPreferences.preferredMode
             let lightSource = cachedPreferences.preferredLightSource
-            let screenColor = cachedPreferences.screenColor
 
             logger.info("Generating light script")
             let script = entrainmentEngine.generateLightScript(
                 from: track,
                 mode: mode,
-                lightSource: lightSource,
-                screenColor: lightSource == .screen ? screenColor : nil
+                lightSource: lightSource
             )
             currentScript = script
             logger.info("Light script generated")
@@ -679,11 +639,7 @@ final class SessionViewModel: ObservableObject {
             currentSession = session
             updateAffirmationStatusForCurrentPreferences()
 
-            // Set custom color RGB if screen mode and custom color is selected
-            if lightSource == .screen, screenColor == .custom,
-               let screenController = lightController as? ScreenController {
-                screenController.setCustomColorRGB(cachedPreferences.customColorRGB)
-            }
+            // Screen mode removed - no custom color RGB needed
 
             // Apply audio latency offset from user preferences for Bluetooth compensation
             if let baseController = lightController as? BaseLightController {
@@ -713,9 +669,6 @@ final class SessionViewModel: ObservableObject {
                 try await vibrationController.start()
                 vibrationController.execute(script: vibrationScript, syncedTo: startTime)
             }
-
-            // If cinematic mode, start audio energy tracking and attach to light controller
-            enableSpectralFluxForCinematicMode(mode)
 
             // Start Bluetooth latency monitoring for dynamic synchronization
             setupBluetoothLatencyMonitoring()
@@ -784,12 +737,8 @@ final class SessionViewModel: ObservableObject {
         cachedPreferences = UserPreferences.load()
         
         // Set the light controller based on current preferences
-        switch cachedPreferences.preferredLightSource {
-        case .flashlight:
-            lightController = services.flashlightController
-        case .screen:
-            lightController = services.screenController
-        }
+        // Always use flashlight (screen mode removed)
+        lightController = services.flashlightController
         
         // Pre-warm flashlight if needed
         await prewarmFlashlightIfNeeded()
@@ -802,13 +751,11 @@ final class SessionViewModel: ObservableObject {
             // Generate LightScript using cached preferences
             let mode = cachedPreferences.preferredMode
             let lightSource = cachedPreferences.preferredLightSource
-            let screenColor = cachedPreferences.screenColor
             
             let script = entrainmentEngine.generateLightScript(
                 from: track,
                 mode: mode,
-                lightSource: lightSource,
-                screenColor: lightSource == .screen ? screenColor : nil
+                lightSource: lightSource
             )
             currentScript = script
             
@@ -848,11 +795,7 @@ final class SessionViewModel: ObservableObject {
             currentSession = session
             updateAffirmationStatusForCurrentPreferences()
             
-            // Set custom color RGB if screen mode and custom color is selected
-            if lightSource == .screen, screenColor == .custom,
-               let screenController = lightController as? ScreenController {
-                screenController.setCustomColorRGB(cachedPreferences.customColorRGB)
-            }
+            // Screen mode removed - no custom color RGB needed
             
             // Apply audio latency offset from user preferences for Bluetooth compensation
             if let baseController = lightController as? BaseLightController {
@@ -884,9 +827,6 @@ final class SessionViewModel: ObservableObject {
                 try await vibrationController.start()
                 vibrationController.execute(script: vibrationScript, syncedTo: startTime)
             }
-            
-            // If cinematic mode, start audio energy tracking and attach to light controller
-            enableSpectralFluxForCinematicMode(mode)
             
             // Start Bluetooth latency monitoring for dynamic synchronization
             setupBluetoothLatencyMonitoring()
@@ -950,12 +890,8 @@ final class SessionViewModel: ObservableObject {
         
         // Set the light controller based on current preferences
         logger.info("Setting light controller based on preferences: \(self.cachedPreferences.preferredLightSource.rawValue)")
-        switch cachedPreferences.preferredLightSource {
-        case .flashlight:
-            lightController = services.flashlightController
-        case .screen:
-            lightController = services.screenController
-        }
+        // Always use flashlight (screen mode removed)
+        lightController = services.flashlightController
         
         // Pre-warm flashlight if needed
         logger.info("Pre-warming flashlight if needed")
@@ -981,11 +917,7 @@ final class SessionViewModel: ObservableObject {
             currentSession = session
             updateAffirmationStatusForCurrentPreferences()
             
-            // Set custom color RGB if screen mode and custom color is selected
-            if cachedPreferences.preferredLightSource == .screen, cachedPreferences.screenColor == .custom,
-               let screenController = lightController as? ScreenController {
-                screenController.setCustomColorRGB(cachedPreferences.customColorRGB)
-            }
+            // Screen mode removed - no custom color RGB needed
             
             // Apply audio latency offset from user preferences for Bluetooth compensation
             if let baseController = lightController as? BaseLightController {
@@ -1123,17 +1055,18 @@ final class SessionViewModel: ObservableObject {
         // Stop controllers in order: Light first (stops timer), then audio, then vibration
         // This order prevents race conditions where timer callbacks try to access stopped services
         lightController?.stop()
+        
+        // CRITICAL: Stop audio energy tracking BEFORE stopping audio playback
+        // The tracker needs to remove its tap from the mixer node while the engine is still running
+        audioEnergyTracker.stopTracking()
+        audioEnergyTracker.useSpectralFlux = false // Reset for next session
+        lightController?.audioEnergyTracker = nil
+        
         audioPlayback.stop()
         vibrationController?.stop()
 
         // Stop isochronic audio if active
         IsochronicAudioService.shared.stop()
-
-        // Stop audio energy tracking if active (cinematic mode)
-        // Must happen after light controller stops to avoid accessing stopped tracker
-        audioEnergyTracker.stopTracking()
-        audioEnergyTracker.useSpectralFlux = false // Reset for next session
-        lightController?.audioEnergyTracker = nil
 
         // Stop Bluetooth latency monitoring
         bluetoothLatencyMonitor.stopMonitoring()
@@ -1246,6 +1179,12 @@ final class SessionViewModel: ObservableObject {
         if currentSession?.mode == .cinematic, let engine = audioPlayback.getAudioEngine() {
             IsochronicAudioService.shared.carrierFrequency = 150.0
             IsochronicAudioService.shared.start(mode: currentSession!.mode, attachToEngine: engine)
+        }
+        
+        // If cinematic mode, start audio energy tracking AFTER audio engine is running
+        // This ensures the mixer node exists when we attach the tracker
+        if let mode = currentSession?.mode {
+            enableSpectralFluxForCinematicMode(mode)
         }
 
         logger.info("startPlaybackAndLight: audio started, starting light controller with 5s timeout")

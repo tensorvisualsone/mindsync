@@ -1,23 +1,5 @@
 import Foundation
 
-/// RGB color values for custom color (0.0 - 1.0)
-struct CustomColorRGB: Codable {
-    let red: Double
-    let green: Double
-    let blue: Double
-    
-    init(red: Double, green: Double, blue: Double) {
-        self.red = max(0.0, min(1.0, red))
-        self.green = max(0.0, min(1.0, green))
-        self.blue = max(0.0, min(1.0, blue))
-    }
-    
-    /// Converts to tuple for easier use
-    var tuple: (red: Double, green: Double, blue: Double) {
-        (red: red, green: green, blue: blue)
-    }
-}
-
 /// Persistierte Nutzereinstellungen
 struct UserPreferences: Codable {
     // Onboarding
@@ -28,8 +10,6 @@ struct UserPreferences: Codable {
     var preferredMode: EntrainmentMode
     var preferredLightSource: LightSource
     var defaultIntensity: Float  // 0.0 - 1.0
-    var screenColor: LightEvent.LightColor
-    var customColorRGB: CustomColorRGB?  // RGB-Werte für Custom Color (0.0 - 1.0)
 
     // Sicherheit
     var fallDetectionEnabled: Bool
@@ -77,8 +57,6 @@ struct UserPreferences: Codable {
         preferredMode: EntrainmentMode,
         preferredLightSource: LightSource,
         defaultIntensity: Float,
-        screenColor: LightEvent.LightColor,
-        customColorRGB: CustomColorRGB?,
         fallDetectionEnabled: Bool,
         thermalProtectionEnabled: Bool,
         maxSessionDuration: TimeInterval?,
@@ -94,8 +72,6 @@ struct UserPreferences: Codable {
         self.preferredMode = preferredMode
         self.preferredLightSource = preferredLightSource
         self.defaultIntensity = defaultIntensity
-        self.screenColor = screenColor
-        self.customColorRGB = customColorRGB
         self.fallDetectionEnabled = fallDetectionEnabled
         self.thermalProtectionEnabled = thermalProtectionEnabled
         self.maxSessionDuration = maxSessionDuration
@@ -112,10 +88,8 @@ struct UserPreferences: Codable {
             epilepsyDisclaimerAccepted: false,
             epilepsyDisclaimerAcceptedAt: nil,
             preferredMode: .alpha,
-            preferredLightSource: .screen,
+            preferredLightSource: .flashlight,
             defaultIntensity: 0.5,
-            screenColor: .white,
-            customColorRGB: nil,
             fallDetectionEnabled: true,
             thermalProtectionEnabled: true,
             maxSessionDuration: nil,
@@ -136,8 +110,6 @@ struct UserPreferences: Codable {
         case preferredMode
         case preferredLightSource
         case defaultIntensity
-        case screenColor
-        case customColorRGB
         case fallDetectionEnabled
         case thermalProtectionEnabled
         case maxSessionDuration
@@ -156,8 +128,7 @@ struct UserPreferences: Codable {
         preferredMode = try container.decode(EntrainmentMode.self, forKey: .preferredMode)
         preferredLightSource = try container.decode(LightSource.self, forKey: .preferredLightSource)
         defaultIntensity = try container.decode(Float.self, forKey: .defaultIntensity)
-        screenColor = try container.decode(LightEvent.LightColor.self, forKey: .screenColor)
-        customColorRGB = try container.decodeIfPresent(CustomColorRGB.self, forKey: .customColorRGB)
+        // Screen mode removed - screenColor and customColorRGB no longer needed
         fallDetectionEnabled = try container.decode(Bool.self, forKey: .fallDetectionEnabled)
         thermalProtectionEnabled = try container.decode(Bool.self, forKey: .thermalProtectionEnabled)
         maxSessionDuration = try container.decodeIfPresent(TimeInterval.self, forKey: .maxSessionDuration)
@@ -180,8 +151,7 @@ struct UserPreferences: Codable {
         try container.encode(preferredMode, forKey: .preferredMode)
         try container.encode(preferredLightSource, forKey: .preferredLightSource)
         try container.encode(defaultIntensity, forKey: .defaultIntensity)
-        try container.encode(screenColor, forKey: .screenColor)
-        try container.encodeIfPresent(customColorRGB, forKey: .customColorRGB)
+        // Screen mode removed - screenColor and customColorRGB no longer needed
         try container.encode(fallDetectionEnabled, forKey: .fallDetectionEnabled)
         try container.encode(thermalProtectionEnabled, forKey: .thermalProtectionEnabled)
         try container.encodeIfPresent(maxSessionDuration, forKey: .maxSessionDuration)

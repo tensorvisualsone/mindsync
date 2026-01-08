@@ -119,23 +119,32 @@ final class EntrainmentEngine {
     ///   - track: The analyzed AudioTrack with beat timestamps
     ///   - mode: The selected EntrainmentMode (Alpha/Theta/Gamma)
     ///   - lightSource: The selected light source (for frequency limits)
-    ///   - screenColor: Color to use for screen mode (optional)
     /// - Returns: A LightScript with synchronized light events
     func generateLightScript(
         from track: AudioTrack,
         mode: EntrainmentMode,
-        lightSource: LightSource,
-        screenColor: LightEvent.LightColor? = nil
+        lightSource: LightSource
     ) -> LightScript {
-        // Calculate multiplier N so that f_target is in target band
-        let multiplier = calculateMultiplier(
-            bpm: track.bpm,
-            targetRange: mode.frequencyRange,
-            maxFrequency: lightSource.maxFrequency
-        )
+        // SPECIAL CASE: Cinematic mode uses fixed target frequency for photo diving
+        // instead of BPM-derived frequency
+        let targetFrequency: Double
+        let multiplier: Int
         
-        // Calculate target frequency: f_target = (BPM / 60) × N
-        let targetFrequency = (track.bpm / 60.0) * Double(multiplier)
+        if mode == .cinematic {
+            // Use mode's target frequency directly (6.5 Hz for photo diving effect)
+            targetFrequency = mode.targetFrequency
+            multiplier = 1  // No BPM multiplication for cinematic mode
+        } else {
+            // Calculate multiplier N so that f_target is in target band
+            multiplier = calculateMultiplier(
+                bpm: track.bpm,
+                targetRange: mode.frequencyRange,
+                maxFrequency: lightSource.maxFrequency
+            )
+            
+            // Calculate target frequency: f_target = (BPM / 60) × N
+            targetFrequency = (track.bpm / 60.0) * Double(multiplier)
+        }
         
         // Generate light events based on beat timestamps
         let events = generateLightEvents(
@@ -143,8 +152,7 @@ final class EntrainmentEngine {
             targetFrequency: targetFrequency,
             mode: mode,
             trackDuration: track.duration,
-            lightSource: lightSource,
-            screenColor: screenColor
+            lightSource: lightSource
         )
         
         return LightScript(
@@ -318,22 +326,40 @@ final class EntrainmentEngine {
         targetFrequency: Double,
         mode: EntrainmentMode,
         trackDuration: TimeInterval,
-        lightSource: LightSource,
-        screenColor: LightEvent.LightColor?
+        lightSource: LightSource
     ) -> [LightEvent] {
+        // SPECIAL CASE: Cinematic mode uses purely audio-reactive approach without discrete events
+        // The FlashlightController modulates light intensity directly from audio energy in real-time
+        // We generate a single long event for script validation, but the controller doesn't use it
+        if mode == .cinematic {
+            // Create a single event spanning the full track duration for validation purposes
+            // The actual light intensity is calculated from real-time audio modulation
+            // Base intensity is set to 0.5 (50%) - this value is not used by the controller,
+            // but provides a reasonable fallback if cinematic mode is ever used with event-based rendering
+            let cinematicBaseIntensity: Float = 0.5
+            let event = LightEvent(
+                timestamp: 0.0,
+                duration: trackDuration,
+                intensity: cinematicBaseIntensity,
+                color: nil,
+                waveform: .sine,
+                frequencyOverride: nil
+            )
+            return [event]
+        }
+        
         guard !beatTimestamps.isEmpty else {
             // Fallback: uniform pulsation if no beats detected
             return generateFallbackEvents(
                 frequency: targetFrequency,
                 duration: trackDuration,
                 mode: mode,
-                lightSource: lightSource,
-                screenColor: screenColor
+                lightSource: lightSource
             )
         }
         
-        // Determine color: use provided screenColor for screen mode, nil for flashlight
-        let eventColor: LightEvent.LightColor? = (lightSource == .screen) ? (screenColor ?? .white) : nil
+        // Flashlight mode doesn't use colors (always nil)
+        let eventColor: LightEvent.LightColor? = nil
         
         // Waveform selector based on mode
         let waveformSelector: (EntrainmentMode) -> LightEvent.Waveform = { mode in
@@ -359,11 +385,17 @@ final class EntrainmentEngine {
         let waveform = waveformSelector(mode)
         let baseIntensity = intensitySelector(mode)
         
+        // Normalize timestamps to start at 0.0
+        // This ensures events begin immediately when the session starts,
+        // even if beat detection skipped the beginning of the track
+        let firstTimestamp = beatTimestamps.first ?? 0.0
+        let normalizedTimestamps = beatTimestamps.map { $0 - firstTimestamp }
+        
         // Ramping parameters
         let startFreq = mode.startFrequency
         let rampTime = mode.rampDuration
         
-        for (index, timestamp) in beatTimestamps.enumerated() {
+        for (index, timestamp) in normalizedTimestamps.enumerated() {
             // Calculate current frequency based on ramping
             let progress = rampTime > 0 ? min(timestamp / rampTime, 1.0) : 1.0
             let smooth = MathHelpers.smoothstep(progress)
@@ -380,11 +412,11 @@ final class EntrainmentEngine {
                 // Duration extends to next beat timestamp (or end of track)
                 // This ensures continuous pulsation without gaps
                 let nextTimestamp: TimeInterval
-                if index + 1 < beatTimestamps.count {
-                    nextTimestamp = beatTimestamps[index + 1]
+                if index + 1 < normalizedTimestamps.count {
+                    nextTimestamp = normalizedTimestamps[index + 1]
                 } else {
-                    // Last beat: extend to end of track
-                    nextTimestamp = trackDuration
+                    // Last beat: extend to end of track (normalized)
+                    nextTimestamp = max(trackDuration - firstTimestamp, timestamp + period)
                 }
                 // Duration = time until next beat, but at least one period
                 eventDuration = max(period, nextTimestamp - timestamp)
@@ -408,10 +440,10 @@ final class EntrainmentEngine {
         frequency: Double,
         duration: TimeInterval,
         mode: EntrainmentMode,
-        lightSource: LightSource,
-        screenColor: LightEvent.LightColor?
+        lightSource: LightSource
     ) -> [LightEvent] {
-        let eventColor: LightEvent.LightColor? = (lightSource == .screen) ? (screenColor ?? .white) : nil
+        // Flashlight mode doesn't use colors (always nil)
+        let eventColor: LightEvent.LightColor? = nil
 
         // Waveform selector for fallback based on mode
         let waveformSelector: (EntrainmentMode) -> LightEvent.Waveform = { mode in
@@ -539,11 +571,15 @@ final class EntrainmentEngine {
         var events: [VibrationEvent] = []
         let waveform = waveformSelector(mode)
         
+        // Normalize timestamps to start at 0.0 (same as light events)
+        let firstTimestamp = beatTimestamps.first ?? 0.0
+        let normalizedTimestamps = beatTimestamps.map { $0 - firstTimestamp }
+        
         // Ramping parameters
         let startFreq = mode.startFrequency
         let rampTime = mode.rampDuration
         
-        for (index, timestamp) in beatTimestamps.enumerated() {
+        for (index, timestamp) in normalizedTimestamps.enumerated() {
             // Calculate current frequency based on ramping
             let progress = rampTime > 0 ? min(timestamp / rampTime, 1.0) : 1.0
             let smooth = MathHelpers.smoothstep(progress)
@@ -559,10 +595,10 @@ final class EntrainmentEngine {
             } else {
                 // Duration extends to next beat timestamp (or end of track)
                 let nextTimestamp: TimeInterval
-                if index + 1 < beatTimestamps.count {
-                    nextTimestamp = beatTimestamps[index + 1]
+                if index + 1 < normalizedTimestamps.count {
+                    nextTimestamp = normalizedTimestamps[index + 1]
                 } else {
-                    nextTimestamp = trackDuration
+                    nextTimestamp = max(trackDuration - firstTimestamp, timestamp + period)
                 }
                 eventDuration = max(period, nextTimestamp - timestamp)
             }

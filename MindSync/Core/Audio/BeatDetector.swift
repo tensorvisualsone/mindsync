@@ -78,7 +78,9 @@ final class BeatDetector {
                 frameIndex += hopSize
             }
             
-            // Calculate adaptive threshold using single-pass algorithm (mean + 0.5 * std deviation)
+            // Calculate adaptive threshold using single-pass algorithm
+            // REDUCED from mean + 0.5*stdDev to mean + 0.2*stdDev for better sensitivity
+            // This allows more beats to be detected, especially in electronic/EDM music
             var sum: Float = 0
             var sumOfSquares: Float = 0
             for flux in spectralFluxValues {
@@ -89,21 +91,44 @@ final class BeatDetector {
             let mean = sum / count
             let variance = (sumOfSquares / count) - (mean * mean)
             let stdDev = sqrt(max(0, variance)) // max(0, ...) to handle floating point errors
-            let adaptiveThreshold = mean + 0.5 * stdDev
+            let adaptiveThreshold = mean + 0.2 * stdDev  // Lower threshold for better detection
             
-            // Detect beats using adaptive threshold
+            // Detect beats using peak picking approach:
+            // 1. Find local maxima in spectral flux
+            // 2. Check if they exceed the adaptive threshold
+            // 3. Enforce minimum beat interval (prevent double-triggers)
+            let minBeatInterval: TimeInterval = 0.15  // Minimum 150ms between beats (~400 BPM max)
+            var lastBeatTime: TimeInterval = -minBeatInterval
+            
             frameIndex = 0
             var fluxIndex = 0
+            
             while frameIndex + fftSize < frameCount {
                 // Check for cancellation
                 if Task.isCancelled {
                     return []
                 }
                 
-                if fluxIndex < spectralFluxValues.count && spectralFluxValues[fluxIndex] > adaptiveThreshold {
-                    let timestamp = Double(frameIndex) / sampleRate
-                    beatTimestamps.append(timestamp)
+                if fluxIndex < spectralFluxValues.count {
+                    let currentFlux = spectralFluxValues[fluxIndex]
+                    
+                    // Check if this is a local maximum (peak)
+                    let prevFlux = fluxIndex > 0 ? spectralFluxValues[fluxIndex - 1] : 0
+                    let nextFlux = fluxIndex < spectralFluxValues.count - 1 ? spectralFluxValues[fluxIndex + 1] : 0
+                    
+                    let isPeak = currentFlux > prevFlux && currentFlux >= nextFlux
+                    
+                    // If it's a peak above threshold and enough time has passed since last beat
+                    if isPeak && currentFlux > adaptiveThreshold {
+                        let timestamp = Double(frameIndex) / sampleRate
+                        
+                        if timestamp - lastBeatTime >= minBeatInterval {
+                            beatTimestamps.append(timestamp)
+                            lastBeatTime = timestamp
+                        }
+                    }
                 }
+                
                 frameIndex += hopSize
                 fluxIndex += 1
             }

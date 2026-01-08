@@ -9,32 +9,20 @@ enum AudioSource: String, Codable {
 /// Verfügbare Lichtquellen für das Stroboskop
 enum LightSource: String, Codable, CaseIterable, Identifiable {
     case flashlight  // Taschenlampe (LED Flash)
-    case screen      // Bildschirm (OLED)
 
     var id: String { rawValue }
 
     var displayName: String {
-        switch self {
-        case .flashlight: return "Taschenlampe"
-        case .screen: return "Bildschirm"
-        }
+        return "Taschenlampe"
     }
 
     var description: String {
-        switch self {
-        case .flashlight:
-            return "Intensiver Impuls. Unterstützt bis zu 100 Hz (Lambda)."
-        case .screen:
-            return "Präziser, mit Farben. Für längere Sitzungen geeignet."
-        }
+        return "Intensiver Impuls. Unterstützt bis zu 100 Hz (Lambda)."
     }
 
     /// Maximale zuverlässige Frequenz in Hz
     var maxFrequency: Double {
-        switch self {
-        case .flashlight: return 100.0
-        case .screen: return 60.0 // Kann bis 120 Hz bei ProMotion
-        }
+        return 100.0
     }
 }
 
@@ -94,6 +82,49 @@ struct Session: Codable, Identifiable {
         self.thermalWarningOccurred = false
         self.manuallyPaused = false
         self.endReason = nil
+    }
+    
+    // MARK: - Codable Implementation
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, startedAt, endedAt, mode, lightSource, audioSource
+        case trackTitle, trackArtist, trackBPM
+        case actualDuration, averageIntensity, thermalWarningOccurred, manuallyPaused, endReason
+    }
+    
+    // Custom decoder to handle migration from older versions that had .screen case
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(UUID.self, forKey: .id)
+        startedAt = try container.decode(Date.self, forKey: .startedAt)
+        endedAt = try container.decodeIfPresent(Date.self, forKey: .endedAt)
+        mode = try container.decode(EntrainmentMode.self, forKey: .mode)
+        audioSource = try container.decode(AudioSource.self, forKey: .audioSource)
+        trackTitle = try container.decodeIfPresent(String.self, forKey: .trackTitle)
+        trackArtist = try container.decodeIfPresent(String.self, forKey: .trackArtist)
+        trackBPM = try container.decodeIfPresent(Double.self, forKey: .trackBPM)
+        actualDuration = try container.decodeIfPresent(TimeInterval.self, forKey: .actualDuration)
+        averageIntensity = try container.decodeIfPresent(Float.self, forKey: .averageIntensity)
+        thermalWarningOccurred = try container.decode(Bool.self, forKey: .thermalWarningOccurred)
+        manuallyPaused = try container.decode(Bool.self, forKey: .manuallyPaused)
+        endReason = try container.decodeIfPresent(EndReason.self, forKey: .endReason)
+        
+        // Migrate old .screen values to .flashlight for backward compatibility
+        if let lightSourceString = try? container.decode(String.self, forKey: .lightSource) {
+            if lightSourceString == "screen" {
+                // Legacy .screen case - migrate to .flashlight
+                lightSource = .flashlight
+            } else if let decoded = LightSource(rawValue: lightSourceString) {
+                lightSource = decoded
+            } else {
+                // Unknown value - default to flashlight
+                lightSource = .flashlight
+            }
+        } else {
+            // Fallback if decoding fails
+            lightSource = .flashlight
+        }
     }
 
     /// Berechnet Dauer basierend auf Start/Ende
