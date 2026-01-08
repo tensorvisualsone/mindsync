@@ -416,53 +416,62 @@ final class FlashlightController: BaseLightController, LightControlling {
                     
                     let smoothedEnergy = recentFluxValues.count > 0 ? recentFluxValues.reduce(0, +) / Float(recentFluxValues.count) : 0.0
                     
-                    // FIXED: Proper dynamic range mapping without premature clipping
-                    // Problem: Previous 15x amplification caused all values >0.067 to clamp to 1.0
-                    //          This removed all audio reactivity since typical values (0.1-0.17) 
-                    //          were immediately clamped to maximum
+                    // CRITICAL FIX: Strong contrast mapping for visible audio reactivity
+                    // Problem: Previous mapping (0.53-0.81 range) had insufficient contrast
+                    //          All values were relatively high, making audio changes invisible
                     //
-                    // Solution: Use moderate amplification (5x) that preserves dynamic range
-                    //          and apply proper contrast stretching that maps the full range
-                    //          to a visible output range
+                    // Solution: Aggressive contrast stretching with adaptive thresholds
+                    //          Low values → very dark (0.0-0.15), high values → bright (0.7-1.0)
                     //
-                    // Spectral flux typical ranges:
-                    //   - Silence/quiet: 0.0-0.05 → should be dark (0.0-0.15)
-                    //   - Low energy: 0.05-0.12 → should be dim (0.15-0.4)
-                    //   - Moderate: 0.12-0.25 → should be visible (0.4-0.75)
-                    //   - Strong beats: 0.25+ → should be bright (0.75-1.0)
+                    // Based on log analysis, typical rawEnergy values are:
+                    //   - Low: 0.07-0.11 → should map to dark (0.15-0.35)
+                    //   - Medium: 0.11-0.15 → should map to visible (0.35-0.65)
+                    //   - High: 0.15-0.17+ → should map to bright (0.65-1.0)
                     
-                    // Moderate amplification to preserve dynamic range
-                    // 0.25 * 5 = 1.25, but we want strong beats to map to ~1.0
-                    let amplified = smoothedEnergy * 4.0  // Don't clamp yet - preserve range
+                    // Calculate adaptive min/max from recent history for better dynamic range
+                    // This adapts to the actual track's dynamic range
+                    let historyMin: Float = recentFluxValues.min() ?? 0.0
+                    let historyMax: Float = recentFluxValues.max() ?? smoothedEnergy
+                    let historyRange = max(historyMax - historyMin, 0.01) // Prevent division by zero
                     
-                    // Apply power curve for perceptual linearity (preserves relative differences)
-                    // Lower exponent (0.6) gives more dynamic range in lower values
-                    let curved = pow(min(amplified, 1.0), 0.6)
-                    
-                    // Map to full intensity range with contrast stretching
-                    // This ensures the full 0.0-1.0 output range is used
-                    // Threshold-based mapping: values below threshold are nearly dark,
-                    // values above threshold scale to bright
-                    let energyThreshold: Float = 0.08  // Below this is considered "quiet"
-                    let quietMax: Float = 0.2          // Maximum for quiet passages
-                    
-                    let rawModulation: Float
-                    if curved < energyThreshold {
-                        // Quiet: map 0.0-0.08 → 0.0-0.2 (nearly dark but slightly visible)
-                        rawModulation = (curved / energyThreshold) * quietMax
+                    // Normalize to 0-1 range based on observed range
+                    let normalizedEnergy: Float
+                    if historyRange > 0.01 {
+                        normalizedEnergy = (smoothedEnergy - historyMin) / historyRange
                     } else {
-                        // Active: map 0.08-1.0 → 0.2-1.0 (visible to bright)
-                        // This ensures beats are clearly visible while preserving dynamics
-                        let activeRange = 1.0 - quietMax  // 0.8 range for active passages
-                        rawModulation = quietMax + ((curved - energyThreshold) / (1.0 - energyThreshold)) * activeRange
+                        // Fallback: direct mapping with fixed thresholds
+                        normalizedEnergy = min(smoothedEnergy * 6.0, 1.0)
+                    }
+                    
+                    // Aggressive contrast stretching for maximum visibility
+                    // Map normalized energy (0-1) to output (0-1) with strong contrast
+                    let rawModulation: Float
+                    if normalizedEnergy < 0.3 {
+                        // Low energy: map 0.0-0.3 → 0.0-0.25 (very dark)
+                        rawModulation = (normalizedEnergy / 0.3) * 0.25
+                    } else if normalizedEnergy < 0.6 {
+                        // Medium energy: map 0.3-0.6 → 0.25-0.55 (dim to visible)
+                        rawModulation = 0.25 + ((normalizedEnergy - 0.3) / 0.3) * 0.30
+                    } else {
+                        // High energy: map 0.6-1.0 → 0.55-1.0 (visible to bright)
+                        rawModulation = 0.55 + ((normalizedEnergy - 0.6) / 0.4) * 0.45
+                    }
+                    
+                    // Apply additional boost for very high values to make beats pop
+                    let boostedModulation: Float
+                    if rawModulation > 0.7 {
+                        // Strong beats: boost from 0.7-1.0 to 0.85-1.0 for maximum visibility
+                        boostedModulation = 0.85 + ((rawModulation - 0.7) / 0.3) * 0.15
+                    } else {
+                        boostedModulation = rawModulation
                     }
                     
                     // Clamp to valid range
-                    audioModulation = max(0.0, min(1.0, rawModulation))
+                    audioModulation = max(0.0, min(1.0, boostedModulation))
                     
                     // Debug: Log audio energy approximately every second
                     if elapsed - lastAudioLogTime >= 1.0 {
-                        logger.debug("[CINEMATIC AUDIO] useSpectralFlux=\(tracker.useSpectralFlux) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) amplified=\(String(format: "%.3f", amplified)) curved=\(String(format: "%.3f", curved)) modulation=\(String(format: "%.3f", audioModulation))")
+                        logger.debug("[CINEMATIC AUDIO] useSpectralFlux=\(tracker.useSpectralFlux) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) historyMin=\(String(format: "%.3f", historyMin)) historyMax=\(String(format: "%.3f", historyMax)) normalized=\(String(format: "%.3f", normalizedEnergy)) rawMod=\(String(format: "%.3f", rawModulation)) boosted=\(String(format: "%.3f", boostedModulation)) final=\(String(format: "%.3f", audioModulation))")
                         lastAudioLogTime = elapsed
                     }
                 } else {
