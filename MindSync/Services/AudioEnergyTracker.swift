@@ -22,7 +22,8 @@ final class AudioEnergyTracker {
     // Moving Average for smoothing
     private var averageEnergy: Float = 0.0
     private var averageSpectralFlux: Float = 0.0
-    private let smoothingFactor: Float = 0.95  // 95% old, 5% new
+    private let smoothingFactor: Float = 0.95  // 95% old, 5% new for RMS energy
+    private let fluxSmoothingFactor: Float = 0.85  // 85% old, 15% new for spectral flux (faster response)
     private let bufferSize: AVAudioFrameCount = 4096
     
     /// Current energy value (0.0 - 1.0) - RMS-based
@@ -122,12 +123,12 @@ final class AudioEnergyTracker {
             flux = detector.calculateBassFlux(from: buffer)
         }
         
-        // Apply moving average smoothing to spectral flux (same as RMS energy)
+        // Apply moving average smoothing to spectral flux (faster response than RMS)
         if averageSpectralFlux == 0.0 {
             // Initialize with first value
             averageSpectralFlux = flux
         } else {
-            averageSpectralFlux = (averageSpectralFlux * smoothingFactor) + (flux * (1.0 - smoothingFactor))
+            averageSpectralFlux = (averageSpectralFlux * fluxSmoothingFactor) + (flux * (1.0 - fluxSmoothingFactor))
         }
         
         // Update on main thread (audio callbacks run on audio thread)
