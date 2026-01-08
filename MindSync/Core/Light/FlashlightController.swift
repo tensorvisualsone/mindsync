@@ -467,9 +467,9 @@ final class FlashlightController: BaseLightController, LightControlling {
                     
                     // Beat threshold: Turn light completely off when spectral flux is below threshold
                     // This creates sharp pulses synchronized to beats with complete darkness between
-                    // Same threshold as cinematic mode (0.55 after ×10 amplification + sqrt)
-                    // Raw threshold ~0.03 ensures background noise doesn't trigger light
-                    let beatThreshold: Float = 0.55
+                    // Lower threshold (0.20) for binaural beats which have minimal spectral flux
+                    // Raw threshold ~0.004 filters background noise while allowing beat detection
+                    let beatThreshold: Float = 0.20
                     let audioModulation: Float = curved >= beatThreshold ? curved : 0.0
                     
                     // Use audio modulation directly (not as multiplier)
