@@ -373,18 +373,12 @@ final class FlashlightController: BaseLightController, LightControlling {
                 self.noEventLogCount = 0
             }
             
-            // Check if cinematic mode - continuous audio-reactive pulsation
+            // Check if cinematic mode - fully audio-reactive pulsation
             if script.mode == .cinematic {
-                // CONTINUOUS AUDIO-REACTIVE APPROACH: Square wave at target frequency
-                // modulated by real-time audio energy for immersive photo diving experience.
+                // PURELY AUDIO-REACTIVE APPROACH: Light intensity follows audio energy directly
+                // No fixed square wave - the light reacts to beats and audio dynamics in real-time
+                // This creates truly audio-synchronized pulsation that follows the music, not a fixed rhythm
                 //
-                // This creates continuous rhythmic pulsation that maintains neural entrainment
-                // while reacting to audio dynamics. No gaps = no loss of synchronization.
-                //
-                // Scientific basis: Continuous rhythmic stimulation is required for stable
-                // neural entrainment. Gaps in stimulation break synchronization.
-                // (Ref: Nozaradan et al., 2011; Lakatos et al., 2008)
-                
                 // Note: We only check that event exists for script validation
                 // Actual light intensity is calculated from audio modulation, not from event
                 if result.event == nil {
@@ -394,11 +388,6 @@ final class FlashlightController: BaseLightController, LightControlling {
                 }
                 
                 let elapsed = result.elapsed
-                let targetFreq = script.targetFrequency > 0 ? script.targetFrequency : 6.5
-                
-                // Calculate square wave phase (hard ON/OFF pulses)
-                let period = 1.0 / targetFreq
-                let phase = (elapsed.truncatingRemainder(dividingBy: period)) / period  // 0.0 to 1.0
                 
                 // Audio-reactive intensity modulation
                 // IMPROVED: Stronger audio response with better dynamic range
@@ -500,48 +489,40 @@ final class FlashlightController: BaseLightController, LightControlling {
                     }
                 }
                 
-                // CRITICAL FIX: Audio-synchronized timing instead of fixed square wave
+                // CRITICAL FIX: Remove fixed square wave - light follows audio directly
                 // Problem: Previous approach used fixed 6.5 Hz square wave with audio modulation
                 //          This created pulsation in own rhythm, not synchronized to audio beats
                 //          The light pulsed at 6.5 Hz regardless of music timing
                 //
-                // Solution: Use audio energy to control BOTH intensity AND timing
-                //          Low audio = completely off (even during "ON" phase)
-                //          High audio = bright pulse synchronized to beats
-                //          This makes the light follow the music, not a fixed rhythm
-                //
-                // The square wave provides base structure for neural entrainment (6.5 Hz),
-                // but audio modulation can override it by turning light off during low energy.
+                // Solution: Completely remove square wave - use pure audio-reactive approach
+                //          Light intensity = audioModulation directly
+                //          Low audio = dim/off, High audio = bright
+                //          This makes the light truly follow the music beats, not a fixed rhythm
                 
-                // Generate square wave with frequency-dependent duty cycle (base structure)
-                let dutyCycle = calculateDutyCycle(for: targetFreq)
-                let isOn = phase < dutyCycle
-                
-                // Apply audio-synchronized intensity
-                // Key: Audio modulation controls BOTH brightness AND visibility
-                // If audio is very low, light is off regardless of square wave phase
-                // If audio is high and square wave is "ON", light is bright
-                // This creates beat-synchronized pulses instead of fixed rhythm
-                // Lower threshold so that even moderate spectral flux produces visible pulses.
-                let audioThreshold: Float = 0.1  // Below this, light is off (even during ON phase)
+                // Map audioModulation directly to intensity
+                // Use a minimum threshold to prevent flickering on very quiet passages
+                // But above threshold, intensity follows audio directly for true beat synchronization
+                let minimumThreshold: Float = 0.15  // Below this, light is off (prevents noise flickering)
                 let finalIntensity: Float
                 
-                if audioModulation < audioThreshold {
-                    // Low audio: completely off (beat-synchronized silence)
+                if audioModulation < minimumThreshold {
+                    // Very low audio: completely off (beat-synchronized silence)
                     finalIntensity = 0.0
-                } else if isOn {
-                    // High audio + ON phase: bright pulse (beat-synchronized flash)
-                    // Map audioModulation (0.2-1.0) to intensity (0.3-1.0) for visible but not too dim
-                    let mappedIntensity = 0.3 + ((audioModulation - audioThreshold) / (1.0 - audioThreshold)) * 0.7
-                    finalIntensity = mappedIntensity
                 } else {
-                    // OFF phase: always dark (square wave structure)
-                    finalIntensity = 0.0
+                    // Audio is significant: map modulation (0.15-1.0) to intensity (0.25-1.0)
+                    // This ensures:
+                    // - Minimum visible intensity when audio is just above threshold (0.25)
+                    // - Maximum intensity when audio is at peak (1.0)
+                    // - Smooth linear mapping in between for natural responsiveness
+                    let mappedRange = 1.0 - minimumThreshold  // 0.85
+                    let intensityRange: Float = 1.0 - 0.25  // 0.75 (from 0.25 to 1.0)
+                    let normalizedMod = (audioModulation - minimumThreshold) / mappedRange  // 0.0 to 1.0
+                    finalIntensity = 0.25 + (normalizedMod * intensityRange)  // 0.25 to 1.0
                 }
                 
                 // Log diagnostics (every 200ms)
                 if Int(elapsed * 1000) % 200 == 0 {
-                    logger.debug("[CINEMATIC] t=\(String(format: "%.3f", elapsed))s freq=\(String(format: "%.1f", targetFreq))Hz phase=\(String(format: "%.2f", phase)) duty=\(String(format: "%.2f", dutyCycle)) on=\(isOn) mod=\(String(format: "%.2f", audioModulation)) out=\(String(format: "%.2f", finalIntensity))")
+                    logger.debug("[CINEMATIC] t=\(String(format: "%.3f", elapsed))s mod=\(String(format: "%.2f", audioModulation)) out=\(String(format: "%.2f", finalIntensity))")
                 }
                 
                 setIntensity(finalIntensity)
