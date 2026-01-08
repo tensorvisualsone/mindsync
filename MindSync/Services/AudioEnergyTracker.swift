@@ -21,6 +21,7 @@ final class AudioEnergyTracker {
     
     // Moving Average for smoothing
     private var averageEnergy: Float = 0.0
+    private var averageSpectralFlux: Float = 0.0
     private let smoothingFactor: Float = 0.95  // 95% old, 5% new
     private let bufferSize: AVAudioFrameCount = 4096
     
@@ -60,6 +61,7 @@ final class AudioEnergyTracker {
         
         // Reset state
         averageEnergy = 0.0
+        averageSpectralFlux = 0.0
         currentEnergy = 0.0
         
         // Install tap on mixer node
@@ -90,6 +92,7 @@ final class AudioEnergyTracker {
         
         // Reset state
         averageEnergy = 0.0
+        averageSpectralFlux = 0.0
         currentEnergy = 0.0
         currentSpectralFlux = 0.0
         spectralFluxDetector?.reset()
@@ -119,13 +122,21 @@ final class AudioEnergyTracker {
             flux = detector.calculateBassFlux(from: buffer)
         }
         
+        // Apply moving average smoothing to spectral flux (same as RMS energy)
+        if averageSpectralFlux == 0.0 {
+            // Initialize with first value
+            averageSpectralFlux = flux
+        } else {
+            averageSpectralFlux = (averageSpectralFlux * smoothingFactor) + (flux * (1.0 - smoothingFactor))
+        }
+        
         // Update on main thread (audio callbacks run on audio thread)
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             
             // Update current energy
             self.currentEnergy = averageEnergy
-            self.currentSpectralFlux = flux
+            self.currentSpectralFlux = averageSpectralFlux
             
             // Always publish raw spectral flux for subscribers interested in beat detection
             self.spectralFluxPublisher.send(flux)
