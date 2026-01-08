@@ -393,9 +393,10 @@ final class FlashlightController: BaseLightController, LightControlling {
                     
                     let smoothedEnergy = recentFluxValues.count > 0 ? recentFluxValues.reduce(0, +) / Float(recentFluxValues.count) : 0.0
                     
-                    // Map to intensity range (0.4 - 1.0)
-                    // Stronger audio = brighter pulses, but always visible
-                    audioModulation = 0.4 + (smoothedEnergy * 0.6)
+                    // Map to intensity range (0.0 - 1.0)
+                    // Stronger audio = brighter pulses, dark moments when audio is low
+                    // This creates the sharp pulse effect similar to Lumenate app
+                    audioModulation = smoothedEnergy
                     
                     // Debug: Log audio energy approximately every second
                     if elapsed - lastAudioLogTime >= 1.0 {
@@ -453,8 +454,9 @@ final class FlashlightController: BaseLightController, LightControlling {
                     
                     let smoothedEnergy = recentFluxValues.count > 0 ? recentFluxValues.reduce(0, +) / Float(recentFluxValues.count) : 0.0
                     
-                    // Map to modulation range (0.7 - 1.0) to preserve base intensity while adding dynamics
-                    let audioModulation = 0.7 + (smoothedEnergy * 0.3)
+                    // Map to modulation range (0.0 - 1.0) for strong pulse effect
+                    // Dark moments (0.0) between bright pulses create intense closed-eye stimulation
+                    let audioModulation = smoothedEnergy
                     
                     // Apply modulation to base intensity
                     finalIntensity = baseIntensity * audioModulation
