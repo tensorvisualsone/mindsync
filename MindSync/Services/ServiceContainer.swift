@@ -16,7 +16,6 @@ final class ServiceContainer: ObservableObject {
 
     // Light & Entrainment
     let flashlightController: FlashlightController
-    let screenController: ScreenController
     let entrainmentEngine: EntrainmentEngine
     let thermalManager: ThermalManager
     let fallDetector: FallDetector
@@ -43,7 +42,6 @@ final class ServiceContainer: ObservableObject {
         // Light & Safety - Initialize ThermalManager first to avoid circular dependency
         self.thermalManager = ThermalManager()
         self.flashlightController = FlashlightController(thermalManager: self.thermalManager)
-        self.screenController = ScreenController()
         self.entrainmentEngine = EntrainmentEngine()
         self.fallDetector = FallDetector()
         

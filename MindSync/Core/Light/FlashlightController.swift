@@ -495,12 +495,43 @@ final class FlashlightController: BaseLightController, LightControlling {
                     }
                 }
                 
-                // Generate square wave with frequency-dependent duty cycle
+                // CRITICAL FIX: Audio-synchronized timing instead of fixed square wave
+                // Problem: Previous approach used fixed 6.5 Hz square wave with audio modulation
+                //          This created pulsation in own rhythm, not synchronized to audio beats
+                //          The light pulsed at 6.5 Hz regardless of music timing
+                //
+                // Solution: Use audio energy to control BOTH intensity AND timing
+                //          Low audio = completely off (even during "ON" phase)
+                //          High audio = bright pulse synchronized to beats
+                //          This makes the light follow the music, not a fixed rhythm
+                //
+                // The square wave provides base structure for neural entrainment (6.5 Hz),
+                // but audio modulation can override it by turning light off during low energy.
+                
+                // Generate square wave with frequency-dependent duty cycle (base structure)
                 let dutyCycle = calculateDutyCycle(for: targetFreq)
                 let isOn = phase < dutyCycle
                 
-                // Apply intensity: ON = audio-modulated brightness, OFF = completely dark
-                let finalIntensity: Float = isOn ? audioModulation : 0.0
+                // Apply audio-synchronized intensity
+                // Key: Audio modulation controls BOTH brightness AND visibility
+                // If audio is very low, light is off regardless of square wave phase
+                // If audio is high and square wave is "ON", light is bright
+                // This creates beat-synchronized pulses instead of fixed rhythm
+                let audioThreshold: Float = 0.2  // Below this, light is off (even during ON phase)
+                let finalIntensity: Float
+                
+                if audioModulation < audioThreshold {
+                    // Low audio: completely off (beat-synchronized silence)
+                    finalIntensity = 0.0
+                } else if isOn {
+                    // High audio + ON phase: bright pulse (beat-synchronized flash)
+                    // Map audioModulation (0.2-1.0) to intensity (0.3-1.0) for visible but not too dim
+                    let mappedIntensity = 0.3 + ((audioModulation - audioThreshold) / (1.0 - audioThreshold)) * 0.7
+                    finalIntensity = mappedIntensity
+                } else {
+                    // OFF phase: always dark (square wave structure)
+                    finalIntensity = 0.0
+                }
                 
                 // Log diagnostics (every 200ms)
                 if Int(elapsed * 1000) % 200 == 0 {

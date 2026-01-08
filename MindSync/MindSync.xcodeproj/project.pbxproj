@@ -12,7 +12,6 @@
 		BA0681122EFB013D0035F5B8 /* FrequencyMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680E02EFB013D0035F5B8 /* FrequencyMapper.swift */; };
 		BA0681132EFB013D0035F5B8 /* TempoEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680DD2EFB013D0035F5B8 /* TempoEstimator.swift */; };
 		BA0681142EFB013D0035F5B8 /* ThermalManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680E72EFB013D0035F5B8 /* ThermalManager.swift */; };
-		BA0681152EFB013D0035F5B8 /* ScreenController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680E62EFB013D0035F5B8 /* ScreenController.swift */; };
 		BA0681162EFB013D0035F5B8 /* BeatDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680DB2EFB013D0035F5B8 /* BeatDetector.swift */; };
 		BA0681172EFB013D0035F5B8 /* FlashlightController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680E42EFB013D0035F5B8 /* FlashlightController.swift */; };
 		BA0681182EFB013D0035F5B8 /* AudioFileReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680DA2EFB013D0035F5B8 /* AudioFileReader.swift */; };
@@ -21,7 +20,6 @@
 		BA06811B2EFB013D0035F5B8 /* AudioAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680D92EFB013D0035F5B8 /* AudioAnalyzer.swift */; };
 		BA06811C2EFB013D0035F5B8 /* LightScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680E12EFB013D0035F5B8 /* LightScript.swift */; };
 		BA06811D2EFB013D0035F5B8 /* Color+MindSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA06810D2EFB013D0035F5B8 /* Color+MindSync.swift */; };
-		BA06811E2EFB013D0035F5B8 /* LightSourcePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680FA2EFB013D0035F5B8 /* LightSourcePicker.swift */; };
 		BA06811F2EFB013D0035F5B8 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680ED2EFB013D0035F5B8 /* HomeView.swift */; };
 		BA0681202EFB013D0035F5B8 /* SourceSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680EF2EFB013D0035F5B8 /* SourceSelectionView.swift */; };
 		BA0681212EFB013D0035F5B8 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680F22EFB013D0035F5B8 /* OnboardingView.swift */; };
@@ -99,7 +97,6 @@
 		BA0680E22EFB013D0035F5B8 /* WaveformGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformGenerator.swift; sourceTree = "<group>"; };
 		BA0680E42EFB013D0035F5B8 /* FlashlightController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlashlightController.swift; sourceTree = "<group>"; };
 		BA0680E52EFB013D0035F5B8 /* LightController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightController.swift; sourceTree = "<group>"; };
-		BA0680E62EFB013D0035F5B8 /* ScreenController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenController.swift; sourceTree = "<group>"; };
 		BA0680E72EFB013D0035F5B8 /* ThermalManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalManager.swift; sourceTree = "<group>"; };
 		BA0680E92EFB013D0035F5B8 /* FallDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FallDetector.swift; sourceTree = "<group>"; };
 		BA0680EA2EFB013D0035F5B8 /* SafetyLimits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafetyLimits.swift; sourceTree = "<group>"; };
@@ -114,7 +111,6 @@
 		BA0680F72EFB013D0035F5B8 /* SessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionView.swift; sourceTree = "<group>"; };
 		BA0680F82EFB013D0035F5B8 /* SessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionViewModel.swift; sourceTree = "<group>"; };
 		BA0680F92EFB013D0035F5B9 /* SessionHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionHistoryView.swift; sourceTree = "<group>"; };
-		BA0680FA2EFB013D0035F5B8 /* LightSourcePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightSourcePicker.swift; sourceTree = "<group>"; };
 		BA0680FA2EFB013D0035F5B9 /* SessionHistoryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionHistoryViewModel.swift; sourceTree = "<group>"; };
 		BA0680FB2EFB013D0035F5B8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		BA0680FB2EFB013D0035F5B9 /* SessionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDetailView.swift; sourceTree = "<group>"; };
@@ -238,7 +234,6 @@
 				BA0681402EFB013D0035F5B8 /* BaseLightController.swift */,
 				BA0680E42EFB013D0035F5B8 /* FlashlightController.swift */,
 				BA0680E52EFB013D0035F5B8 /* LightController.swift */,
-				BA0680E62EFB013D0035F5B8 /* ScreenController.swift */,
 			);
 			path = Light;
 			sourceTree = "<group>";
@@ -310,7 +305,6 @@
 		BA0680FC2EFB013D0035F5B8 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
-				BA0680FA2EFB013D0035F5B8 /* LightSourcePicker.swift */,
 				BA0680FB2EFB013D0035F5B8 /* SettingsView.swift */,
 				BA0685A12EFB013D0035F5B8 /* LatencyCalibrationView.swift */,
 				BA0685A22EFB013D0035F5B8 /* LatencyCalibrationViewModel.swift */,
@@ -569,7 +563,6 @@
 				BA0681132EFB013D0035F5B8 /* TempoEstimator.swift in Sources */,
 				BA0681142EFB013D0035F5B8 /* ThermalManager.swift in Sources */,
 				BA06813E2EFB013D0035F5B8 /* BaseLightController.swift in Sources */,
-				BA0681152EFB013D0035F5B8 /* ScreenController.swift in Sources */,
 				BA0681162EFB013D0035F5B8 /* BeatDetector.swift in Sources */,
 				BA0681172EFB013D0035F5B8 /* FlashlightController.swift in Sources */,
 				BA0681182EFB013D0035F5B8 /* AudioFileReader.swift in Sources */,
@@ -578,7 +571,6 @@
 				BA06811B2EFB013D0035F5B8 /* AudioAnalyzer.swift in Sources */,
 				BA06811C2EFB013D0035F5B8 /* LightScript.swift in Sources */,
 				BA06811D2EFB013D0035F5B8 /* Color+MindSync.swift in Sources */,
-				BA06811E2EFB013D0035F5B8 /* LightSourcePicker.swift in Sources */,
 				BA06811F2EFB013D0035F5B8 /* HomeView.swift in Sources */,
 				BA0681202EFB013D0035F5B8 /* SourceSelectionView.swift in Sources */,
 				BA0681212EFB013D0035F5B8 /* OnboardingView.swift in Sources */,

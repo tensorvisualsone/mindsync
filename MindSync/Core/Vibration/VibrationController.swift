@@ -287,7 +287,7 @@ final class VibrationController: NSObject {
     }
     
     /// Calculates optimal duty cycle based on frequency for haptic coherence with light
-    /// Matches FlashlightController and ScreenController logic for multisensory synchronization
+    /// Matches FlashlightController logic for multisensory synchronization
     private func calculateDutyCycle(for frequency: Double) -> Double {
         // Frequency thresholds (same as light controllers)
         let highThreshold: Double = 30.0  // Gamma band

@@ -86,38 +86,6 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section {
-                    LightSourcePicker(
-                        selectedSource: Binding(
-                            get: { preferences.preferredLightSource },
-                            set: { newValue in
-                                preferences.preferredLightSource = newValue
-                                preferences.save()
-                            }
-                        ),
-                        screenColor: Binding(
-                            get: { preferences.screenColor },
-                            set: { newValue in
-                                preferences.screenColor = newValue
-                                preferences.save()
-                            }
-                        ),
-                        customColorRGB: Binding(
-                            get: { preferences.customColorRGB },
-                            set: { newValue in
-                                preferences.customColorRGB = newValue
-                                preferences.save()
-                            }
-                        )
-                    )
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                } header: {
-                    Text(NSLocalizedString("settings.lightSource", comment: ""))
-                } footer: {
-                    Text(NSLocalizedString("settings.lightSourceDescription", comment: ""))
-                }
-                
-                Section {
                     Picker(NSLocalizedString("settings.mode", comment: ""), selection: Binding(
                         get: { preferences.preferredMode },
                         set: { newValue in

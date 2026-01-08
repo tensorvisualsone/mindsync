@@ -95,10 +95,6 @@ final class SessionViewModel: ObservableObject {
     @Published var affirmationStatus: String?
     @Published var currentFrequency: Double? = nil
     
-    // Screen controller for UI binding (only published when screen mode is active)
-    var screenController: ScreenController? {
-        lightController as? ScreenController
-    }
     
     // Cancellables
     private var cancellables = Set<AnyCancellable>()
@@ -312,29 +308,27 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
-    /// Handles critical thermal state - attempts fallback to screen mode
+    /// Handles critical thermal state - stops session since screen mode is removed
     private func handleCriticalThermalState() {
-        guard let currentScript = currentScript,
-              let session = currentSession,
-              lightController?.source == .flashlight else {
+        guard lightController?.source == .flashlight else {
             return
         }
         
         markSessionAsThermallyLimited()
-        switchToScreenController(using: currentScript, session: session)
+        // Screen mode removed - stop session instead of switching
+        stopSession()
     }
     
     private func handleTorchFailureEvent() {
         guard state == .running,
-              let currentScript = currentScript,
-              let session = currentSession,
               lightController?.source == .flashlight else {
             return
         }
         
         thermalWarningLevel = .critical
         markSessionAsThermallyLimited()
-        switchToScreenController(using: currentScript, session: session)
+        // Screen mode removed - stop session instead of switching
+        stopSession()
     }
     
     private func handleAudioSessionInterruption(_ notification: Notification) {
@@ -402,34 +396,6 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
-    private func switchToScreenController(using script: LightScript, session: Session) {
-        // Prevent race conditions by checking if a task is already running
-        // Bail out if there's an active task that hasn't been cancelled
-        if let task = activeTask, !task.isCancelled {
-            logger.warning("switchToScreenController called while previous task is still running")
-            return
-        }
-        
-        lightController?.stop()
-        lightController = services.screenController
-        
-        // Cancel any existing task
-        activeTask?.cancel()
-        activeTask = Task {
-            do {
-                try await lightController?.start()
-                
-                // Resume from current session position using original session start time
-                lightController?.execute(script: script, syncedTo: session.startedAt)
-                
-            } catch {
-                // If screen controller also fails, inform the user and stop the session
-                errorMessage = NSLocalizedString("session.screenController.error", 
-                                                comment: "Shown when switching to the screen-based light controller fails")
-                stopSession()
-            }
-        }
-    }
     
     private func markSessionAsThermallyLimited() {
         if var session = currentSession {
@@ -595,12 +561,8 @@ final class SessionViewModel: ObservableObject {
 
         // Set the light controller based on current preferences
         logger.info("Setting light controller based on preferences: \(self.cachedPreferences.preferredLightSource.rawValue)")
-        switch cachedPreferences.preferredLightSource {
-        case .flashlight:
-            lightController = services.flashlightController
-        case .screen:
-            lightController = services.screenController
-        }
+        // Always use flashlight (screen mode removed)
+        lightController = services.flashlightController
 
         // Pre-warm flashlight if needed
         logger.info("Pre-warming flashlight if needed")
@@ -629,14 +591,12 @@ final class SessionViewModel: ObservableObject {
             // Generate LightScript using cached preferences
             let mode = cachedPreferences.preferredMode
             let lightSource = cachedPreferences.preferredLightSource
-            let screenColor = cachedPreferences.screenColor
 
             logger.info("Generating light script")
             let script = entrainmentEngine.generateLightScript(
                 from: track,
                 mode: mode,
-                lightSource: lightSource,
-                screenColor: lightSource == .screen ? screenColor : nil
+                lightSource: lightSource
             )
             currentScript = script
             logger.info("Light script generated")
@@ -679,11 +639,7 @@ final class SessionViewModel: ObservableObject {
             currentSession = session
             updateAffirmationStatusForCurrentPreferences()
 
-            // Set custom color RGB if screen mode and custom color is selected
-            if lightSource == .screen, screenColor == .custom,
-               let screenController = lightController as? ScreenController {
-                screenController.setCustomColorRGB(cachedPreferences.customColorRGB)
-            }
+            // Screen mode removed - no custom color RGB needed
 
             // Apply audio latency offset from user preferences for Bluetooth compensation
             if let baseController = lightController as? BaseLightController {
@@ -781,12 +737,8 @@ final class SessionViewModel: ObservableObject {
         cachedPreferences = UserPreferences.load()
         
         // Set the light controller based on current preferences
-        switch cachedPreferences.preferredLightSource {
-        case .flashlight:
-            lightController = services.flashlightController
-        case .screen:
-            lightController = services.screenController
-        }
+        // Always use flashlight (screen mode removed)
+        lightController = services.flashlightController
         
         // Pre-warm flashlight if needed
         await prewarmFlashlightIfNeeded()
@@ -799,13 +751,11 @@ final class SessionViewModel: ObservableObject {
             // Generate LightScript using cached preferences
             let mode = cachedPreferences.preferredMode
             let lightSource = cachedPreferences.preferredLightSource
-            let screenColor = cachedPreferences.screenColor
             
             let script = entrainmentEngine.generateLightScript(
                 from: track,
                 mode: mode,
-                lightSource: lightSource,
-                screenColor: lightSource == .screen ? screenColor : nil
+                lightSource: lightSource
             )
             currentScript = script
             
@@ -845,11 +795,7 @@ final class SessionViewModel: ObservableObject {
             currentSession = session
             updateAffirmationStatusForCurrentPreferences()
             
-            // Set custom color RGB if screen mode and custom color is selected
-            if lightSource == .screen, screenColor == .custom,
-               let screenController = lightController as? ScreenController {
-                screenController.setCustomColorRGB(cachedPreferences.customColorRGB)
-            }
+            // Screen mode removed - no custom color RGB needed
             
             // Apply audio latency offset from user preferences for Bluetooth compensation
             if let baseController = lightController as? BaseLightController {
@@ -944,12 +890,8 @@ final class SessionViewModel: ObservableObject {
         
         // Set the light controller based on current preferences
         logger.info("Setting light controller based on preferences: \(self.cachedPreferences.preferredLightSource.rawValue)")
-        switch cachedPreferences.preferredLightSource {
-        case .flashlight:
-            lightController = services.flashlightController
-        case .screen:
-            lightController = services.screenController
-        }
+        // Always use flashlight (screen mode removed)
+        lightController = services.flashlightController
         
         // Pre-warm flashlight if needed
         logger.info("Pre-warming flashlight if needed")
@@ -975,11 +917,7 @@ final class SessionViewModel: ObservableObject {
             currentSession = session
             updateAffirmationStatusForCurrentPreferences()
             
-            // Set custom color RGB if screen mode and custom color is selected
-            if cachedPreferences.preferredLightSource == .screen, cachedPreferences.screenColor == .custom,
-               let screenController = lightController as? ScreenController {
-                screenController.setCustomColorRGB(cachedPreferences.customColorRGB)
-            }
+            // Screen mode removed - no custom color RGB needed
             
             // Apply audio latency offset from user preferences for Bluetooth compensation
             if let baseController = lightController as? BaseLightController {

@@ -9,32 +9,20 @@ enum AudioSource: String, Codable {
 /// Verfügbare Lichtquellen für das Stroboskop
 enum LightSource: String, Codable, CaseIterable, Identifiable {
     case flashlight  // Taschenlampe (LED Flash)
-    case screen      // Bildschirm (OLED)
 
     var id: String { rawValue }
 
     var displayName: String {
-        switch self {
-        case .flashlight: return "Taschenlampe"
-        case .screen: return "Bildschirm"
-        }
+        return "Taschenlampe"
     }
 
     var description: String {
-        switch self {
-        case .flashlight:
-            return "Intensiver Impuls. Unterstützt bis zu 100 Hz (Lambda)."
-        case .screen:
-            return "Präziser, mit Farben. Für längere Sitzungen geeignet."
-        }
+        return "Intensiver Impuls. Unterstützt bis zu 100 Hz (Lambda)."
     }
 
     /// Maximale zuverlässige Frequenz in Hz
     var maxFrequency: Double {
-        switch self {
-        case .flashlight: return 100.0
-        case .screen: return 60.0 // Kann bis 120 Hz bei ProMotion
-        }
+        return 100.0
     }
 }
 

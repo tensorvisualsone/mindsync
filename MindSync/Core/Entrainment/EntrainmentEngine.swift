@@ -119,13 +119,11 @@ final class EntrainmentEngine {
     ///   - track: The analyzed AudioTrack with beat timestamps
     ///   - mode: The selected EntrainmentMode (Alpha/Theta/Gamma)
     ///   - lightSource: The selected light source (for frequency limits)
-    ///   - screenColor: Color to use for screen mode (optional)
     /// - Returns: A LightScript with synchronized light events
     func generateLightScript(
         from track: AudioTrack,
         mode: EntrainmentMode,
-        lightSource: LightSource,
-        screenColor: LightEvent.LightColor? = nil
+        lightSource: LightSource
     ) -> LightScript {
         // SPECIAL CASE: Cinematic mode uses fixed target frequency for photo diving
         // instead of BPM-derived frequency
@@ -154,8 +152,7 @@ final class EntrainmentEngine {
             targetFrequency: targetFrequency,
             mode: mode,
             trackDuration: track.duration,
-            lightSource: lightSource,
-            screenColor: screenColor
+            lightSource: lightSource
         )
         
         return LightScript(
@@ -329,8 +326,7 @@ final class EntrainmentEngine {
         targetFrequency: Double,
         mode: EntrainmentMode,
         trackDuration: TimeInterval,
-        lightSource: LightSource,
-        screenColor: LightEvent.LightColor?
+        lightSource: LightSource
     ) -> [LightEvent] {
         // SPECIAL CASE: Cinematic mode ALWAYS uses uniform pulsation for continuous entrainment
         // Beat timestamps would cause gaps in pulsation which breaks neural synchronization
@@ -339,8 +335,7 @@ final class EntrainmentEngine {
                 frequency: targetFrequency,
                 duration: trackDuration,
                 mode: mode,
-                lightSource: lightSource,
-                screenColor: screenColor
+                lightSource: lightSource
             )
         }
         
@@ -350,13 +345,12 @@ final class EntrainmentEngine {
                 frequency: targetFrequency,
                 duration: trackDuration,
                 mode: mode,
-                lightSource: lightSource,
-                screenColor: screenColor
+                lightSource: lightSource
             )
         }
         
-        // Determine color: use provided screenColor for screen mode, nil for flashlight
-        let eventColor: LightEvent.LightColor? = (lightSource == .screen) ? (screenColor ?? .white) : nil
+        // Flashlight mode doesn't use colors (always nil)
+        let eventColor: LightEvent.LightColor? = nil
         
         // Waveform selector based on mode
         let waveformSelector: (EntrainmentMode) -> LightEvent.Waveform = { mode in
@@ -437,10 +431,10 @@ final class EntrainmentEngine {
         frequency: Double,
         duration: TimeInterval,
         mode: EntrainmentMode,
-        lightSource: LightSource,
-        screenColor: LightEvent.LightColor?
+        lightSource: LightSource
     ) -> [LightEvent] {
-        let eventColor: LightEvent.LightColor? = (lightSource == .screen) ? (screenColor ?? .white) : nil
+        // Flashlight mode doesn't use colors (always nil)
+        let eventColor: LightEvent.LightColor? = nil
 
         // Waveform selector for fallback based on mode
         let waveformSelector: (EntrainmentMode) -> LightEvent.Waveform = { mode in

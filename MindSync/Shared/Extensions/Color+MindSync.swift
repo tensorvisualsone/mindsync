@@ -82,9 +82,6 @@ extension Color {
     /// Flashlight accent color (yellow/amber)
     static let mindSyncFlashlight = Color.yellow
     
-    /// Screen accent color (blue)
-    static let mindSyncScreen = Color.blue
-    
     // MARK: - Mode Colors
     
     /// Alpha mode color (relaxation - green)
@@ -146,11 +143,6 @@ extension EntrainmentMode {
 extension LightSource {
     /// Returns the theme color for each light source
     var themeColor: Color {
-        switch self {
-        case .flashlight:
-            return .mindSyncFlashlight
-        case .screen:
-            return .mindSyncScreen
-        }
+        return .mindSyncFlashlight
     }
 }
