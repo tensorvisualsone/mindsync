@@ -394,10 +394,10 @@ final class FlashlightController: BaseLightController, LightControlling {
                     let smoothedEnergy = recentFluxValues.count > 0 ? recentFluxValues.reduce(0, +) / Float(recentFluxValues.count) : 0.0
                     
                     // Amplify and apply power curve to spread values across 0.0-1.0 range
-                    // The spectral flux is already normalized but often stays in lower range due to smoothing
-                    // Power curve (sqrt) lifts quiet values while preserving loud peaks
-                    // Scale factor (3.0) amplifies the signal before curve to make quiet passages visible
-                    let amplified = min(smoothedEnergy * 3.0, 1.0)
+                    // Binaural beats have very low spectral flux (~0.04-0.07 raw values)
+                    // Aggressive amplification (10x) + power curve ensures full 0.0-1.0 dynamic range
+                    // This creates the sharp pulse effect: complete darkness → full brightness
+                    let amplified = min(smoothedEnergy * 10.0, 1.0)
                     let curved = sqrt(amplified)  // Power curve to spread dynamic range
                     
                     // Map to full intensity range (0.0 - 1.0)
@@ -461,8 +461,8 @@ final class FlashlightController: BaseLightController, LightControlling {
                     let smoothedEnergy = recentFluxValues.count > 0 ? recentFluxValues.reduce(0, +) / Float(recentFluxValues.count) : 0.0
                     
                     // Amplify and apply power curve to spread values across 0.0-1.0 range
-                    // Same transformation as cinematic mode for consistency
-                    let amplified = min(smoothedEnergy * 3.0, 1.0)
+                    // Same aggressive amplification as cinematic mode for consistency
+                    let amplified = min(smoothedEnergy * 10.0, 1.0)
                     let curved = sqrt(amplified)
                     
                     // Map to full modulation range (0.0 - 1.0) for strong pulse effect
