@@ -69,8 +69,10 @@ Das Scheme wird dann in `MindSync.xcodeproj/xcshareddata/xcschemes/` gespeichert
 
 Du kannst die Workflows lokal testen, indem du die gleichen Befehle ausführst:
 
+**Hinweis:** In CI verwenden wir `'platform=iOS Simulator,name=Any iOS Simulator Device'` als generisches Ziel. Lokal kannst du einen spezifischen Simulator verwenden.
+
 ```bash
-# Build
+# Build (lokal mit spezifischem Simulator)
 xcodebuild clean build \
   -project MindSync/MindSync.xcodeproj \
   -scheme MindSync \
