@@ -31,12 +31,12 @@ final class FlashlightController: BaseLightController, LightControlling {
     private var fluxHistory: [Float] = []  // Longer history for adaptive threshold calculation
     private var lastPeakTime: TimeInterval = 0
     private let peakCooldownDuration: TimeInterval = 0.05  // 50ms minimum between peaks
-    private let peakRiseThreshold: Float = 0.08  // Minimum 8% rise above local average for peak (reduced for better sensitivity)
+    private let peakRiseThreshold: Float = 0.04  // Minimum 4% rise above local average for peak (reduced for better sensitivity)
     private let maxFluxHistorySize = 10  // Keep last 10 flux values for local average calculation
     private let maxAdaptiveHistorySize = 200  // Keep last 200 flux values for adaptive threshold (~20 seconds at 10 Hz)
-    private let absoluteMinimumThreshold: Float = 0.1  // Absolute minimum flux value to consider (reduced for better sensitivity)
-    private let fixedThreshold: Float = 0.2  // Fallback threshold when not enough history (reduced from 0.25)
-    private let adaptiveThresholdMultiplier: Float = 0.3  // Use mean + 0.3 * stdDev (reduced from 0.5 for better sensitivity)
+    private let absoluteMinimumThreshold: Float = 0.05  // Absolute minimum flux value to consider (reduced for better sensitivity)
+    private let fixedThreshold: Float = 0.1  // Fallback threshold when not enough history (reduced for better sensitivity)
+    private let adaptiveThresholdMultiplier: Float = 0.25  // Use mean + 0.25 * stdDev (reduced for better sensitivity)
     
     /// Precision timer interval shared across light controllers
     /// OPTIMIZED FOR LAMBDA: 1ms (1000 Hz) resolution needed for stable 100 Hz output.
@@ -354,8 +354,14 @@ final class FlashlightController: BaseLightController, LightControlling {
                 let audioEnergy: Float
                 if let tracker = audioEnergyTracker, tracker.useSpectralFlux {
                     audioEnergy = tracker.currentSpectralFlux
+                } else if let tracker = audioEnergyTracker {
+                    // Tracker exists but spectral flux not enabled - use RMS
+                    audioEnergy = tracker.currentEnergy
+                    logger.warning("[CINEMATIC] Using RMS energy instead of spectral flux (flux not enabled)")
                 } else {
-                    audioEnergy = audioEnergyTracker?.currentEnergy ?? 0.0
+                    // No tracker at all - this is a problem
+                    audioEnergy = 0.0
+                    logger.error("[CINEMATIC] NO audioEnergyTracker attached - flashlight will remain dark!")
                 }
                 
                 let elapsed = result.elapsed
@@ -421,6 +427,11 @@ final class FlashlightController: BaseLightController, LightControlling {
                 // This allows peaks to be detected either through transient detection OR adaptive threshold,
                 // making the system more responsive while still preventing continuous lighting
                 let isPeakDetected = (isSignificantRise || isAboveAdaptiveThreshold) && isAboveMinimum && cooldownExpired
+                
+                // Log every 100 cycles (~100ms at 1kHz) for diagnostics
+                if Int(elapsed * 1000) % 100 == 0 {
+                    logger.debug("[CINEMATIC] energy=\(String(format: "%.3f", audioEnergy)) peak=\(isPeakDetected) rise=\(String(format: "%.3f", fluxRise)) thresh=\(String(format: "%.3f", adaptiveThreshold))")
+                }
                 
                 if isPeakDetected {
                     // Peak detected: Start a new pulse

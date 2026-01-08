@@ -227,12 +227,15 @@ final class SessionViewModel: ObservableObject {
     
     /// Configures spectral flux for cinematic mode
     private func enableSpectralFluxForCinematicMode(_ mode: EntrainmentMode) {
-        guard mode == .cinematic else { return }
+        guard mode == .cinematic else {
+            logger.debug("[CINEMATIC] Not cinematic mode, skipping spectral flux setup")
+            return
+        }
         
         // Guard against duplicate calls to prevent multiple taps on mixer node
         // This can happen during session restart, error recovery, or rapid mode switching
         guard !audioEnergyTracker.isActive else {
-            logger.debug("Spectral flux tracking already active, skipping duplicate setup")
+            logger.debug("[CINEMATIC] Spectral flux tracking already active, skipping duplicate setup")
             return
         }
         
@@ -240,9 +243,14 @@ final class SessionViewModel: ObservableObject {
             // Enable spectral flux for better beat detection in cinematic mode
             audioEnergyTracker.useSpectralFlux = true
             audioEnergyTracker.startTracking(mixerNode: mixerNode)
+            logger.info("[CINEMATIC] Spectral flux enabled and tracking started on mixer node")
+        } else {
+            logger.error("[CINEMATIC] FAILED to get mixer node - spectral flux will not work!")
         }
+        
         // Attach audio energy tracker to light controller for dynamic intensity modulation
         lightController?.audioEnergyTracker = audioEnergyTracker
+        logger.info("[CINEMATIC] AudioEnergyTracker attached to light controller")
     }
     
     /// Sets up Bluetooth latency monitoring for dynamic audio synchronization
