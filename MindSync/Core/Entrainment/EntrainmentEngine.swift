@@ -32,37 +32,39 @@ final class EntrainmentEngine {
         
         var output: Float
         
-        // Threshold for beat detection (spectral flux > 0.2 indicates a beat/transient)
+        // Threshold for beat detection (spectral flux > 0.35 indicates a beat/transient)
         //
-        // This threshold of 0.2 (20% of normalized flux) was chosen to balance sensitivity
+        // INCREASED from 0.2 to 0.35 to reduce false positives and ensure only clear beats trigger light pulses.
+        // This prevents the flashlight from staying on continuously and creates more distinct, beat-synchronized flashes.
+        //
+        // This threshold of 0.35 (35% of normalized flux) was chosen to balance sensitivity
         // across different music genres:
-        // - Electronic/EDM: Strong bass hits typically produce 0.4-1.0, well above threshold
-        // - Rock/Pop: Drum hits produce 0.25-0.6, reliably triggering beats
-        // - Hip-hop: 808 bass and snare produce 0.3-0.8, strong detection
-        // - Classical: Bass drum attacks produce 0.15-0.4, capturing major transients
-        // - Ambient/Acoustic: Gentle percussion produces 0.1-0.3, selective triggering
+        // - Electronic/EDM: Strong bass hits typically produce 0.5-1.0, well above threshold
+        // - Rock/Pop: Drum hits produce 0.4-0.8, reliably triggering beats
+        // - Hip-hop: 808 bass and snare produce 0.5-0.9, strong detection
+        // - Classical: Bass drum attacks produce 0.3-0.6, capturing major transients
+        // - Ambient/Acoustic: Gentle percussion produces 0.2-0.4, selective triggering
         //
-        // The threshold ensures that:
-        // - Clear percussive events are reliably detected (sensitivity)
-        // - Sustained bass notes or gradual swells don't trigger false beats (specificity)
-        // - Background noise or room ambience (flux < 0.1) is completely ignored
+        // The higher threshold ensures that:
+        // - Only clear percussive events trigger light pulses (reduces continuous lighting)
+        // - Sustained bass notes or gradual swells don't trigger false beats
+        // - Background noise or room ambience (flux < 0.2) is completely ignored
+        // - Light pulses are distinct and clearly synchronized to music beats
         //
         // Future enhancement: Consider implementing adaptive thresholding based on recent
         // flux history (e.g., use mean + 2*stddev as threshold) to automatically adjust
-        // for different music dynamics and mastering levels. This would improve performance
-        // on heavily compressed tracks (which may need lower threshold) and very dynamic
-        // recordings (which may benefit from higher threshold).
-        let beatThreshold: Float = 0.2
+        // for different music dynamics and mastering levels.
+        let beatThreshold: Float = 0.35
         
         if audioEnergy > beatThreshold {
             // High spectral flux detected (beat/transient): Create sharp pulse
             // Scale intensity based on flux strength
-            // Maps: 0.2 -> 0.4, 1.0 -> 1.0
+            // Maps: 0.35 -> 0.6, 1.0 -> 1.0
             let normalizedFlux = (audioEnergy - beatThreshold) / (1.0 - beatThreshold)
-            output = 0.4 + (normalizedFlux * 0.6)
+            output = 0.6 + (normalizedFlux * 0.4)
             
             // Ensure pulse is strong enough to be visible
-            // Minimum intensity of 0.5 (50%) for beat-synchronized pulses
+            // Minimum intensity of 0.6 (60%) for beat-synchronized pulses
             //
             // SAFETY VALIDATION:
             // This 50% minimum intensity for cinematic beat pulses has been validated against
@@ -96,19 +98,16 @@ final class EntrainmentEngine {
             // References:
             // - Harding, G. & Jeavons, P. (1994). "Photosensitive Epilepsy"
             // - Project safety documentation: .specify/memory/constitution.md
-            output = max(0.5, output)
+            output = max(0.6, output)
         } else {
-            // Low spectral flux: Subtle background flicker at base frequency
-            // This maintains visual interest between beats without being distracting
-            let drift = sin(currentTime * 0.2) * 1.0
-            let currentFreq = baseFrequency + drift
-            
-            let phase = (currentTime * currentFreq * 2.0 * .pi) + (.pi / 2.0)
-            let cosineValue = cos(phase)
-            let normalizedWave = Float((cosineValue + 1.0) / 2.0)
-            
-            // Very subtle background (5-20% intensity)
-            output = 0.05 + (normalizedWave * 0.15)
+            // Low spectral flux: Turn off light between beats for clear beat synchronization
+            // This creates distinct pulses on beats and darkness between beats, which is
+            // more visually engaging and clearly synchronized to the music.
+            //
+            // Previous approach used subtle background flicker (5-20% intensity), which caused
+            // the flashlight to appear continuously on. The new approach turns the light completely
+            // off between beats, creating a more dramatic and beat-synchronized effect.
+            output = 0.0
         }
         
         // Clamp to valid range

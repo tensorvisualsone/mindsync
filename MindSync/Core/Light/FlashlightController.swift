@@ -21,6 +21,11 @@ final class FlashlightController: BaseLightController, LightControlling {
     private let logger = Logger(subsystem: "com.mindsync", category: "FlashlightController")
     private var torchFailureNotified = false
     
+    // Cinematic mode pulse state tracking
+    private var lastBeatTime: TimeInterval = 0
+    private var lastBeatIntensity: Float = 0.0
+    private let pulseDecayDuration: TimeInterval = 0.1 // 100ms pulse duration for sharp beat flashes
+    
     /// Precision timer interval shared across light controllers
     /// OPTIMIZED FOR LAMBDA: 1ms (1000 Hz) resolution needed for stable 100 Hz output.
     /// Previous 4ms was too slow for 10ms periods (100 Hz).
@@ -284,6 +289,9 @@ final class FlashlightController: BaseLightController, LightControlling {
         invalidatePrecisionTimer()
         resetScriptExecution()
         setIntensity(0.0)
+        // Reset cinematic mode pulse state
+        lastBeatTime = 0
+        lastBeatIntensity = 0.0
     }
     
     func pauseExecution() {
@@ -309,7 +317,7 @@ final class FlashlightController: BaseLightController, LightControlling {
         }
         
         if let script = currentScript {
-            // Check if cinematic mode - apply dynamic intensity modulation
+            // Check if cinematic mode - apply dynamic intensity modulation with pulse decay
             if script.mode == .cinematic {
                 // For cinematic mode, use spectral flux if available (better beat detection)
                 // Otherwise fall back to RMS energy
@@ -330,8 +338,34 @@ final class FlashlightController: BaseLightController, LightControlling {
                     audioEnergy: audioEnergy
                 )
                 
-                // Use cinematic intensity directly (it already includes wave modulation)
-                setIntensity(cinematicIntensity)
+                // Apply pulse decay logic: If a beat was detected (intensity > 0), create a short pulse
+                // that decays quickly. This ensures the light flashes sharply on beats and
+                // turns off between beats, rather than staying continuously on.
+                let finalIntensity: Float
+                if cinematicIntensity > 0.0 {
+                    // Beat detected: Start a new pulse
+                    lastBeatTime = elapsed
+                    lastBeatIntensity = cinematicIntensity
+                    finalIntensity = cinematicIntensity
+                } else {
+                    // No beat detected: Apply exponential decay from last beat
+                    let timeSinceLastBeat = elapsed - lastBeatTime
+                    if timeSinceLastBeat < pulseDecayDuration && lastBeatIntensity > 0.0 {
+                        // Decay exponentially: intensity = base * exp(-time / decay)
+                        // Using a fast decay rate (12.0) to create sharp, distinct pulses
+                        let decayRate: Float = 12.0
+                        let decayFactor = exp(-Float(timeSinceLastBeat) * decayRate / Float(pulseDecayDuration))
+                        finalIntensity = lastBeatIntensity * decayFactor
+                    } else {
+                        // Pulse has decayed completely or exceeded duration, turn off
+                        finalIntensity = 0.0
+                        if timeSinceLastBeat >= pulseDecayDuration {
+                            lastBeatIntensity = 0.0
+                        }
+                    }
+                }
+                
+                setIntensity(finalIntensity)
             } else if let event = result.event {
                 // For other modes, use event-based intensity with waveform
                 let timeWithinEvent = result.elapsed - event.timestamp

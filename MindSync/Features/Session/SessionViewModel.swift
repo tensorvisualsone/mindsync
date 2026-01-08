@@ -605,7 +605,7 @@ final class SessionViewModel: ObservableObject {
             
             // Check if item can be analyzed with timeout to prevent hanging
             let assetURL = try await withTimeout(seconds: 10.0) {
-                try await services.mediaLibraryService.assetURLForAnalysis(of: mediaItem)
+                try await self.services.mediaLibraryService.assetURLForAnalysis(of: mediaItem)
             }
             logger.info("Asset URL obtained: \(assetURL.lastPathComponent)")
 
