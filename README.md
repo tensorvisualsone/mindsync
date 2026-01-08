@@ -12,10 +12,10 @@
 
 MindSync ist eine iOS-App für **Neural Entrainment**: Audio-analysierte, stroboskopische Lichtmuster werden mit deiner Musik synchronisiert, um gezielt bestimmte Gehirnwellen-Bereiche anzuregen (z.B. Entspannung, Fokus, tiefe Meditation).
 
-- Personalisierte Erfahrung: Analyse deiner Musik in Echtzeit  
-- Mehrere Entrainment-Modi: Alpha, Theta, Gamma & Cinematic  
-- Dual-Lichtquellen: Taschenlampe oder farbiger Bildschirm  
-- Sicherheit first: Epilepsie-Onboarding, Frequenz-Limits, Thermal-Management  
+- **Personalisierte Erfahrung**: Analyse deiner Musik in Echtzeit  
+- **Mehrere Entrainment-Modi**: Alpha, Theta, Gamma & Cinematic  
+- **Audio-Reaktive Lichtsteuerung**: Taschenlampe reagiert direkt auf Beats, Tempo und Energie deiner Musik  
+- **Sicherheit first**: Epilepsie-Onboarding, Frequenz-Limits, Thermal-Management  
 
 Für Vision, Wissenschaft & Roadmap siehe `docs/CONCEPT_AND_ROADMAP.md`.
 
@@ -33,21 +33,49 @@ Die ausführliche neurowissenschaftliche Herleitung findest du in `docs/CONCEPT_
 
 Im Gegensatz zu Apps wie Lumenate, die vorgefertigte, statische Inhalte verwenden:
 
-✨ **Personalisierte Erfahrung**: MindSync analysiert DEINE Musik in Echtzeit
-🎵 **Dynamische Synchronisation**: Lichtmuster passen sich an Beats, Tempo und Energie deiner Tracks an
-🎨 **Cinematic Mode**: Beat-synchronisierte Pulse - die Lampe blitzt kurz auf Beats auf und geht zwischen Beats aus, für eine klare, musik-synchronisierte Erfahrung
-🔬 **Wissenschaftlich fundiert**: Basiert auf etablierten Prinzipien des Neural Entrainment
-💡 **Dual-Lichtquellen**: Wähle zwischen intensiver Taschenlampe oder farbigem Bildschirm
-🎤 **Mikrofon-Modus**: Funktioniert auch mit Streaming-Diensten wie Spotify
+✨ **Personalisierte Erfahrung**: MindSync analysiert DEINE Musik in Echtzeit  
+🎵 **Dynamische Synchronisation**: Lichtmuster passen sich an Beats, Tempo und Energie deiner Tracks an  
+🎨 **Cinematic Mode**: Vollständig audio-reaktive Pulse - die Taschenlampe folgt direkt den Beats, ohne feste Rhythmen  
+🔬 **Wissenschaftlich fundiert**: Basiert auf etablierten Prinzipien des Neural Entrainment  
+💡 **Präzise Taschenlampe**: Nutzt die iPhone-Taschenlampe für maximale Intensität und perfekte Synchronisation  
+🎤 **Mikrofon-Modus**: Funktioniert auch mit Streaming-Diensten wie Spotify  
 
 ---
 
 ## 🧘 Entrainment-Modi (Überblick)
 
-- **Alpha (8–13 Hz)**: Entspannung & Stressabbau  
-- **Theta (4–8 Hz)**: Tiefe Meditation & Trips  
-- **Gamma (30–100 Hz)**: Fokus & High-Performance  
-- **Cinematic**: Beat-synchronisierte Pulse - kurze Lichtblitze auf Beats, aus zwischen Beats  
+### Alpha (8–13 Hz)
+**Entspannung & Stressabbau**
+
+- Ziel: Entspannte Wachheit, leichte Meditation
+- Audio-Modulation: Additiv zur Basis-Waveform (bis zu 70% Boost bei hoher Audio-Energie)
+- Verwendung: Stressabbau, leichte Entspannung, nach der Arbeit
+
+### Theta (4–8 Hz)
+**Tiefe Meditation & Bewusstseinszustände**
+
+- Ziel: Tiefe Meditation, Kreativität, Traum-ähnliche Zustände
+- Audio-Modulation: Additiv zur Basis-Waveform mit kontrastreicher Implementierung
+- Verwendung: Meditation, Tiefenentspannung, Kreativitätssteigerung
+
+### Gamma (30–40 Hz)
+**Fokus & High-Performance**
+
+- Ziel: Hohe Konzentration, kognitive Klarheit, Einsicht
+- Audio-Modulation: Additiv zur Basis-Waveform (40 Hz ist wissenschaftlicher Goldstandard)
+- Verwendung: Fokus-Arbeit, kognitive Verbesserung, High-Performance
+
+### Cinematic (5.5–7.5 Hz)
+**Beat-synchronisierte Pulse - Vollständig Audio-Reaktiv**
+
+- Ziel: Flow State, immersive audio-synchronisierte Erfahrung
+- **Besonderheit**: Keine feste Square Wave - die Taschenlampe reagiert direkt auf Audio-Energie
+- **Audio-Modulation**: 
+  - Direkte Audio-Reaktivität ohne feste Rhythmen
+  - Long-term History für adaptive Normalisierung über den gesamten Track
+  - Kontrast-Stretching für optimale Sichtbarkeit
+  - Minimum-Threshold (0.15) - unterhalb dieses Werts ist das Licht aus
+- Verwendung: Musik-Erlebnis, Flow State, visuell-akustische Synchronisation
 
 Details zu den Parametern der einzelnen Modi stehen in `docs/CONCEPT_AND_ROADMAP.md`.
 
@@ -58,7 +86,7 @@ Details zu den Parametern der einzelnen Modi stehen in `docs/CONCEPT_AND_ROADMAP
 ### ⚠️ KRITISCHE WARNUNG
 
 > **Diese App verwendet stroboskopisches Licht, das bei Menschen mit photosensitiver Epilepsie Anfälle auslösen kann.**
->
+
 > **Verwenden Sie MindSync NICHT, wenn Sie:**
 > - Eine Vorgeschichte mit Krampfanfällen haben
 > - Photosensitive Epilepsie haben
@@ -67,11 +95,11 @@ Details zu den Parametern der einzelnen Modi stehen in `docs/CONCEPT_AND_ROADMAP
 
 ### Eingebaute Sicherheitsfeatures
 
-✅ **Verpflichtendes Epilepsie-Onboarding**: Jeder Benutzer muss die Risiken bestätigen
-✅ **Thermisches Management**: Automatische Intensitätsreduzierung bei Überhitzung
-✅ **Fall-Erkennung**: Session stoppt automatisch bei erkanntem Fall
-✅ **Frequenz-Limits**: Alle Modi bleiben in sicheren Frequenzbereichen (< 25 Hz Strobe-Rate)
-✅ **Emergency Stop**: Jederzeit per Bildschirmtipp beendbar
+✅ **Verpflichtendes Epilepsie-Onboarding**: Jeder Benutzer muss die Risiken bestätigen  
+✅ **Thermisches Management**: Automatische Intensitätsreduzierung bei Überhitzung  
+✅ **Fall-Erkennung**: Session stoppt automatisch bei erkanntem Fall  
+✅ **Frequenz-Limits**: Alle Modi bleiben in sicheren Frequenzbereichen (< 25 Hz Strobe-Rate)  
+✅ **Emergency Stop**: Jederzeit per Bildschirmtipp beendbar  
 
 **Rechtlicher Hinweis**: MindSync ist ein Wellness-Produkt, kein medizinisches Gerät. Es macht keine therapeutischen oder medizinischen Versprechen. Konsultieren Sie einen Arzt vor der Verwendung.
 
@@ -80,30 +108,37 @@ Details zu den Parametern der einzelnen Modi stehen in `docs/CONCEPT_AND_ROADMAP
 ## ✨ Kernfeatures
 
 ### 🎵 Audio-Analyse & Synchronisation
-- **Beat-Detection**: FFT-basierte Erkennung von Beats und Tempo
+
+- **Beat-Detection**: FFT-basierte Erkennung von Beats und Tempo mit Spectral Flux
 - **Tempo-Estimation**: Automatische BPM-Analyse
-- **Audio-Energie-Tracking**: Echtzeit-Messung der Audio-Intensität mit Spectral Flux für präzise Beat-Erkennung (Cinematic Mode)
+- **Audio-Energie-Tracking**: 
+  - Echtzeit-Messung der Audio-Intensität mit RMS
+  - Spectral Flux für präzise Beat-Erkennung (besonders im Cinematic Mode)
+  - Long-term History (100 Werte) für adaptive Normalisierung über den gesamten Track
+  - Smoothing Buffer (4 Werte) für schnelle, stabile Reaktion
 - **Unterstützte Quellen**: 
   - Lokale Musikbibliothek (Apple Music/iTunes)
-  - Mikrofon-Modus (für Streaming-Dienste)
+  - Mikrofon-Modus (für Streaming-Dienste wie Spotify)
 
 ### 💡 Licht-Steuerung
+
 - **Taschenlampe**: Maximale Intensität für geschlossene Augen
-- **Bildschirm**: Präzise Farbsteuerung und sanftere Übergänge
-- **Präzisions-Timing**: CADisplayLink für frame-genaue Synchronisation
+- **Präzisions-Timing**: CADisplayLink für frame-genaue Synchronisation (120 Hz)
+- **Audio-Reaktive Modulation**:
+  - **Cinematic Mode**: Vollständig audio-reaktiv - Licht folgt direkt der Audio-Energie ohne feste Rhythmen
+  - **Alpha/Theta/Gamma**: Additive Audio-Modulation zur Basis-Waveform (bis zu 70% Boost)
+  - Kontrast-Stretching für optimale Sichtbarkeit
+  - Adaptive Normalisierung über den gesamten Track-Dynamic-Range
 - **Dynamische Anpassung**: Thermal Management passt Intensität automatisch an
 
 ### 🎨 Visuelle Anpassung
+
 - **Waveforms**: Sinus, Dreieck, Rechteck - je nach Modus
-- **Farbpalette**: 
-  - Weiß (maximale Intensität)
-  - Blau (beruhigend)
-  - Grün (harmonisierend)
-  - Violett (spirituell)
-  - Custom RGB
 - **Intensitätskontrolle**: Pro Modus optimiert
+- **Audio-Reaktivität**: Alle Modi haben sichtbare Audio-Modulation
 
 ### 📊 Session-Tracking
+
 - **Vollständige Historie**: Alle Sessions werden gespeichert
 - **Statistiken**: 
   - Gesamtdauer aller Sessions
@@ -123,7 +158,7 @@ Details zu den Parametern der einzelnen Modi stehen in `docs/CONCEPT_AND_ROADMAP
 | **Sprache** | Swift 5.9+ | async/await, @MainActor, modern concurrency |
 | **UI-Framework** | SwiftUI | Deklarative UI, @Observable pattern |
 | **Audio-Playback** | AVAudioEngine | Echtzeit-Audio mit Mixer-Node-Zugriff |
-| **Audio-Analyse** | AVFoundation + Accelerate | FFT, vDSP, Beat Detection |
+| **Audio-Analyse** | AVFoundation + Accelerate | FFT, vDSP, Beat Detection, Spectral Flux |
 | **Licht-Steuerung** | AVCaptureDevice + CADisplayLink | Torch API + 120Hz Display Sync |
 | **Bewegungs-Sensor** | CoreMotion | Fall-Erkennung |
 | **Persistenz** | UserDefaults + Codable | Session History Storage |
@@ -132,12 +167,12 @@ Details zu den Parametern der einzelnen Modi stehen in `docs/CONCEPT_AND_ROADMAP
 
 ### Architektur-Prinzipien
 
-🏗️ **Feature-Based Structure**: Jedes Feature ist eigenständig organisiert
-🔌 **Protocol-Oriented**: Alle Services implementieren testbare Protokolle
-🧪 **Test-Driven**: Unit Tests + UI Tests + Integration Tests
-🔒 **Thread-Safety**: @MainActor für UI, Background Queues für Audio
-📦 **Service Container**: Zentrale Dependency Injection
-⚡ **Performance**: Optimiert für Echtzeit-Audio-Verarbeitung
+🏗️ **Feature-Based Structure**: Jedes Feature ist eigenständig organisiert  
+🔌 **Protocol-Oriented**: Alle Services implementieren testbare Protokolle  
+🧪 **Test-Driven**: Unit Tests + UI Tests + Integration Tests  
+🔒 **Thread-Safety**: @MainActor für UI, Background Queues für Audio  
+📦 **Service Container**: Zentrale Dependency Injection  
+⚡ **Performance**: Optimiert für Echtzeit-Audio-Verarbeitung  
 
 ---
 
@@ -174,8 +209,7 @@ mindsync/
 │   │   ├── Light/                    # Licht-Steuerung
 │   │   │   ├── BaseLightController.swift
 │   │   │   ├── FlashlightController.swift
-│   │   │   ├── LightController.swift
-│   │   │   └── ScreenController.swift
+│   │   │   └── LightController.swift
 │   │   │
 │   │   ├── Safety/                   # Sicherheits-Features
 │   │   │   ├── ThermalManager.swift
@@ -199,7 +233,7 @@ mindsync/
 │   ├── Services/                     # Business Logic & System-Services
 │   │   ├── ServiceContainer.swift    # DI Container
 │   │   ├── AudioPlaybackService.swift
-│   │   ├── AudioEnergyTracker.swift
+│   │   ├── AudioEnergyTracker.swift  # RMS + Spectral Flux Tracking
 │   │   ├── MediaLibraryService.swift
 │   │   ├── PermissionsService.swift
 │   │   ├── SessionHistoryService.swift
@@ -259,7 +293,9 @@ open MindSync/MindSync.xcodeproj
 
 1. **Musik vorbereiten**: Lokale Musik in Apple Music/iTunes
 2. **Epilepsie-Warning**: Beim ersten Start bestätigen
-3. **Modus wählen**: Alpha für erste Erfahrung empfohlen
+3. **Modus wählen**: 
+   - **Alpha** für erste Erfahrung empfohlen
+   - **Cinematic** für vollständig audio-reaktive Erfahrung
 4. **Augen schließen**: Beste Erfahrung mit geschlossenen Augen
 5. **Genießen**: 5-15 Minuten pro Session
 
@@ -300,8 +336,10 @@ xcodebuild test \
 Die Test-Suite umfasst unter anderem:
 - ✅ Audio-Analyse-Algorithmen
 - ✅ Beat-Detection-Logik
+- ✅ Spectral Flux Detection
 - ✅ Entrainment-Engine-Berechnungen
 - ✅ Licht-Controller-Synchronisation
+- ✅ Audio-Reaktive Modulation
 - ✅ Safety-Feature-Validierung
 - ✅ Session-History-Management
 - ✅ UI-Interaktions-Flows
@@ -316,9 +354,29 @@ Der aktuelle Status inkl. abgeschlossener Phasen und geplanter Features ist in `
 
 ## 🏗️ Architektur (Kurzüberblick)
 
-- Audio-Pipeline: `AVAudioEngine` → FFT (Accelerate) → Beat-/Tempo-Detection → `EntrainmentEngine` → Licht-/Vibrations-Controller  
-- Architekturprinzipien: Feature-basiert, protocollastig, testgetrieben, Service-Container für DI  
-- Details: Siehe `docs/architecture.md`, `docs/SYNC_IMPLEMENTATION.md` und `docs/CONCEPT_AND_ROADMAP.md`.
+### Audio-Pipeline
+
+`AVAudioEngine` → FFT (Accelerate) → Beat-/Tempo-Detection → Spectral Flux → `AudioEnergyTracker` → `EntrainmentEngine` → `FlashlightController`
+
+### Audio-Reaktive Lichtsteuerung
+
+**Cinematic Mode**:
+- Vollständig audio-reaktiv ohne feste Square Wave
+- Long-term History (100 Werte) für adaptive Normalisierung
+- Kontrast-Stretching mit 3 Segmenten für optimale Sichtbarkeit
+- Minimum-Threshold (0.15) - unterhalb dieses Werts ist das Licht aus
+
+**Alpha/Theta/Gamma**:
+- Additive Audio-Modulation zur Basis-Waveform
+- Long-term History für adaptive Normalisierung
+- Kontrast-Stretching mit Boost für hohe Werte (>0.75)
+- Audio-Boost-Multiplier: 0.7 (70% maximale Steigerung)
+
+### Architekturprinzipien
+
+- Feature-basiert, protocollastig, testgetrieben
+- Service-Container für Dependency Injection
+- Details: Siehe `docs/architecture.md`, `docs/SYNC_IMPLEMENTATION.md` und `docs/CONCEPT_AND_ROADMAP.md`
 
 ---
 
@@ -327,7 +385,7 @@ Der aktuelle Status inkl. abgeschlossener Phasen und geplanter Features ist in `
 Ausführliche Dokumentation findest du in:
 
 | Dokument | Beschreibung |
-|----------|--------------|
+|----------|-------------|
 | [Architecture](docs/architecture.md) | Architektur-Übersicht & Komponenten |
 | [Development Guide](docs/DEVELOPMENT.md) | Setup, Build, Testing & Entwickler-Workflow |
 | [User Guide](docs/USER_GUIDE.md) | Benutzerführung & Session-Empfehlungen |
@@ -375,43 +433,25 @@ Eine ausführlichere Liste an wissenschaftlichen Quellen, technischer Inspiratio
 
 ---
 
-## 📞 Kontakt
-
-Für Fragen, Feedback oder Zusammenarbeit:
-- **Issues**: [GitHub Issues](../../issues)
-- **Discussions**: [GitHub Discussions](../../discussions)
-
----
-
 ## 🌍 English Overview
 
 MindSync is an iOS app for **neural entrainment** using audio-synchronised stroboscopic light patterns. It analyses your music in real time and generates light scripts that target specific brainwave ranges (e.g. relaxation, focus, deep meditation).
 
-- Personalised experience: Real-time analysis of your own tracks  
-- Multiple entrainment modes: Alpha, Theta, Gamma & Cinematic (beat-synchronized pulses)  
-- Dual light sources: Torch (eyes closed) or coloured screen  
-- Safety first: Epilepsy onboarding, frequency limits, thermal management  
+- **Personalised experience**: Real-time analysis of your own tracks  
+- **Multiple entrainment modes**: Alpha, Theta, Gamma & Cinematic (fully audio-reactive)  
+- **Audio-reactive flashlight**: Direct audio synchronization without fixed rhythms (Cinematic Mode)  
+- **Safety first**: Epilepsy onboarding, frequency limits, thermal management  
+
+**Key Features**:
+- **Cinematic Mode**: Fully audio-reactive - light follows audio energy directly without fixed rhythms
+- **Alpha/Theta/Gamma**: Additive audio modulation to base waveform (up to 70% boost)
+- **Long-term History**: Adaptive normalization across entire track dynamic range
+- **Contrast Stretching**: Optimal visibility for all audio reactivity
 
 For more details, please refer to:  
 - `docs/USER_GUIDE.md` for user-facing guidance  
 - `docs/architecture.md` and `docs/SYNC_IMPLEMENTATION.md` for technical internals  
 - `docs/CONCEPT_AND_ROADMAP.md` for the scientific background and roadmap  
-
----
-
-**Version**: 1.0.0 | **Status**: Phase 1 & 2 abgeschlossen, Phase 3 in Planung | **Letztes Update**: Dezember 2025
-
----
-
-*\"Das Gehirn ist ein Instrument der unglaublichen Macht. Mit den richtigen Werkzeugen können wir lernen, es bewusst zu nutzen, um unser volles Potenzial zu entfalten.\"*
-
----
-
-## 📞 Kontakt
-
-Für Fragen, Feedback oder Zusammenarbeit:
-- **Issues**: [GitHub Issues](../../issues)
-- **Discussions**: [GitHub Discussions](../../discussions)
 
 ---
 
