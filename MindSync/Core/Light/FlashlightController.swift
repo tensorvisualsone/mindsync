@@ -620,9 +620,12 @@ final class FlashlightController: BaseLightController, LightControlling {
                     // When audioModulation is high, boost intensity; when low, use base waveform
                     // This ensures continuous entrainment even without strong audio beats
                     // 
+                    // IMPROVED: Lowered threshold from 0.1 to 0.05 to catch more subtle audio changes
+                    // This ensures that even moderate audio modulation (0.05-0.1) produces visible enhancement
+                    // Previously, audioModulation between 0.05-0.1 was ignored, resulting in no boost
                     // IMPROVED: Increased boost multiplier from 0.5 to 0.7 for better visibility
                     // This makes audio-reactive changes more noticeable while preserving base waveform
-                    let audioBoost = audioModulation > 0.1 ? audioModulation : 0.0  // Only boost if significant audio
+                    let audioBoost = audioModulation > 0.05 ? audioModulation : 0.0  // Boost if audio is above noise threshold
                     finalIntensity = min(1.0, baseIntensity + (baseIntensity * audioBoost * 0.7))  // Add up to 70% boost
                     
                     // Debug logging for troubleshooting
