@@ -28,6 +28,7 @@ final class FlashlightController: BaseLightController, LightControlling {
     
     // Debug logging timestamp tracking
     private var lastAudioLogTime: TimeInterval = -1.0  // Last time we logged audio energy
+    private var noEventLogCount: Int = 0  // Counter for no-event debug logs
     
     // Peak detection for cinematic mode
     private var recentFluxValues: [Float] = []  // Ring buffer for last N flux values (for local average)
@@ -199,6 +200,7 @@ final class FlashlightController: BaseLightController, LightControlling {
         lastPeakTime = 0
         // Reset debug logging timestamp
         lastAudioLogTime = -1.0
+        noEventLogCount = 0
     }
     
     /// Performs a brief torch activation to warm up the hardware and reduce cold-start latency.
@@ -329,6 +331,7 @@ final class FlashlightController: BaseLightController, LightControlling {
         lastPeakTime = 0
         // Reset debug logging timestamp
         lastAudioLogTime = -1.0
+        noEventLogCount = 0
     }
     
     func pauseExecution() {
@@ -354,6 +357,21 @@ final class FlashlightController: BaseLightController, LightControlling {
         }
         
         if let script = currentScript {
+            // Debug: Log when no event is found (first few times to diagnose)
+            if result.event == nil {
+                noEventLogCount += 1
+                if noEventLogCount <= 10 || noEventLogCount % 100 == 0 {
+                    logger.warning("[FLASHLIGHT DEBUG] No event found! count=\(noEventLogCount) elapsed=\(String(format: "%.3f", result.elapsed))s mode=\(script.mode.rawValue) eventsCount=\(script.events.count) isComplete=\(result.isComplete)")
+                    if script.events.count > 0 && result.elapsed < 5.0 {
+                        let firstEvent = script.events[0]
+                        logger.warning("[FLASHLIGHT DEBUG] First event: timestamp=\(String(format: "%.3f", firstEvent.timestamp))s duration=\(String(format: "%.3f", firstEvent.duration))s intensity=\(String(format: "%.3f", firstEvent.intensity))")
+                    }
+                }
+            } else {
+                // Reset counter when event is found
+                noEventLogCount = 0
+            }
+            
             // Check if cinematic mode - continuous audio-reactive pulsation
             if script.mode == .cinematic {
                 // CONTINUOUS AUDIO-REACTIVE APPROACH: Square wave at target frequency
@@ -495,6 +513,10 @@ final class FlashlightController: BaseLightController, LightControlling {
                 setIntensity(finalIntensity)
             } else {
                 // Between events or no active event, turn off
+                // Debug: Log when we're between events (every 500ms to avoid spam)
+                if Int(result.elapsed * 1000) % 500 == 0 {
+                    logger.debug("[FLASHLIGHT DEBUG] Between events or no active event. elapsed=\(String(format: "%.3f", result.elapsed))s mode=\(script.mode.rawValue) eventsCount=\(script.events.count)")
+                }
                 setIntensity(0.0)
             }
         } else {
