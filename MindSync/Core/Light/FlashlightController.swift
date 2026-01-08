@@ -347,76 +347,51 @@ final class FlashlightController: BaseLightController, LightControlling {
         }
         
         if let script = currentScript {
-            // Check if cinematic mode - continuous audio-reactive pulsation
+            // Check if cinematic mode - rhythmic strobe synchronized to audio
             if script.mode == .cinematic {
-                // NEW APPROACH: Direct audio-reactive intensity mapping
-                // Instead of complex peak detection, we directly map audio energy to light intensity
-                // This creates a continuous, immersive pulsation synchronized to the audio
-                
-                let audioEnergy: Float
-                if let tracker = audioEnergyTracker {
-                    // Use spectral flux for more responsive beat detection
-                    // Spectral flux captures changes in the audio spectrum, ideal for rhythmic content
-                    if tracker.useSpectralFlux {
-                        audioEnergy = tracker.currentSpectralFlux
-                    } else {
-                        // Fallback to RMS energy
-                        audioEnergy = tracker.currentEnergy
-                    }
-                } else {
-                    // No tracker - use base frequency oscillation as fallback
-                    let elapsed = result.elapsed
-                    let baseFreq = script.targetFrequency > 0 ? script.targetFrequency : 6.5
-                    let phase = elapsed * baseFreq * 2.0 * .pi
-                    audioEnergy = Float((sin(phase) + 1.0) / 2.0) * 0.5
-                    logger.warning("[CINEMATIC] No tracker - using base frequency oscillation")
-                }
+                // PHOTO DIVING APPROACH: Hard ON/OFF pulses at a fixed frequency
+                // This creates the stroboscopic effect needed for visual entrainment
+                // The frequency is derived from the audio's dominant rhythm (BPM)
                 
                 let elapsed = result.elapsed
+                let targetFreq = script.targetFrequency > 0 ? script.targetFrequency : 6.5
                 
-                // Update smoothing buffer for responsive but stable output
-                recentFluxValues.append(audioEnergy)
-                if recentFluxValues.count > 5 {  // Short buffer for fast response
-                    recentFluxValues.removeFirst()
-                }
+                // Calculate square wave phase (hard ON/OFF)
+                let period = 1.0 / targetFreq
+                let phase = (elapsed.truncatingRemainder(dividingBy: period)) / period  // 0.0 to 1.0
                 
-                // Calculate smoothed energy (average of recent values)
-                let smoothedEnergy = recentFluxValues.reduce(0, +) / Float(recentFluxValues.count)
-                
-                // Update running statistics for adaptive scaling
-                fluxHistory.append(smoothedEnergy)
-                if fluxHistory.count > maxAdaptiveHistorySize {
-                    fluxHistory.removeFirst()
-                }
-                
-                // Calculate adaptive min/max for dynamic range normalization
-                let recentMin: Float
-                let recentMax: Float
-                if fluxHistory.count >= 10 {
-                    recentMin = fluxHistory.min() ?? 0.0
-                    recentMax = max(fluxHistory.max() ?? 0.1, recentMin + 0.05)  // Ensure non-zero range
+                // HYBRID: Modulate intensity with audio energy for immersive effect
+                let audioModulation: Float
+                if let tracker = audioEnergyTracker {
+                    // Use audio energy to modulate pulse intensity
+                    let energy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
+                    
+                    // Update smoothing buffer
+                    recentFluxValues.append(energy)
+                    if recentFluxValues.count > 10 {  // Longer buffer for stable modulation
+                        recentFluxValues.removeFirst()
+                    }
+                    
+                    let smoothedEnergy = recentFluxValues.reduce(0, +) / Float(recentFluxValues.count)
+                    
+                    // Map to intensity multiplier (0.5 - 1.0 range)
+                    // Never go below 50% to keep pulses visible
+                    audioModulation = 0.5 + (smoothedEnergy * 0.5)
                 } else {
-                    recentMin = 0.0
-                    recentMax = 0.3  // Conservative default
+                    // No audio modulation - use full intensity
+                    audioModulation = 1.0
                 }
                 
-                // Normalize to 0-1 range based on recent dynamics
-                let normalizedEnergy = (smoothedEnergy - recentMin) / (recentMax - recentMin)
-                let clampedEnergy = max(0.0, min(1.0, normalizedEnergy))
+                // Generate square wave with frequency-dependent duty cycle
+                let dutyCycle = calculateDutyCycle(for: targetFreq)
+                let isOn = phase < dutyCycle
                 
-                // Apply non-linear curve for more dramatic pulses
-                // This makes quiet parts darker and loud parts brighter
-                let curvedEnergy = pow(clampedEnergy, 0.7)  // Gamma < 1 = brighter response
-                
-                // Scale to target intensity range (0.1 - 1.0)
-                // Minimum 0.1 ensures visible baseline, maximum 1.0 for peaks
-                let minIntensity: Float = 0.05
-                let maxIntensity: Float = 1.0
-                let finalIntensity = minIntensity + curvedEnergy * (maxIntensity - minIntensity)
+                // Apply intensity: ON = full intensity * audio modulation, OFF = completely dark
+                let finalIntensity: Float = isOn ? audioModulation : 0.0
                 
                 // Log every 200ms for diagnostics
                 if Int(elapsed * 1000) % 200 == 0 {
-                    logger.debug("[CINEMATIC] raw=\(String(format: "%.3f", audioEnergy)) smooth=\(String(format: "%.3f", smoothedEnergy)) norm=\(String(format: "%.3f", clampedEnergy)) out=\(String(format: "%.3f", finalIntensity))")
+                    logger.debug("[CINEMATIC] freq=\(String(format: "%.1f", targetFreq))Hz phase=\(String(format: "%.2f", phase)) duty=\(String(format: "%.2f", dutyCycle)) on=\(isOn) mod=\(String(format: "%.2f", audioModulation)) out=\(String(format: "%.2f", finalIntensity))")
                 }
                 
                 setIntensity(finalIntensity)

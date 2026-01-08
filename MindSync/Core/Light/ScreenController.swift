@@ -101,58 +101,39 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
         }
         
         if let script = currentScript {
-            // Check if cinematic mode - continuous audio-reactive pulsation
+            // Check if cinematic mode - rhythmic strobe synchronized to audio
             if script.mode == .cinematic {
-                // Same approach as FlashlightController: direct audio-reactive intensity mapping
-                let audioEnergy: Float
+                // Same photo diving approach as FlashlightController
+                let elapsed = result.elapsed
+                let targetFreq = script.targetFrequency > 0 ? script.targetFrequency : 6.5
+                
+                // Calculate square wave phase
+                let period = 1.0 / targetFreq
+                let phase = (elapsed.truncatingRemainder(dividingBy: period)) / period
+                
+                // Audio modulation
+                let audioModulation: Float
                 if let tracker = audioEnergyTracker {
-                    if tracker.useSpectralFlux {
-                        audioEnergy = tracker.currentSpectralFlux
-                    } else {
-                        audioEnergy = tracker.currentEnergy
+                    let energy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
+                    
+                    recentFluxValues.append(energy)
+                    if recentFluxValues.count > 10 {
+                        recentFluxValues.removeFirst()
                     }
+                    
+                    let smoothedEnergy = recentFluxValues.reduce(0, +) / Float(recentFluxValues.count)
+                    audioModulation = 0.5 + (smoothedEnergy * 0.5)
                 } else {
-                    // No tracker - use base frequency oscillation as fallback
-                    let elapsed = result.elapsed
-                    let baseFreq = script.targetFrequency > 0 ? script.targetFrequency : 6.5
-                    let phase = elapsed * baseFreq * 2.0 * .pi
-                    audioEnergy = Float((sin(phase) + 1.0) / 2.0) * 0.5
+                    audioModulation = 1.0
                 }
                 
-                // Update smoothing buffer
-                recentFluxValues.append(audioEnergy)
-                if recentFluxValues.count > 5 {
-                    recentFluxValues.removeFirst()
-                }
+                // Square wave with duty cycle
+                let dutyCycle = calculateDutyCycle(for: targetFreq)
+                let isOn = phase < dutyCycle
                 
-                let smoothedEnergy = recentFluxValues.reduce(0, +) / Float(recentFluxValues.count)
+                let finalIntensity: Float = isOn ? audioModulation : 0.0
                 
-                // Update running statistics
-                fluxHistory.append(smoothedEnergy)
-                if fluxHistory.count > maxAdaptiveHistorySize {
-                    fluxHistory.removeFirst()
-                }
-                
-                // Adaptive normalization
-                let recentMin: Float
-                let recentMax: Float
-                if fluxHistory.count >= 10 {
-                    recentMin = fluxHistory.min() ?? 0.0
-                    recentMax = max(fluxHistory.max() ?? 0.1, recentMin + 0.05)
-                } else {
-                    recentMin = 0.0
-                    recentMax = 0.3
-                }
-                
-                let normalizedEnergy = (smoothedEnergy - recentMin) / (recentMax - recentMin)
-                let clampedEnergy = max(0.0, min(1.0, normalizedEnergy))
-                let curvedEnergy = pow(clampedEnergy, 0.7)
-                
-                let minIntensity: Float = 0.05
-                let maxIntensity: Float = 1.0
-                let finalIntensity = minIntensity + curvedEnergy * (maxIntensity - minIntensity)
-                
-                // Get color from default
+                // Get color
                 let lightColor = defaultColor
                 let baseColor = lightColor.swiftUIColor(customRGB: customColorRGB?.tuple)
                 
