@@ -358,7 +358,6 @@ final class FlashlightController: BaseLightController, LightControlling {
                     lastBeatTime = elapsed
                     lastBeatIntensity = cinematicIntensity
                     finalIntensity = cinematicIntensity
-                    consecutiveLowEnergyFrames = 0
                 } else {
                     // No beat detected: Apply exponential decay from last beat
                     let timeSinceLastBeat = elapsed - lastBeatTime

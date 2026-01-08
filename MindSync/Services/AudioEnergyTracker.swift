@@ -80,15 +80,9 @@ final class AudioEnergyTracker {
         if let node = mixerNode {
             // Try to remove tap, but don't crash if engine is already gone
             // This can happen if audioPlayback.stop() was called before stopTracking()
-            do {
-                // Check if node is still part of an engine by checking its output format
-                // If engine is nil, this will fail gracefully
-                _ = node.outputFormat(forBus: 0)
-                node.removeTap(onBus: 0)
-            } catch {
-                // Engine was already stopped, just log and continue cleanup
-                logger.debug("Could not remove tap: engine already stopped")
-            }
+            // We can safely call removeTap even if the engine is stopped - it will
+            // just be a no-op if the tap was already removed or the engine is gone
+            node.removeTap(onBus: 0)
         }
         
         mixerNode = nil

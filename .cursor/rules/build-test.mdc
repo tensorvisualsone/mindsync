@@ -1,0 +1,8 @@
+---
+name: build-test
+description: This is a new rule
+---
+
+# Overview
+
+For every critical change on code run a build test before ending your current task.
