@@ -227,12 +227,15 @@ final class SessionViewModel: ObservableObject {
     
     /// Configures spectral flux for cinematic mode
     private func enableSpectralFluxForCinematicMode(_ mode: EntrainmentMode) {
-        guard mode == .cinematic else { return }
+        guard mode == .cinematic else {
+            logger.debug("[CINEMATIC] Not cinematic mode, skipping spectral flux setup")
+            return
+        }
         
         // Guard against duplicate calls to prevent multiple taps on mixer node
         // This can happen during session restart, error recovery, or rapid mode switching
         guard !audioEnergyTracker.isActive else {
-            logger.debug("Spectral flux tracking already active, skipping duplicate setup")
+            logger.debug("[CINEMATIC] Spectral flux tracking already active, skipping duplicate setup")
             return
         }
         
@@ -240,9 +243,14 @@ final class SessionViewModel: ObservableObject {
             // Enable spectral flux for better beat detection in cinematic mode
             audioEnergyTracker.useSpectralFlux = true
             audioEnergyTracker.startTracking(mixerNode: mixerNode)
+            logger.info("[CINEMATIC] Spectral flux enabled and tracking started on mixer node")
+        } else {
+            logger.error("[CINEMATIC] FAILED to get mixer node - spectral flux will not work!")
         }
+        
         // Attach audio energy tracker to light controller for dynamic intensity modulation
         lightController?.audioEnergyTracker = audioEnergyTracker
+        logger.info("[CINEMATIC] AudioEnergyTracker attached to light controller")
     }
     
     /// Sets up Bluetooth latency monitoring for dynamic audio synchronization
@@ -575,9 +583,10 @@ final class SessionViewModel: ObservableObject {
             return
         }
 
+        // Set state to analyzing IMMEDIATELY to show progress UI
         logger.info("Setting state to analyzing")
         state = .analyzing
-        analysisProgress = AnalysisProgress(phase: .analyzing, progress: 0.0, message: NSLocalizedString("analysis.analyzing", comment: ""))
+        analysisProgress = AnalysisProgress(phase: .loading, progress: 0.0, message: NSLocalizedString("analysis.loading", comment: ""))
         stopPlaybackProgressUpdates()
 
         // Refresh cached preferences to ensure we use current user settings
@@ -599,11 +608,19 @@ final class SessionViewModel: ObservableObject {
 
         do {
             logger.info("Getting asset URL for analysis")
-            // Check if item can be analyzed
-            let assetURL = try await services.mediaLibraryService.assetURLForAnalysis(of: mediaItem)
+            // Update progress to show we're validating the asset
+            analysisProgress = AnalysisProgress(phase: .loading, progress: 0.1, message: NSLocalizedString("analysis.loading", comment: ""))
+            
+            // Check if item can be analyzed with timeout to prevent hanging
+            let assetURL = try await withTimeout(seconds: 10.0) {
+                try await self.services.mediaLibraryService.assetURLForAnalysis(of: mediaItem)
+            }
             logger.info("Asset URL obtained: \(assetURL.lastPathComponent)")
 
             logger.info("Starting audio analysis")
+            // Update progress to show we're analyzing
+            analysisProgress = AnalysisProgress(phase: .analyzing, progress: 0.2, message: NSLocalizedString("analysis.analyzing", comment: ""))
+            
             // Analyze audio (use quick mode if enabled in preferences)
             let track = try await audioAnalyzer.analyze(url: assetURL, mediaItem: mediaItem, quickMode: cachedPreferences.quickAnalysisEnabled)
             currentTrack = track
@@ -729,6 +746,15 @@ final class SessionViewModel: ObservableObject {
             bluetoothLatencyMonitor.stopMonitoring()
             UIApplication.shared.isIdleTimerDisabled = false
             state = .idle
+        } catch let timeoutError as TimeoutError {
+            logger.error("Session start timed out: \(timeoutError.localizedDescription, privacy: .public)")
+            errorMessage = NSLocalizedString("error.audio.timeout", comment: "")
+            state = .error
+
+            audioPlayback.stop()
+            lightController?.stop()
+            vibrationController?.stop()
+            stopPlaybackProgressUpdates()
         } catch {
             logger.error("Session start failed: \(error.localizedDescription, privacy: .public)")
             errorMessage = error.localizedDescription
@@ -749,8 +775,9 @@ final class SessionViewModel: ObservableObject {
         }
         
         logger.info("Starting session with audio file: \(audioFileURL.lastPathComponent)")
+        // Set state to analyzing IMMEDIATELY to show progress UI
         state = .analyzing
-        analysisProgress = AnalysisProgress(phase: .analyzing, progress: 0.0, message: NSLocalizedString("analysis.analyzing", comment: ""))
+        analysisProgress = AnalysisProgress(phase: .loading, progress: 0.0, message: NSLocalizedString("analysis.loading", comment: ""))
         stopPlaybackProgressUpdates()
         
         // Refresh cached preferences to ensure we use current user settings
@@ -901,6 +928,130 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
+    /// Starts an Awakening Flow session (30-minute timeline-based entrainment flow)
+    /// This session does not require audio analysis and uses a pre-generated script
+    /// with frequency overrides for different phases (12 Hz → 8 Hz → 4 Hz → 40 Hz → 100 Hz → 7.83 Hz)
+    func startAwakeningSession() async {
+        logger.info("Starting Awakening Flow session - BEGIN")
+        
+        guard state == .idle else {
+            logger.warning("Attempted to start Awakening session while state is \(String(describing: self.state))")
+            return
+        }
+        
+        logger.info("Setting state to analyzing")
+        state = .analyzing
+        analysisProgress = AnalysisProgress(phase: .analyzing, progress: 0.0, message: NSLocalizedString("analysis.analyzing", comment: ""))
+        stopPlaybackProgressUpdates()
+        
+        // Refresh cached preferences to ensure we use current user settings
+        logger.info("Loading cached preferences")
+        cachedPreferences = UserPreferences.load()
+        
+        // Set the light controller based on current preferences
+        logger.info("Setting light controller based on preferences: \(self.cachedPreferences.preferredLightSource.rawValue)")
+        switch cachedPreferences.preferredLightSource {
+        case .flashlight:
+            lightController = services.flashlightController
+        case .screen:
+            lightController = services.screenController
+        }
+        
+        // Pre-warm flashlight if needed
+        logger.info("Pre-warming flashlight if needed")
+        await prewarmFlashlightIfNeeded()
+        
+        do {
+            // Generate Awakening Script (no audio analysis needed)
+            logger.info("Generating Awakening Flow script")
+            let script = EntrainmentEngine.generateAwakeningScript()
+            currentScript = script
+            logger.info("Awakening Flow script generated")
+            
+            // Create session (no audio track, but we use .localFile as audioSource)
+            logger.info("Creating Awakening Flow session object")
+            let session = Session(
+                mode: .gamma, // Using gamma as container mode for high-energy flow
+                lightSource: cachedPreferences.preferredLightSource,
+                audioSource: .localFile,
+                trackTitle: "Awakening Flow",
+                trackArtist: nil,
+                trackBPM: nil
+            )
+            currentSession = session
+            updateAffirmationStatusForCurrentPreferences()
+            
+            // Set custom color RGB if screen mode and custom color is selected
+            if cachedPreferences.preferredLightSource == .screen, cachedPreferences.screenColor == .custom,
+               let screenController = lightController as? ScreenController {
+                screenController.setCustomColorRGB(cachedPreferences.customColorRGB)
+            }
+            
+            // Apply audio latency offset from user preferences for Bluetooth compensation
+            if let baseController = lightController as? BaseLightController {
+                baseController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+                // No audio playback for Awakening Flow, but we keep the reference for consistency
+                baseController.audioPlayback = nil
+            }
+            
+            // Start light controller and execute script
+            logger.info("Starting light controller")
+            let startTime = Date()
+            sessionStartTime = startTime
+            updateCurrentFrequency()
+            startFrequencyUpdates()
+            
+            try await lightController?.start()
+            lightController?.execute(script: script, syncedTo: startTime)
+            logger.info("Light controller started successfully")
+            
+            // Start playback progress updates for 30-minute duration
+            startPlaybackProgressUpdates(for: script.duration)
+            
+            // Vibration is optional (if enabled in preferences)
+            // Note: We don't generate a vibration script for Awakening Flow as it's audio-independent
+            // If vibration is desired, it would need a separate vibration script generator
+            vibrationController = nil
+            currentVibrationScript = nil
+            
+            // No audio energy tracking needed (no audio playback)
+            // No Bluetooth latency monitoring needed (no audio synchronization)
+            
+            // Prevent screen from turning off during session
+            UIApplication.shared.isIdleTimerDisabled = true
+            
+            logger.info("Setting state to running")
+            state = .running
+            affirmationPlayed = false
+            
+            // Start observing for affirmation trigger
+            startAffirmationObserver()
+            
+            // Haptic feedback for session start (if enabled)
+            if cachedPreferences.hapticFeedbackEnabled {
+                HapticFeedback.medium()
+            }
+            
+            logger.info("Awakening Flow session started successfully - END")
+            
+        } catch is CancellationError {
+            logger.info("Awakening Flow session start cancelled")
+            lightController?.stop()
+            vibrationController?.stop()
+            stopPlaybackProgressUpdates()
+            UIApplication.shared.isIdleTimerDisabled = false
+            state = .idle
+        } catch {
+            logger.error("Awakening Flow session start failed: \(error.localizedDescription, privacy: .public)")
+            errorMessage = error.localizedDescription
+            state = .error
+            
+            lightController?.stop()
+            vibrationController?.stop()
+            stopPlaybackProgressUpdates()
+        }
+    }
+    
     /// Pauses the current session
     func pauseSession() {
         guard state == .running else { return }
@@ -956,34 +1107,39 @@ final class SessionViewModel: ObservableObject {
         
         logger.info("Stopping session")
         
+        // CRITICAL: Stop timers FIRST to prevent race conditions
+        // This must happen before any other cleanup to avoid hanging
+        stopPlaybackProgressUpdates()
+        affirmationTimer?.invalidate()
+        affirmationTimer = nil
+        
+        // Cancel any active task (e.g. screen switch) before cleanup
+        activeTask?.cancel()
+        activeTask = nil
+        
         // Re-enable idle timer when session stops
         UIApplication.shared.isIdleTimerDisabled = false
         
-        audioPlayback.stop()
+        // Stop controllers in order: Light first (stops timer), then audio, then vibration
+        // This order prevents race conditions where timer callbacks try to access stopped services
         lightController?.stop()
+        audioPlayback.stop()
         vibrationController?.stop()
 
         // Stop isochronic audio if active
         IsochronicAudioService.shared.stop()
-        
+
         // Stop audio energy tracking if active (cinematic mode)
+        // Must happen after light controller stops to avoid accessing stopped tracker
         audioEnergyTracker.stopTracking()
         audioEnergyTracker.useSpectralFlux = false // Reset for next session
         lightController?.audioEnergyTracker = nil
-        
+
         // Stop Bluetooth latency monitoring
         bluetoothLatencyMonitor.stopMonitoring()
-        
+
         // Stop fall detection
         fallDetector.stopMonitoring()
-        
-        // Invalidate affirmation timer
-        affirmationTimer?.invalidate()
-        affirmationTimer = nil
-        
-        // Cancel any active task (e.g. screen switch)
-        activeTask?.cancel()
-        activeTask = nil
         
         // End session and save to history only if it was running or paused
         let shouldSaveSession = state == .running || state == .paused

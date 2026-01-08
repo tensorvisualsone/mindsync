@@ -17,6 +17,11 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
     /// Precision timer interval shared across light controllers (250 Hz)
     private let precisionInterval: DispatchTimeInterval = .nanoseconds(FlashlightController.precisionIntervalNanoseconds)
     
+    // Cinematic mode smoothing buffers (matching FlashlightController)
+    private var recentFluxValues: [Float] = []
+    private var fluxHistory: [Float] = []
+    private let maxAdaptiveHistorySize = 200
+    
     override init() {
         super.init()
         // Screen controller uses SwiftUI views for display
@@ -62,6 +67,9 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
         invalidatePrecisionTimer()
         resetScriptExecution()
         currentColor = .black
+        // Reset cinematic mode buffers
+        recentFluxValues.removeAll()
+        fluxHistory.removeAll()
     }
     
     func pauseExecution() {
@@ -93,44 +101,57 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
         }
         
         if let script = currentScript {
-            // Check if cinematic mode - apply dynamic intensity modulation
+            // Check if cinematic mode - rhythmic strobe synchronized to audio
             if script.mode == .cinematic {
-                // For cinematic mode, use spectral flux if available (better beat detection)
-                // Otherwise fall back to RMS energy
-                let audioEnergy: Float
-                if let tracker = audioEnergyTracker, tracker.useSpectralFlux {
-                    audioEnergy = tracker.currentSpectralFlux
+                // Same photo diving approach as FlashlightController
+                let elapsed = result.elapsed
+                let targetFreq = script.targetFrequency > 0 ? script.targetFrequency : 6.5
+                
+                // Calculate square wave phase
+                let period = 1.0 / targetFreq
+                let phase = (elapsed.truncatingRemainder(dividingBy: period)) / period
+                
+                // Audio modulation
+                let audioModulation: Float
+                if let tracker = audioEnergyTracker {
+                    let energy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
+                    
+                    recentFluxValues.append(energy)
+                    if recentFluxValues.count > 10 {
+                        recentFluxValues.removeFirst()
+                    }
+                    
+                    let smoothedEnergy = recentFluxValues.reduce(0, +) / Float(recentFluxValues.count)
+                    audioModulation = 0.5 + (smoothedEnergy * 0.5)
                 } else {
-                    audioEnergy = audioEnergyTracker?.currentEnergy ?? 0.0
+                    audioModulation = 1.0
                 }
                 
-                let baseFreq = script.targetFrequency
-                let elapsed = result.elapsed
+                // Square wave with duty cycle
+                let dutyCycle = calculateDutyCycle(for: targetFreq)
+                let isOn = phase < dutyCycle
                 
-                // Calculate cinematic intensity with audio reactivity
-                let cinematicIntensity = EntrainmentEngine.calculateCinematicIntensity(
-                    baseFrequency: baseFreq,
-                    currentTime: elapsed,
-                    audioEnergy: audioEnergy
-                )
+                let finalIntensity: Float = isOn ? audioModulation : 0.0
                 
-                // Get color from default (cinematic mode doesn't use event colors)
+                // Get color
                 let lightColor = defaultColor
                 let baseColor = lightColor.swiftUIColor(customRGB: customColorRGB?.tuple)
                 
-                // Use cinematic intensity directly as opacity
-                currentColor = baseColor.opacity(Double(cinematicIntensity))
+                currentColor = baseColor.opacity(Double(finalIntensity))
             } else if let event = result.event {
                 // For other modes, use event-based intensity with waveform
                 let lightColor = event.color ?? defaultColor
                 let baseColor = lightColor.swiftUIColor(customRGB: customColorRGB?.tuple)
+                
+                // CRITICAL UPDATE: Use event-specific frequency if available, else global
+                let effectiveFrequency = event.frequencyOverride ?? script.targetFrequency
                 
                 // Apply intensity as opacity for smoother transitions
                 // Waveform affects how intensity is applied over time
                 let opacity = calculateOpacity(
                     event: event,
                     elapsed: result.elapsed - event.timestamp,
-                    targetFrequency: script.targetFrequency
+                    targetFrequency: effectiveFrequency
                 )
                 
                 currentColor = baseColor.opacity(opacity)
@@ -147,13 +168,36 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
     /// Calculates opacity based on waveform and time within event
     /// Uses WaveformGenerator for consistency with other controllers
     private func calculateOpacity(event: LightEvent, elapsed: TimeInterval, targetFrequency: Double) -> Double {
-        // Use centralized WaveformGenerator (standard 50% duty cycle for square wave)
+        // Calculate frequency-dependent duty cycle (same logic as FlashlightController)
+        let dutyCycle = calculateDutyCycle(for: targetFrequency)
+        
         return Double(WaveformGenerator.calculateIntensity(
             waveform: event.waveform,
             time: elapsed,
             frequency: targetFrequency,
             baseIntensity: event.intensity,
-            dutyCycle: 0.5 // Standard duty cycle for screen
+            dutyCycle: dutyCycle
         ))
+    }
+    
+    /// Calculates optimal duty cycle based on frequency
+    /// Matches FlashlightController logic for consistent entrainment effectiveness
+    /// At high frequencies, shorter duty cycles create sharper visual pulses
+    private func calculateDutyCycle(for frequency: Double) -> Double {
+        // Frequency thresholds (same as FlashlightController)
+        let highThreshold: Double = 30.0  // Gamma band
+        let midThreshold: Double = 20.0   // Alpha/Beta boundary
+        let lowThreshold: Double = 10.0   // Theta/Alpha boundary
+        
+        // Duty cycles by frequency band
+        if frequency > highThreshold {
+            return 0.15  // 15% for gamma (>30 Hz)
+        } else if frequency > midThreshold {
+            return 0.20  // 20% for high alpha/beta (20-30 Hz)
+        } else if frequency > lowThreshold {
+            return 0.30  // 30% for alpha (10-20 Hz)
+        } else {
+            return 0.45  // 45% for theta (<10 Hz)
+        }
     }
 }

@@ -14,6 +14,10 @@ extension LightEvent.LightColor {
             return .blue
         case .green:
             return .green
+        case .purple:
+            return .purple
+        case .orange:
+            return .orange
         case .custom:
             // Use custom RGB if provided, otherwise fallback to white
             if let rgb = customRGB {

@@ -61,12 +61,14 @@ enum WaveformGenerator {
     ///   - time: Time within the waveform cycle
     ///   - frequency: Target frequency in Hz
     ///   - baseIntensity: Base intensity value (0.0 to 1.0)
+    ///   - dutyCycle: Optional duty cycle for square wave (0.0 to 1.0). Default: 0.5 (50% on, 50% off)
     /// - Returns: Intensity value (0.0 to 1.0)
     static func calculateVibrationIntensity(
         waveform: VibrationEvent.Waveform,
         time: TimeInterval,
         frequency: Double,
-        baseIntensity: Float
+        baseIntensity: Float,
+        dutyCycle: Double = 0.5
     ) -> Float {
         // Map vibration waveform to light waveform to reuse the core implementation
         let lightWaveform: LightEvent.Waveform
@@ -79,13 +81,13 @@ enum WaveformGenerator {
             lightWaveform = .triangle
         }
         
-        // Use a fixed 50% duty cycle to match the original vibration behavior
+        // Use frequency-dependent duty cycle for square wave coherence with light
         return calculateIntensity(
             waveform: lightWaveform,
             time: time,
             frequency: frequency,
             baseIntensity: baseIntensity,
-            dutyCycle: 0.5
+            dutyCycle: dutyCycle
         )
     }
     

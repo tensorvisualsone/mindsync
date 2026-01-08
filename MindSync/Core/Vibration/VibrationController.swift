@@ -273,13 +273,37 @@ final class VibrationController: NSObject {
             return 0.0
         }
         
+        // Calculate frequency-dependent duty cycle for square wave consistency with light
+        let dutyCycle = calculateDutyCycle(for: targetFrequency)
+        
         // Use centralized WaveformGenerator for consistency
         return WaveformGenerator.calculateVibrationIntensity(
             waveform: event.waveform,
             time: eventElapsed,
             frequency: targetFrequency,
-            baseIntensity: event.intensity
+            baseIntensity: event.intensity,
+            dutyCycle: dutyCycle
         )
+    }
+    
+    /// Calculates optimal duty cycle based on frequency for haptic coherence with light
+    /// Matches FlashlightController and ScreenController logic for multisensory synchronization
+    private func calculateDutyCycle(for frequency: Double) -> Double {
+        // Frequency thresholds (same as light controllers)
+        let highThreshold: Double = 30.0  // Gamma band
+        let midThreshold: Double = 20.0   // Alpha/Beta boundary
+        let lowThreshold: Double = 10.0   // Theta/Alpha boundary
+        
+        // Duty cycles by frequency band
+        if frequency > highThreshold {
+            return 0.15  // 15% for gamma (>30 Hz)
+        } else if frequency > midThreshold {
+            return 0.20  // 20% for high alpha/beta (20-30 Hz)
+        } else if frequency > lowThreshold {
+            return 0.30  // 30% for alpha (10-20 Hz)
+        } else {
+            return 0.45  // 45% for theta (<10 Hz)
+        }
     }
     
     // MARK: - Haptic Pattern Generation

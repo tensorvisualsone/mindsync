@@ -23,7 +23,7 @@ enum LightSource: String, Codable, CaseIterable, Identifiable {
     var description: String {
         switch self {
         case .flashlight:
-            return "Heller, für geschlossene Augen. Max. 15 Min empfohlen."
+            return "Intensiver Impuls. Unterstützt bis zu 100 Hz (Lambda)."
         case .screen:
             return "Präziser, mit Farben. Für längere Sitzungen geeignet."
         }
@@ -32,7 +32,7 @@ enum LightSource: String, Codable, CaseIterable, Identifiable {
     /// Maximale zuverlässige Frequenz in Hz
     var maxFrequency: Double {
         switch self {
-        case .flashlight: return 30.0
+        case .flashlight: return 100.0
         case .screen: return 60.0 // Kann bis 120 Hz bei ProMotion
         }
     }

@@ -101,10 +101,33 @@ struct SessionView: View {
         .preferredColorScheme(.dark)
         .task {
             // Start the session immediately when view appears
-            if let mediaItem = mediaItem {
-                await viewModel.startSession(with: mediaItem)
-            } else if let audioFileURL = audioFileURL {
-                await viewModel.startSession(with: audioFileURL)
+            // Use Task to ensure it runs even if the view is already loaded
+            Task { @MainActor in
+                if let mediaItem = mediaItem {
+                    await viewModel.startSession(with: mediaItem)
+                } else if let audioFileURL = audioFileURL {
+                    await viewModel.startSession(with: audioFileURL)
+                } else {
+                    // No media item or file URL - show error
+                    viewModel.errorMessage = NSLocalizedString("session.noMediaItem", comment: "")
+                    viewModel.state = .error
+                }
+            }
+        }
+        .onAppear {
+            // Fallback: If task didn't run and we're still idle, start the session
+            // This ensures the session starts even if the task modifier fails
+            if viewModel.state == .idle {
+                Task { @MainActor in
+                    if let mediaItem = mediaItem {
+                        await viewModel.startSession(with: mediaItem)
+                    } else if let audioFileURL = audioFileURL {
+                        await viewModel.startSession(with: audioFileURL)
+                    } else {
+                        viewModel.errorMessage = NSLocalizedString("session.noMediaItem", comment: "")
+                        viewModel.state = .error
+                    }
+                }
             }
         }
     }

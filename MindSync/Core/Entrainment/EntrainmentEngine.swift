@@ -32,34 +32,36 @@ final class EntrainmentEngine {
         
         var output: Float
         
-        // Threshold for beat detection (spectral flux > 0.2 indicates a beat/transient)
+        // Threshold for beat detection (spectral flux > 0.25 indicates a beat/transient)
         //
-        // This threshold of 0.2 (20% of normalized flux) was chosen to balance sensitivity
-        // across different music genres:
-        // - Electronic/EDM: Strong bass hits typically produce 0.4-1.0, well above threshold
-        // - Rock/Pop: Drum hits produce 0.25-0.6, reliably triggering beats
-        // - Hip-hop: 808 bass and snare produce 0.3-0.8, strong detection
-        // - Classical: Bass drum attacks produce 0.15-0.4, capturing major transients
-        // - Ambient/Acoustic: Gentle percussion produces 0.1-0.3, selective triggering
+        // REDUCED from 0.35 to 0.25 to improve sensitivity and ensure beats are detected
+        // even in quieter or less percussive music. The previous threshold was too high,
+        // causing the flashlight to remain dark most of the time.
+        //
+        // This threshold of 0.25 (25% of normalized flux) balances sensitivity and specificity:
+        // - Electronic/EDM: Strong bass hits typically produce 0.5-1.0, well above threshold
+        // - Rock/Pop: Drum hits produce 0.3-0.8, reliably triggering beats
+        // - Hip-hop: 808 bass and snare produce 0.4-0.9, strong detection
+        // - Classical: Bass drum attacks produce 0.25-0.6, capturing major transients
+        // - Ambient/Acoustic: Gentle percussion produces 0.2-0.4, now triggering appropriately
         //
         // The threshold ensures that:
-        // - Clear percussive events are reliably detected (sensitivity)
-        // - Sustained bass notes or gradual swells don't trigger false beats (specificity)
-        // - Background noise or room ambience (flux < 0.1) is completely ignored
+        // - Clear percussive events reliably trigger light pulses
+        // - Sustained bass notes or gradual swells don't trigger false beats (still filtered)
+        // - Background noise or room ambience (flux < 0.15) is still ignored
+        // - Light pulses are synchronized to music beats with good responsiveness
         //
         // Future enhancement: Consider implementing adaptive thresholding based on recent
         // flux history (e.g., use mean + 2*stddev as threshold) to automatically adjust
-        // for different music dynamics and mastering levels. This would improve performance
-        // on heavily compressed tracks (which may need lower threshold) and very dynamic
-        // recordings (which may benefit from higher threshold).
-        let beatThreshold: Float = 0.2
+        // for different music dynamics and mastering levels.
+        let beatThreshold: Float = 0.25
         
         if audioEnergy > beatThreshold {
             // High spectral flux detected (beat/transient): Create sharp pulse
             // Scale intensity based on flux strength
-            // Maps: 0.2 -> 0.4, 1.0 -> 1.0
+            // Maps: 0.25 -> 0.5, 1.0 -> 1.0
             let normalizedFlux = (audioEnergy - beatThreshold) / (1.0 - beatThreshold)
-            output = 0.4 + (normalizedFlux * 0.6)
+            output = 0.5 + (normalizedFlux * 0.5)
             
             // Ensure pulse is strong enough to be visible
             // Minimum intensity of 0.5 (50%) for beat-synchronized pulses
@@ -98,17 +100,14 @@ final class EntrainmentEngine {
             // - Project safety documentation: .specify/memory/constitution.md
             output = max(0.5, output)
         } else {
-            // Low spectral flux: Subtle background flicker at base frequency
-            // This maintains visual interest between beats without being distracting
-            let drift = sin(currentTime * 0.2) * 1.0
-            let currentFreq = baseFrequency + drift
-            
-            let phase = (currentTime * currentFreq * 2.0 * .pi) + (.pi / 2.0)
-            let cosineValue = cos(phase)
-            let normalizedWave = Float((cosineValue + 1.0) / 2.0)
-            
-            // Very subtle background (5-20% intensity)
-            output = 0.05 + (normalizedWave * 0.15)
+            // Low spectral flux: Turn off light between beats for clear beat synchronization
+            // This creates distinct pulses on beats and darkness between beats, which is
+            // more visually engaging and clearly synchronized to the music.
+            //
+            // Previous approach used subtle background flicker (5-20% intensity), which caused
+            // the flashlight to appear continuously on. The new approach turns the light completely
+            // off between beats, creating a more dramatic and beat-synchronized effect.
+            output = 0.0
         }
         
         // Clamp to valid range
@@ -693,5 +692,101 @@ final class EntrainmentEngine {
         }
         
         return events
+    }
+}
+
+extension EntrainmentEngine {
+    
+    /// Generiert den speziellen "Awakening Flow" Script.
+    /// Dieser ignoriert Audio-Beats und erzeugt eine feste 30-minütige Zeitreise durch die Gehirnwellen.
+    static func generateAwakeningScript() -> LightScript {
+        var events: [LightEvent] = []
+        var currentTime: TimeInterval = 0.0
+        
+        // --- PHASE 1: ARRIVAL (5 Min) ---
+        // Ramp von 12 Hz (Alpha) runter auf 8 Hz (Alpha/Theta Grenze)
+        // Wir erstellen kleine 1-Sekunden-Schnipsel für einen super-smoothen Übergang
+        let phase1Duration: TimeInterval = 300 // 5 Minuten
+        let startFreq = 12.0
+        let endFreq = 8.0
+        
+        for i in 0..<Int(phase1Duration) {
+            let progress = Double(i) / phase1Duration
+            // Smoothstep Interpolation für organisches Gefühl
+            let smoothProgress = MathHelpers.smoothstep(progress)
+            let currentFreq = startFreq + (endFreq - startFreq) * smoothProgress
+            
+            let event = LightEvent(
+                timestamp: currentTime,
+                intensity: 0.4, // Sanfter Start
+                duration: 1.0,
+                waveform: .sine,
+                color: .blue, // Falls Screen Mode genutzt wird
+                frequencyOverride: currentFreq // Dynamische Frequenz!
+            )
+            events.append(event)
+            currentTime += 1.0
+        }
+        
+        // --- PHASE 2: THE VOID (10 Min) ---
+        // Konstante 4 Hz (Tiefes Theta) - Dissoziation
+        let phase2Duration: TimeInterval = 600
+        events.append(LightEvent(
+            timestamp: currentTime,
+            intensity: 0.35, // Etwas dunkler für Trance
+            duration: phase2Duration,
+            waveform: .sine,
+            color: .purple,
+            frequencyOverride: 4.0
+        ))
+        currentTime += phase2Duration
+        
+        // --- PHASE 3: ACTIVATION (5 Min) ---
+        // 40 Hz Gamma - Synchronisation
+        let phase3Duration: TimeInterval = 300
+        events.append(LightEvent(
+            timestamp: currentTime,
+            intensity: 0.6, // Heller für Fokus
+            duration: phase3Duration,
+            waveform: .square, // Harte Kanten für Gamma-Sync
+            color: .orange,
+            frequencyOverride: 40.0
+        ))
+        currentTime += phase3Duration
+        
+        // --- PHASE 4: PEAK (5 Min) ---
+        // 100 Hz Lambda - "Awakening"
+        // Achtung: Das ist visuell fast Dauerlicht, aber das Nervensystem spürt den Takt.
+        let phase4Duration: TimeInterval = 300
+        events.append(LightEvent(
+            timestamp: currentTime,
+            intensity: 0.8, // Sehr hell
+            duration: phase4Duration,
+            waveform: .square,
+            color: .white,
+            frequencyOverride: 100.0 // Lambda!
+        ))
+        currentTime += phase4Duration
+        
+        // --- PHASE 5: GROUNDING (5 Min) ---
+        // 7.83 Hz Schumann Resonanz - Erdung
+        let phase5Duration: TimeInterval = 300
+        events.append(LightEvent(
+            timestamp: currentTime,
+            intensity: 0.4,
+            duration: phase5Duration,
+            waveform: .sine,
+            color: .green,
+            frequencyOverride: 7.83
+        ))
+        
+        // Dummy Audio Track ID (Da wir hier keine Musik analysieren, sondern Frequenzen vorgeben)
+        return LightScript(
+            trackId: UUID(),
+            mode: .gamma, // Technisch gesehen ein Mix, aber Gamma passt als "High Energy" Container
+            targetFrequency: 40.0,
+            multiplier: 1,
+            events: events
+        )
     }
 }

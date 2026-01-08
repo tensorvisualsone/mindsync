@@ -35,7 +35,7 @@ Im Gegensatz zu Apps wie Lumenate, die vorgefertigte, statische Inhalte verwende
 
 ✨ **Personalisierte Erfahrung**: MindSync analysiert DEINE Musik in Echtzeit
 🎵 **Dynamische Synchronisation**: Lichtmuster passen sich an Beats, Tempo und Energie deiner Tracks an
-🎨 **Cinematic Mode**: Einzigartiger Modus, der Lichtintensität dynamisch mit Audio-Energie moduliert
+🎨 **Cinematic Mode**: Beat-synchronisierte Pulse - die Lampe blitzt kurz auf Beats auf und geht zwischen Beats aus, für eine klare, musik-synchronisierte Erfahrung
 🔬 **Wissenschaftlich fundiert**: Basiert auf etablierten Prinzipien des Neural Entrainment
 💡 **Dual-Lichtquellen**: Wähle zwischen intensiver Taschenlampe oder farbigem Bildschirm
 🎤 **Mikrofon-Modus**: Funktioniert auch mit Streaming-Diensten wie Spotify
@@ -47,7 +47,7 @@ Im Gegensatz zu Apps wie Lumenate, die vorgefertigte, statische Inhalte verwende
 - **Alpha (8–13 Hz)**: Entspannung & Stressabbau  
 - **Theta (4–8 Hz)**: Tiefe Meditation & Trips  
 - **Gamma (30–100 Hz)**: Fokus & High-Performance  
-- **Cinematic**: Audio-reaktiver, filmischer Modus  
+- **Cinematic**: Beat-synchronisierte Pulse - kurze Lichtblitze auf Beats, aus zwischen Beats  
 
 Details zu den Parametern der einzelnen Modi stehen in `docs/CONCEPT_AND_ROADMAP.md`.
 
@@ -82,7 +82,7 @@ Details zu den Parametern der einzelnen Modi stehen in `docs/CONCEPT_AND_ROADMAP
 ### 🎵 Audio-Analyse & Synchronisation
 - **Beat-Detection**: FFT-basierte Erkennung von Beats und Tempo
 - **Tempo-Estimation**: Automatische BPM-Analyse
-- **Audio-Energie-Tracking**: Echtzeit-Messung der Audio-Intensität (Cinematic Mode)
+- **Audio-Energie-Tracking**: Echtzeit-Messung der Audio-Intensität mit Spectral Flux für präzise Beat-Erkennung (Cinematic Mode)
 - **Unterstützte Quellen**: 
   - Lokale Musikbibliothek (Apple Music/iTunes)
   - Mikrofon-Modus (für Streaming-Dienste)
@@ -388,7 +388,7 @@ Für Fragen, Feedback oder Zusammenarbeit:
 MindSync is an iOS app for **neural entrainment** using audio-synchronised stroboscopic light patterns. It analyses your music in real time and generates light scripts that target specific brainwave ranges (e.g. relaxation, focus, deep meditation).
 
 - Personalised experience: Real-time analysis of your own tracks  
-- Multiple entrainment modes: Alpha, Theta, Gamma & Cinematic  
+- Multiple entrainment modes: Alpha, Theta, Gamma & Cinematic (beat-synchronized pulses)  
 - Dual light sources: Torch (eyes closed) or coloured screen  
 - Safety first: Epilepsy onboarding, frequency limits, thermal management  
 

@@ -21,9 +21,27 @@ final class FlashlightController: BaseLightController, LightControlling {
     private let logger = Logger(subsystem: "com.mindsync", category: "FlashlightController")
     private var torchFailureNotified = false
     
+    // Cinematic mode pulse state tracking
+    private var lastBeatTime: TimeInterval = 0
+    private var lastBeatIntensity: Float = 0.0
+    private let pulseDecayDuration: TimeInterval = 0.12 // 120ms pulse duration for visible beat flashes
+    
+    // Peak detection for cinematic mode
+    private var recentFluxValues: [Float] = []  // Ring buffer for last N flux values (for local average)
+    private var fluxHistory: [Float] = []  // Longer history for adaptive threshold calculation
+    private var lastPeakTime: TimeInterval = 0
+    private let peakCooldownDuration: TimeInterval = 0.05  // 50ms minimum between peaks
+    private let peakRiseThreshold: Float = 0.04  // Minimum 4% rise above local average for peak (reduced for better sensitivity)
+    private let maxFluxHistorySize = 10  // Keep last 10 flux values for local average calculation
+    private let maxAdaptiveHistorySize = 200  // Keep last 200 flux values for adaptive threshold (~20 seconds at 10 Hz)
+    private let absoluteMinimumThreshold: Float = 0.05  // Absolute minimum flux value to consider (reduced for better sensitivity)
+    private let fixedThreshold: Float = 0.1  // Fallback threshold when not enough history (reduced for better sensitivity)
+    private let adaptiveThresholdMultiplier: Float = 0.25  // Use mean + 0.25 * stdDev (reduced for better sensitivity)
+    
     /// Precision timer interval shared across light controllers
-    /// 4ms (250 Hz) provides crisp pulse edges while remaining manageable for the system
-    static let precisionIntervalNanoseconds: Int = 4_000_000
+    /// OPTIMIZED FOR LAMBDA: 1ms (1000 Hz) resolution needed for stable 100 Hz output.
+    /// Previous 4ms was too slow for 10ms periods (100 Hz).
+    static let precisionIntervalNanoseconds: Int = 1_000_000
     private let precisionInterval: DispatchTimeInterval = .nanoseconds(FlashlightController.precisionIntervalNanoseconds)
     
     /// Torch "prewarm" configuration.
@@ -155,13 +173,27 @@ final class FlashlightController: BaseLightController, LightControlling {
     }
 
     func stop() {
+        // CRITICAL: Stop timer FIRST to prevent race conditions and hanging
+        // This ensures no more updateLight() calls happen during cleanup
+        invalidatePrecisionTimer()
+        
+        // Then perform cleanup
         if let device = device, isLocked {
             device.torchMode = .off
             device.unlockForConfiguration()
             isLocked = false
         }
         torchFailureNotified = false
-        cancelExecution()
+        
+        // Reset state
+        setIntensity(0.0)
+        resetScriptExecution()
+        lastBeatTime = 0
+        lastBeatIntensity = 0.0
+        // Reset peak detection state
+        recentFluxValues.removeAll()
+        fluxHistory.removeAll()
+        lastPeakTime = 0
     }
     
     /// Performs a brief torch activation to warm up the hardware and reduce cold-start latency.
@@ -283,6 +315,13 @@ final class FlashlightController: BaseLightController, LightControlling {
         invalidatePrecisionTimer()
         resetScriptExecution()
         setIntensity(0.0)
+        // Reset cinematic mode pulse state
+        lastBeatTime = 0
+        lastBeatIntensity = 0.0
+        // Reset peak detection state
+        recentFluxValues.removeAll()
+        fluxHistory.removeAll()
+        lastPeakTime = 0
     }
     
     func pauseExecution() {
@@ -308,38 +347,66 @@ final class FlashlightController: BaseLightController, LightControlling {
         }
         
         if let script = currentScript {
-            // Check if cinematic mode - apply dynamic intensity modulation
+            // Check if cinematic mode - rhythmic strobe synchronized to audio
             if script.mode == .cinematic {
-                // For cinematic mode, use spectral flux if available (better beat detection)
-                // Otherwise fall back to RMS energy
-                let audioEnergy: Float
-                if let tracker = audioEnergyTracker, tracker.useSpectralFlux {
-                    audioEnergy = tracker.currentSpectralFlux
+                // PHOTO DIVING APPROACH: Hard ON/OFF pulses at a fixed frequency
+                // This creates the stroboscopic effect needed for visual entrainment
+                // The frequency is derived from the audio's dominant rhythm (BPM)
+                
+                let elapsed = result.elapsed
+                let targetFreq = script.targetFrequency > 0 ? script.targetFrequency : 6.5
+                
+                // Calculate square wave phase (hard ON/OFF)
+                let period = 1.0 / targetFreq
+                let phase = (elapsed.truncatingRemainder(dividingBy: period)) / period  // 0.0 to 1.0
+                
+                // HYBRID: Modulate intensity with audio energy for immersive effect
+                let audioModulation: Float
+                if let tracker = audioEnergyTracker {
+                    // Use audio energy to modulate pulse intensity
+                    let energy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
+                    
+                    // Update smoothing buffer
+                    recentFluxValues.append(energy)
+                    if recentFluxValues.count > 10 {  // Longer buffer for stable modulation
+                        recentFluxValues.removeFirst()
+                    }
+                    
+                    let smoothedEnergy = recentFluxValues.reduce(0, +) / Float(recentFluxValues.count)
+                    
+                    // Map to intensity multiplier (0.5 - 1.0 range)
+                    // Never go below 50% to keep pulses visible
+                    audioModulation = 0.5 + (smoothedEnergy * 0.5)
                 } else {
-                    audioEnergy = audioEnergyTracker?.currentEnergy ?? 0.0
+                    // No audio modulation - use full intensity
+                    audioModulation = 1.0
                 }
                 
-                let baseFreq = script.targetFrequency
-                let elapsed = result.elapsed
+                // Generate square wave with frequency-dependent duty cycle
+                let dutyCycle = calculateDutyCycle(for: targetFreq)
+                let isOn = phase < dutyCycle
                 
-                // Calculate cinematic intensity with audio reactivity
-                let cinematicIntensity = EntrainmentEngine.calculateCinematicIntensity(
-                    baseFrequency: baseFreq,
-                    currentTime: elapsed,
-                    audioEnergy: audioEnergy
-                )
+                // Apply intensity: ON = full intensity * audio modulation, OFF = completely dark
+                let finalIntensity: Float = isOn ? audioModulation : 0.0
                 
-                // Use cinematic intensity directly (it already includes wave modulation)
-                setIntensity(cinematicIntensity)
+                // Log every 200ms for diagnostics
+                if Int(elapsed * 1000) % 200 == 0 {
+                    logger.debug("[CINEMATIC] freq=\(String(format: "%.1f", targetFreq))Hz phase=\(String(format: "%.2f", phase)) duty=\(String(format: "%.2f", dutyCycle)) on=\(isOn) mod=\(String(format: "%.2f", audioModulation)) out=\(String(format: "%.2f", finalIntensity))")
+                }
+                
+                setIntensity(finalIntensity)
             } else if let event = result.event {
                 // For other modes, use event-based intensity with waveform
                 let timeWithinEvent = result.elapsed - event.timestamp
+                
+                // CRITICAL UPDATE: Use event-specific frequency if available, else global
+                let effectiveFrequency = event.frequencyOverride ?? script.targetFrequency
                 
                 // Apply waveform-based intensity modulation (similar to ScreenController)
                 let intensity = calculateIntensity(
                     event: event,
                     timeWithinEvent: timeWithinEvent,
-                    targetFrequency: script.targetFrequency
+                    targetFrequency: effectiveFrequency
                 )
                 
                 setIntensity(intensity)
