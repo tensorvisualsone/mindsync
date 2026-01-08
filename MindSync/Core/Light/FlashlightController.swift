@@ -481,7 +481,8 @@ final class FlashlightController: BaseLightController, LightControlling {
                     
                     // Debug: Log audio energy approximately every second
                     if elapsed - lastAudioLogTime >= 1.0 {
-                        logger.debug("[CINEMATIC AUDIO] useSpectralFlux=\(tracker.useSpectralFlux) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) historySize=\(fluxHistory.count) historyMin=\(String(format: "%.3f", historyMin)) historyMax=\(String(format: "%.3f", historyMax)) range=\(String(format: "%.3f", historyRange)) normalized=\(String(format: "%.3f", normalizedEnergy)) rawMod=\(String(format: "%.3f", rawModulation)) boosted=\(String(format: "%.3f", boostedModulation)) final=\(String(format: "%.3f", audioModulation))")
+                        let historySize = self.fluxHistory.count  // Extract before closure
+                        logger.debug("[CINEMATIC AUDIO] useSpectralFlux=\(tracker.useSpectralFlux) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) historySize=\(historySize) historyMin=\(String(format: "%.3f", historyMin)) historyMax=\(String(format: "%.3f", historyMax)) range=\(String(format: "%.3f", historyRange)) normalized=\(String(format: "%.3f", normalizedEnergy)) rawMod=\(String(format: "%.3f", rawModulation)) boosted=\(String(format: "%.3f", boostedModulation)) final=\(String(format: "%.3f", audioModulation))")
                         lastAudioLogTime = elapsed
                     }
                 } else {
@@ -527,7 +528,7 @@ final class FlashlightController: BaseLightController, LightControlling {
                     // Use spectral flux for dynamic modulation
                     let energy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
                     
-                    // Update smoothing buffer for stable modulation
+                    // Update smoothing buffer for stable modulation (shared with cinematic mode)
                     recentFluxValues.append(energy)
                     if recentFluxValues.count > 8 {  // Medium buffer for smooth but reactive modulation
                         recentFluxValues.removeFirst()
@@ -535,27 +536,60 @@ final class FlashlightController: BaseLightController, LightControlling {
                     
                     let smoothedEnergy = recentFluxValues.count > 0 ? recentFluxValues.reduce(0, +) / Float(recentFluxValues.count) : 0.0
                     
-                    // Amplify and apply power curve to spread values across 0.0-1.0 range
-                    // Same aggressive amplification as cinematic mode for consistency
-                    let amplified = min(smoothedEnergy * 10.0, 1.0)
-                    let curved = sqrt(amplified)
+                    // IMPROVED: Use long-term history for better dynamic range (same as cinematic mode)
+                    // This ensures proper contrast stretching across the full track dynamic range
+                    fluxHistory.append(smoothedEnergy)
+                    let historySize = 100  // Keep last 100 smoothed values (~10-20 seconds)
+                    if fluxHistory.count > historySize {
+                        fluxHistory.removeFirst()
+                    }
                     
-                    // Apply contrast stretching: map [0.0-1.0] to [0.0-1.0] with enhanced dynamic range
-                    // This ensures strong pulses (0.0 → 1.0) while filtering very low background noise
-                    // Values below 0.05 map to 0.0, above that scales linearly to full range
-                    let minThreshold: Float = 0.05
-                    let audioModulation: Float = curved > minThreshold ? (curved - minThreshold) / (1.0 - minThreshold) : 0.0
+                    // Calculate min/max from long-term history for accurate normalization
+                    let historyMin: Float = fluxHistory.count > 0 ? (fluxHistory.min() ?? 0.0) : 0.0
+                    let historyMax: Float = fluxHistory.count > 0 ? (fluxHistory.max() ?? smoothedEnergy) : smoothedEnergy
+                    let historyRange = max(historyMax - historyMin, 0.001) // Small but non-zero threshold
+                    
+                    // Normalize current energy to 0-1 range based on long-term history
+                    let normalizedEnergy: Float
+                    if historyRange > 0.001 && historyMax > 0.0 {
+                        normalizedEnergy = min(1.0, max(0.0, (smoothedEnergy - historyMin) / historyRange))
+                    } else {
+                        // Fallback: Use absolute thresholds based on typical flux values
+                        normalizedEnergy = min(smoothedEnergy * 5.0, 1.0)
+                    }
+                    
+                    // Apply power curve for perceptual linearity (preserves relative differences)
+                    let curved = pow(normalizedEnergy, 0.7)
+                    
+                    // Contrast stretching for visible audio reactivity
+                    // Map normalized (0-1) to modulation (0-1) with good contrast:
+                    //   - Bottom 40% → low boost (0.0-0.3)
+                    //   - Top 60% → higher boost (0.3-1.0)
+                    let rawModulation: Float
+                    if curved < 0.4 {
+                        // Low energy: map 0.0-0.4 → 0.0-0.3 (subtle boost)
+                        rawModulation = (curved / 0.4) * 0.3
+                    } else {
+                        // High energy: map 0.4-1.0 → 0.3-1.0 (strong boost)
+                        rawModulation = 0.3 + ((curved - 0.4) / 0.6) * 0.7
+                    }
+                    
+                    let audioModulation = max(0.0, min(1.0, rawModulation))
                     
                     // Use audio modulation as additive enhancement, not replacement
                     // Base waveform should always be visible, audio adds dynamic variation
                     // When audioModulation is high, boost intensity; when low, use base waveform
                     // This ensures continuous entrainment even without strong audio beats
+                    // 
+                    // IMPROVED: Increased boost multiplier from 0.5 to 0.7 for better visibility
+                    // This makes audio-reactive changes more noticeable while preserving base waveform
                     let audioBoost = audioModulation > 0.1 ? audioModulation : 0.0  // Only boost if significant audio
-                    finalIntensity = min(1.0, baseIntensity + (baseIntensity * audioBoost * 0.5))  // Add up to 50% boost
+                    finalIntensity = min(1.0, baseIntensity + (baseIntensity * audioBoost * 0.7))  // Add up to 70% boost
                     
                     // Debug logging for troubleshooting
                     if Int(result.elapsed * 1000) % 500 == 0 {  // Every 500ms
-                        logger.debug("[NON-CINEMATIC] t=\(String(format: "%.3f", result.elapsed))s baseInt=\(String(format: "%.3f", baseIntensity)) eventInt=\(String(format: "%.3f", event.intensity)) audioMod=\(String(format: "%.3f", audioModulation)) boost=\(String(format: "%.3f", audioBoost)) final=\(String(format: "%.3f", finalIntensity))")
+                        let historySizeForLog = self.fluxHistory.count
+                        logger.debug("[NON-CINEMATIC] t=\(String(format: "%.3f", result.elapsed))s baseInt=\(String(format: "%.3f", baseIntensity)) eventInt=\(String(format: "%.3f", event.intensity)) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) historySize=\(historySizeForLog) historyMin=\(String(format: "%.3f", historyMin)) historyMax=\(String(format: "%.3f", historyMax)) normalized=\(String(format: "%.3f", normalizedEnergy)) curved=\(String(format: "%.3f", curved)) audioMod=\(String(format: "%.3f", audioModulation)) boost=\(String(format: "%.3f", audioBoost)) final=\(String(format: "%.3f", finalIntensity))")
                     }
                 } else {
                     // No audio tracking - use base intensity only

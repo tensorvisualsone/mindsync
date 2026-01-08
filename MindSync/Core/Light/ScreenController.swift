@@ -111,20 +111,66 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
                 let period = 1.0 / targetFreq
                 let phase = (elapsed.truncatingRemainder(dividingBy: period)) / period
                 
-                // Audio modulation
+                // Audio modulation (same improved logic as FlashlightController)
                 let audioModulation: Float
                 if let tracker = audioEnergyTracker {
                     let energy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
                     
+                    // Smoothing buffer for stable modulation
                     recentFluxValues.append(energy)
-                    if recentFluxValues.count > 10 {
+                    if recentFluxValues.count > 4 {  // Small buffer for fast response (matching FlashlightController)
                         recentFluxValues.removeFirst()
                     }
                     
-                    let smoothedEnergy = recentFluxValues.reduce(0, +) / Float(recentFluxValues.count)
-                    audioModulation = 0.5 + (smoothedEnergy * 0.5)
+                    let smoothedEnergy = recentFluxValues.count > 0 ? recentFluxValues.reduce(0, +) / Float(recentFluxValues.count) : 0.0
+                    
+                    // Use long-term history for better dynamic range (same as FlashlightController)
+                    fluxHistory.append(smoothedEnergy)
+                    let historySize = 100  // Keep last 100 smoothed values (~10-20 seconds)
+                    if fluxHistory.count > historySize {
+                        fluxHistory.removeFirst()
+                    }
+                    
+                    // Calculate min/max from long-term history for accurate normalization
+                    let historyMin: Float = fluxHistory.count > 0 ? (fluxHistory.min() ?? 0.0) : 0.0
+                    let historyMax: Float = fluxHistory.count > 0 ? (fluxHistory.max() ?? smoothedEnergy) : smoothedEnergy
+                    let historyRange = max(historyMax - historyMin, 0.001) // Small but non-zero threshold
+                    
+                    // Normalize current energy to 0-1 range based on long-term history
+                    let normalizedEnergy: Float
+                    if historyRange > 0.001 && historyMax > 0.0 {
+                        normalizedEnergy = min(1.0, max(0.0, (smoothedEnergy - historyMin) / historyRange))
+                    } else {
+                        // Fallback: Use absolute thresholds based on typical flux values
+                        normalizedEnergy = min(smoothedEnergy * 5.0, 1.0)
+                    }
+                    
+                    // Apply power curve for perceptual linearity
+                    let curved = pow(normalizedEnergy, 0.7)
+                    
+                    // EXTREME contrast stretching for maximum visual impact (matching FlashlightController)
+                    let rawModulation: Float
+                    if curved < 0.3 {
+                        // Quiet: map 0.0-0.3 → 0.0-0.15 (nearly dark)
+                        rawModulation = (curved / 0.3) * 0.15
+                    } else if curved < 0.6 {
+                        // Medium: map 0.3-0.6 → 0.15-0.50 (dim to moderate)
+                        rawModulation = 0.15 + ((curved - 0.3) / 0.3) * 0.35
+                    } else {
+                        // Loud: map 0.6-1.0 → 0.50-1.0 (bright to maximum)
+                        rawModulation = 0.50 + ((curved - 0.6) / 0.4) * 0.50
+                    }
+                    
+                    // Additional boost for very high values to make strong beats pop
+                    if rawModulation > 0.75 {
+                        // Strong beats: boost from 0.75-1.0 to 0.90-1.0
+                        audioModulation = 0.90 + ((rawModulation - 0.75) / 0.25) * 0.10
+                    } else {
+                        audioModulation = rawModulation
+                    }
                 } else {
-                    audioModulation = 1.0
+                    // No audio tracking - use moderate intensity (not full, to show difference)
+                    audioModulation = 0.5
                 }
                 
                 // Square wave with duty cycle
@@ -139,22 +185,78 @@ final class ScreenController: BaseLightController, LightControlling, ObservableO
                 
                 currentColor = baseColor.opacity(Double(finalIntensity))
             } else if let event = result.event {
-                // For other modes, use event-based intensity with waveform
+                // For other modes (Alpha, Theta, Gamma): Event-based with audio-reactive modulation
                 let lightColor = event.color ?? defaultColor
                 let baseColor = lightColor.swiftUIColor(customRGB: customColorRGB?.tuple)
                 
                 // CRITICAL UPDATE: Use event-specific frequency if available, else global
                 let effectiveFrequency = event.frequencyOverride ?? script.targetFrequency
                 
-                // Apply intensity as opacity for smoother transitions
-                // Waveform affects how intensity is applied over time
-                let opacity = calculateOpacity(
+                // Calculate base opacity from waveform
+                let baseOpacity = calculateOpacity(
                     event: event,
                     elapsed: result.elapsed - event.timestamp,
                     targetFrequency: effectiveFrequency
                 )
                 
-                currentColor = baseColor.opacity(opacity)
+                // Apply audio-reactive modulation if tracker is available (same logic as FlashlightController)
+                let finalOpacity: Double
+                if let tracker = audioEnergyTracker {
+                    let energy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
+                    
+                    // Update smoothing buffer (shared with cinematic mode)
+                    recentFluxValues.append(energy)
+                    if recentFluxValues.count > 8 {  // Medium buffer for smooth but reactive modulation
+                        recentFluxValues.removeFirst()
+                    }
+                    
+                    let smoothedEnergy = recentFluxValues.count > 0 ? recentFluxValues.reduce(0, +) / Float(recentFluxValues.count) : 0.0
+                    
+                    // Use long-term history for better dynamic range (same as FlashlightController)
+                    fluxHistory.append(smoothedEnergy)
+                    let historySize = 100  // Keep last 100 smoothed values (~10-20 seconds)
+                    if fluxHistory.count > historySize {
+                        fluxHistory.removeFirst()
+                    }
+                    
+                    // Calculate min/max from long-term history
+                    let historyMin: Float = fluxHistory.count > 0 ? (fluxHistory.min() ?? 0.0) : 0.0
+                    let historyMax: Float = fluxHistory.count > 0 ? (fluxHistory.max() ?? smoothedEnergy) : smoothedEnergy
+                    let historyRange = max(historyMax - historyMin, 0.001)
+                    
+                    // Normalize current energy to 0-1 range
+                    let normalizedEnergy: Float
+                    if historyRange > 0.001 && historyMax > 0.0 {
+                        normalizedEnergy = min(1.0, max(0.0, (smoothedEnergy - historyMin) / historyRange))
+                    } else {
+                        normalizedEnergy = min(smoothedEnergy * 5.0, 1.0)
+                    }
+                    
+                    // Apply power curve for perceptual linearity
+                    let curved = pow(normalizedEnergy, 0.7)
+                    
+                    // Contrast stretching for visible audio reactivity
+                    let rawModulation: Float
+                    if curved < 0.4 {
+                        // Low energy: map 0.0-0.4 → 0.0-0.3 (subtle boost)
+                        rawModulation = (curved / 0.4) * 0.3
+                    } else {
+                        // High energy: map 0.4-1.0 → 0.3-1.0 (strong boost)
+                        rawModulation = 0.3 + ((curved - 0.4) / 0.6) * 0.7
+                    }
+                    
+                    let audioModulation = max(0.0, min(1.0, rawModulation))
+                    
+                    // Use audio modulation as additive enhancement (matching FlashlightController)
+                    let audioBoost = audioModulation > 0.1 ? audioModulation : 0.0
+                    let boostedOpacity = min(1.0, Double(baseOpacity) + (baseOpacity * Double(audioBoost) * 0.7))  // Add up to 70% boost
+                    finalOpacity = boostedOpacity
+                } else {
+                    // No audio tracking - use base opacity only
+                    finalOpacity = baseOpacity
+                }
+                
+                currentColor = baseColor.opacity(finalOpacity)
             } else {
                 // Between events or no active event, show black
                 currentColor = .black
