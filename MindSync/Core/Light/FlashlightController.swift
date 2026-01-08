@@ -26,6 +26,9 @@ final class FlashlightController: BaseLightController, LightControlling {
     private var lastBeatIntensity: Float = 0.0
     private let pulseDecayDuration: TimeInterval = 0.12 // 120ms pulse duration for visible beat flashes
     
+    // Debug logging timestamp tracking
+    private var lastAudioLogTime: TimeInterval = -1.0  // Last time we logged audio energy
+    
     // Peak detection for cinematic mode
     private var recentFluxValues: [Float] = []  // Ring buffer for last N flux values (for local average)
     private var fluxHistory: [Float] = []  // Longer history for adaptive threshold calculation
@@ -194,6 +197,8 @@ final class FlashlightController: BaseLightController, LightControlling {
         recentFluxValues.removeAll()
         fluxHistory.removeAll()
         lastPeakTime = 0
+        // Reset debug logging timestamp
+        lastAudioLogTime = -1.0
     }
     
     /// Performs a brief torch activation to warm up the hardware and reduce cold-start latency.
@@ -322,6 +327,8 @@ final class FlashlightController: BaseLightController, LightControlling {
         recentFluxValues.removeAll()
         fluxHistory.removeAll()
         lastPeakTime = 0
+        // Reset debug logging timestamp
+        lastAudioLogTime = -1.0
     }
     
     func pauseExecution() {
@@ -390,9 +397,10 @@ final class FlashlightController: BaseLightController, LightControlling {
                     // Stronger audio = brighter pulses, but always visible
                     audioModulation = 0.4 + (smoothedEnergy * 0.6)
                     
-                    // Debug: Log audio energy every second
-                    if Int(elapsed * 1000) % 1000 == 0 {
+                    // Debug: Log audio energy approximately every second
+                    if elapsed - lastAudioLogTime >= 1.0 {
                         logger.debug("[CINEMATIC AUDIO] useSpectralFlux=\(tracker.useSpectralFlux) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) modulation=\(String(format: "%.3f", audioModulation))")
+                        lastAudioLogTime = elapsed
                     }
                 } else {
                     // No audio tracking - use full intensity
