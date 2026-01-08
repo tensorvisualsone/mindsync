@@ -465,12 +465,13 @@ final class FlashlightController: BaseLightController, LightControlling {
                     let amplified = min(smoothedEnergy * 10.0, 1.0)
                     let curved = sqrt(amplified)
                     
-                    // Map to full modulation range (0.0 - 1.0) for strong pulse effect
-                    // Dark moments (0.0) between bright pulses create intense closed-eye stimulation
+                    // Audio modulation directly controls intensity (0.0-1.0) for strong pulse effect
+                    // This matches cinematic mode behavior: complete darkness → full brightness
                     let audioModulation = curved
                     
-                    // Apply modulation to base intensity
-                    finalIntensity = baseIntensity * audioModulation
+                    // Use audio modulation directly (not as multiplier)
+                    // This creates the same strong pulse effect as cinematic mode
+                    finalIntensity = audioModulation
                 } else {
                     // No audio tracking - use base intensity only
                     finalIntensity = baseIntensity
