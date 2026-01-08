@@ -26,6 +26,17 @@ final class FlashlightController: BaseLightController, LightControlling {
     private var lastBeatIntensity: Float = 0.0
     private let pulseDecayDuration: TimeInterval = 0.12 // 120ms pulse duration for visible beat flashes
     
+    // Peak detection for cinematic mode
+    private var recentFluxValues: [Float] = []  // Ring buffer for last N flux values (for local average)
+    private var fluxHistory: [Float] = []  // Longer history for adaptive threshold calculation
+    private var lastPeakTime: TimeInterval = 0
+    private let peakCooldownDuration: TimeInterval = 0.05  // 50ms minimum between peaks
+    private let peakRiseThreshold: Float = 0.15  // Minimum 15% rise above local average for peak
+    private let maxFluxHistorySize = 10  // Keep last 10 flux values for local average calculation
+    private let maxAdaptiveHistorySize = 200  // Keep last 200 flux values for adaptive threshold (~20 seconds at 10 Hz)
+    private let absoluteMinimumThreshold: Float = 0.15  // Absolute minimum flux value to consider
+    private let fixedThreshold: Float = 0.25  // Fallback threshold when not enough history
+    
     /// Precision timer interval shared across light controllers
     /// OPTIMIZED FOR LAMBDA: 1ms (1000 Hz) resolution needed for stable 100 Hz output.
     /// Previous 4ms was too slow for 10ms periods (100 Hz).
@@ -178,6 +189,10 @@ final class FlashlightController: BaseLightController, LightControlling {
         resetScriptExecution()
         lastBeatTime = 0
         lastBeatIntensity = 0.0
+        // Reset peak detection state
+        recentFluxValues.removeAll()
+        fluxHistory.removeAll()
+        lastPeakTime = 0
     }
     
     /// Performs a brief torch activation to warm up the hardware and reduce cold-start latency.
@@ -302,6 +317,10 @@ final class FlashlightController: BaseLightController, LightControlling {
         // Reset cinematic mode pulse state
         lastBeatTime = 0
         lastBeatIntensity = 0.0
+        // Reset peak detection state
+        recentFluxValues.removeAll()
+        fluxHistory.removeAll()
+        lastPeakTime = 0
     }
     
     func pauseExecution() {
@@ -338,28 +357,82 @@ final class FlashlightController: BaseLightController, LightControlling {
                     audioEnergy = audioEnergyTracker?.currentEnergy ?? 0.0
                 }
                 
-                let baseFreq = script.targetFrequency
                 let elapsed = result.elapsed
                 
-                // Calculate cinematic intensity with audio reactivity
-                let cinematicIntensity = EntrainmentEngine.calculateCinematicIntensity(
-                    baseFrequency: baseFreq,
-                    currentTime: elapsed,
-                    audioEnergy: audioEnergy
-                )
-                
-                // Simplified beat detection: Use cinematic intensity directly
-                // calculateCinematicIntensity already handles threshold detection (0.35)
-                // and returns 0.0 for low energy, so we can trust it
+                // Peak detection: Only trigger pulses on significant rises (transients),
+                // not on sustained high values. This prevents continuous lighting.
                 let finalIntensity: Float
                 
-                if cinematicIntensity > 0.0 {
-                    // Beat detected by calculateCinematicIntensity: Start a new pulse
-                    lastBeatTime = elapsed
-                    lastBeatIntensity = cinematicIntensity
-                    finalIntensity = cinematicIntensity
+                // Update flux history (ring buffer for local average)
+                recentFluxValues.append(audioEnergy)
+                if recentFluxValues.count > maxFluxHistorySize {
+                    recentFluxValues.removeFirst()
+                }
+                
+                // Update adaptive threshold history (longer history)
+                fluxHistory.append(audioEnergy)
+                if fluxHistory.count > maxAdaptiveHistorySize {
+                    fluxHistory.removeFirst()
+                }
+                
+                // Calculate adaptive threshold (mean + 0.5 * stdDev) similar to BeatDetector
+                let adaptiveThreshold: Float
+                if fluxHistory.count >= 20 {
+                    // Enough history for meaningful statistics
+                    let sum = fluxHistory.reduce(0, +)
+                    let mean = sum / Float(fluxHistory.count)
+                    
+                    // Calculate variance and standard deviation
+                    let sumOfSquares = fluxHistory.map { ($0 - mean) * ($0 - mean) }.reduce(0, +)
+                    let variance = sumOfSquares / Float(fluxHistory.count)
+                    let stdDev = sqrt(max(0, variance))  // max(0, ...) to handle floating point errors
+                    
+                    // Adaptive threshold: mean + 0.5 * stdDev (same formula as BeatDetector)
+                    adaptiveThreshold = mean + 0.5 * stdDev
                 } else {
-                    // No beat detected: Apply exponential decay from last beat
+                    // Not enough history, use fixed threshold
+                    adaptiveThreshold = fixedThreshold
+                }
+                
+                // Calculate local average of recent flux values (for transient detection)
+                let localAverage: Float
+                if recentFluxValues.count >= 3 {
+                    // Use at least 3 values for meaningful average
+                    let sum = recentFluxValues.reduce(0, +)
+                    localAverage = sum / Float(recentFluxValues.count)
+                } else {
+                    // Not enough history yet, use current value as baseline
+                    localAverage = audioEnergy
+                }
+                
+                // Detect peak: Significant rise above local average AND above adaptive threshold
+                let fluxRise = audioEnergy - localAverage
+                let isSignificantRise = fluxRise > peakRiseThreshold
+                let isAboveAdaptiveThreshold = audioEnergy > adaptiveThreshold
+                let isAboveMinimum = audioEnergy > absoluteMinimumThreshold
+                let timeSinceLastPeak = elapsed - lastPeakTime
+                let cooldownExpired = timeSinceLastPeak >= peakCooldownDuration
+                
+                // Peak detected if:
+                // 1. Significant rise above local average (transient detection)
+                // 2. Above adaptive threshold (adapts to music dynamics)
+                // 3. Above absolute minimum threshold
+                // 4. Cooldown period has expired
+                let isPeakDetected = isSignificantRise && isAboveAdaptiveThreshold && isAboveMinimum && cooldownExpired
+                
+                if isPeakDetected {
+                    // Peak detected: Start a new pulse
+                    // Scale intensity based on rise amount and absolute flux value
+                    let baseIntensity = min(1.0, 0.5 + (audioEnergy * 0.5))  // 0.5-1.0 range
+                    let riseMultiplier = min(2.0, 1.0 + (fluxRise * 2.0))  // Boost for larger rises
+                    let peakIntensity = min(1.0, baseIntensity * riseMultiplier)
+                    
+                    lastPeakTime = elapsed
+                    lastBeatTime = elapsed
+                    lastBeatIntensity = peakIntensity
+                    finalIntensity = peakIntensity
+                } else {
+                    // No peak detected: Apply exponential decay from last beat
                     let timeSinceLastBeat = elapsed - lastBeatTime
                     if timeSinceLastBeat < pulseDecayDuration && lastBeatIntensity > 0.0 {
                         // Decay exponentially: intensity = base * exp(-time / decay)
