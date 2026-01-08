@@ -31,11 +31,12 @@ final class FlashlightController: BaseLightController, LightControlling {
     private var fluxHistory: [Float] = []  // Longer history for adaptive threshold calculation
     private var lastPeakTime: TimeInterval = 0
     private let peakCooldownDuration: TimeInterval = 0.05  // 50ms minimum between peaks
-    private let peakRiseThreshold: Float = 0.15  // Minimum 15% rise above local average for peak
+    private let peakRiseThreshold: Float = 0.08  // Minimum 8% rise above local average for peak (reduced for better sensitivity)
     private let maxFluxHistorySize = 10  // Keep last 10 flux values for local average calculation
     private let maxAdaptiveHistorySize = 200  // Keep last 200 flux values for adaptive threshold (~20 seconds at 10 Hz)
-    private let absoluteMinimumThreshold: Float = 0.15  // Absolute minimum flux value to consider
-    private let fixedThreshold: Float = 0.25  // Fallback threshold when not enough history
+    private let absoluteMinimumThreshold: Float = 0.1  // Absolute minimum flux value to consider (reduced for better sensitivity)
+    private let fixedThreshold: Float = 0.2  // Fallback threshold when not enough history (reduced from 0.25)
+    private let adaptiveThresholdMultiplier: Float = 0.3  // Use mean + 0.3 * stdDev (reduced from 0.5 for better sensitivity)
     
     /// Precision timer interval shared across light controllers
     /// OPTIMIZED FOR LAMBDA: 1ms (1000 Hz) resolution needed for stable 100 Hz output.
@@ -375,7 +376,7 @@ final class FlashlightController: BaseLightController, LightControlling {
                     fluxHistory.removeFirst()
                 }
                 
-                // Calculate adaptive threshold (mean + 0.5 * stdDev) similar to BeatDetector
+                // Calculate adaptive threshold (mean + 0.3 * stdDev) for better sensitivity
                 let adaptiveThreshold: Float
                 if fluxHistory.count >= 20 {
                     // Enough history for meaningful statistics
@@ -387,8 +388,8 @@ final class FlashlightController: BaseLightController, LightControlling {
                     let variance = sumOfSquares / Float(fluxHistory.count)
                     let stdDev = sqrt(max(0, variance))  // max(0, ...) to handle floating point errors
                     
-                    // Adaptive threshold: mean + 0.5 * stdDev (same formula as BeatDetector)
-                    adaptiveThreshold = mean + 0.5 * stdDev
+                    // Adaptive threshold: mean + 0.3 * stdDev (reduced multiplier for better sensitivity)
+                    adaptiveThreshold = mean + adaptiveThresholdMultiplier * stdDev
                 } else {
                     // Not enough history, use fixed threshold
                     adaptiveThreshold = fixedThreshold
@@ -405,7 +406,7 @@ final class FlashlightController: BaseLightController, LightControlling {
                     localAverage = audioEnergy
                 }
                 
-                // Detect peak: Significant rise above local average AND above adaptive threshold
+                // Detect peak: Either significant rise OR above adaptive threshold (less restrictive)
                 let fluxRise = audioEnergy - localAverage
                 let isSignificantRise = fluxRise > peakRiseThreshold
                 let isAboveAdaptiveThreshold = audioEnergy > adaptiveThreshold
@@ -414,11 +415,12 @@ final class FlashlightController: BaseLightController, LightControlling {
                 let cooldownExpired = timeSinceLastPeak >= peakCooldownDuration
                 
                 // Peak detected if:
-                // 1. Significant rise above local average (transient detection)
-                // 2. Above adaptive threshold (adapts to music dynamics)
-                // 3. Above absolute minimum threshold
-                // 4. Cooldown period has expired
-                let isPeakDetected = isSignificantRise && isAboveAdaptiveThreshold && isAboveMinimum && cooldownExpired
+                // 1. (Significant rise above local average OR above adaptive threshold) - less restrictive
+                // 2. Above absolute minimum threshold
+                // 3. Cooldown period has expired
+                // This allows peaks to be detected either through transient detection OR adaptive threshold,
+                // making the system more responsive while still preventing continuous lighting
+                let isPeakDetected = (isSignificantRise || isAboveAdaptiveThreshold) && isAboveMinimum && cooldownExpired
                 
                 if isPeakDetected {
                     // Peak detected: Start a new pulse
