@@ -64,11 +64,11 @@ Neural Entrainment basiert auf jahrzehntelanger Forschung:
 - **Intensität**: 50%
 - **Ideal für**: Lernen, intensive Denkaufgaben, Flow-Zustände
 
-### Cinematic-Modus – Beat-Locked Audio-Visual Synchronization
+### Cinematic-Modus – Audio-reaktive Audio-Visual Synchronisation
 - **Ziel**: Immersive, filmische Erfahrung mit echter Audio-Synchronisation
-- **Besonderheit**: Flashlight-Pulse direkt synchronisiert mit Audio-Beats
-- **Technik**: Beat-Detection → Diskrete 40ms Pulse bei jedem Beat → Audio-modulierte Intensität
-- **Wissenschaftliche Basis**: Audio-visuelle Entrainment erfordert zeitliche Koinzidenz (Lakatos et al., 2008)
+- **Besonderheit**: Kontinuierliche, audio-reaktive Flashlight-Intensität, die dem zeitlichen Verlauf und der Dynamik der Musik folgt
+- **Technik**: Echtzeit-Analyse der spektralen Flux → Kontinuierliche, audio-modulierte Lichtintensität (keine diskreten Pulse)
+- **Wissenschaftliche Basis**: Audio-visuelles Entrainment erfordert zeitliche Koinzidenz und dynamische Kopplung von Klang- und Lichtreizen (Lakatos et al., 2008)
 - **Ideal für**: Musikgenuss, Photo Diving mit geschlossenen Augen, kreative Inspiration
 
 ---
@@ -153,7 +153,7 @@ for beat in beats {
 }
 ```
 
-Im **Cinematic Mode** werden diskrete Lichtpulse bei jedem erkannten Beat getriggert (40ms Pulsdauer). Die Pulsintensität wird zusätzlich mit der aktuellen Audio-Energie moduliert, sodass stärkere Beats hellere Pulse erzeugen. Dies ermöglicht echte Audio-Visual Synchronisation statt eines festen Stroboskop-Rhythmus.
+Im **Cinematic Mode** folgt die Flashlight-Intensität kontinuierlich der Audio-Energie in Echtzeit. Durch spektrale Flux-Analyse wird die Lichtintensität dynamisch an die Musik angepasst: starke Beats erzeugen helle Pulse, ruhige Passagen dimmen das Licht. Dies ermöglicht echte Audio-Visual Synchronisation mit fließenden Übergängen statt diskreter Pulse.
 
 ---
 
