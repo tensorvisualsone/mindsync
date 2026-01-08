@@ -33,6 +33,17 @@ Dieser Workflow führt statische Code-Analyse mit CodeQL durch, um Sicherheitsl�
 - Push auf `main` oder `master` Branch
 - Pull Requests gegen `main` oder `master` Branch
 - Wöchentlich (Sonntag um Mitternacht)
+- Manuell über "Run workflow"
+
+**Schritte:**
+1. Repository auschecken
+2. CodeQL initialisieren (mit `build-mode: manual`)
+3. Xcode einrichten (neueste stabile Version)
+4. Shared Scheme-Verzeichnis erstellen
+5. Projekt bauen (Debug, iOS Simulator) - CodeQL trackt automatisch
+6. CodeQL-Analyse durchführen
+
+**Wichtig:** Der Workflow verwendet `build-mode: manual`, was bedeutet, dass CodeQL automatisch den Build-Prozess überwacht. Es ist **nicht** notwendig, `codeql database trace-command` manuell aufzurufen - ein einfacher `xcodebuild`-Befehl reicht aus.
 
 ## Scheme als "Shared" markieren
 
