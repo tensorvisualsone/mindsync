@@ -360,8 +360,9 @@ final class FlashlightController: BaseLightController, LightControlling {
             // Debug: Log when no event is found (first few times to diagnose)
             if result.event == nil {
                 self.noEventLogCount += 1
-                if self.noEventLogCount <= 10 || self.noEventLogCount % 100 == 0 {
-                    logger.warning("[FLASHLIGHT DEBUG] No event found! count=\(self.noEventLogCount) elapsed=\(String(format: "%.3f", result.elapsed))s mode=\(script.mode.rawValue) eventsCount=\(script.events.count) isComplete=\(result.isComplete)")
+                let count = self.noEventLogCount
+                if count <= 10 || count % 100 == 0 {
+                    logger.warning("[FLASHLIGHT DEBUG] No event found! count=\(count) elapsed=\(String(format: "%.3f", result.elapsed))s mode=\(script.mode.rawValue) eventsCount=\(script.events.count) isComplete=\(result.isComplete)")
                     if script.events.count > 0 && result.elapsed < 5.0 {
                         let firstEvent = script.events[0]
                         logger.warning("[FLASHLIGHT DEBUG] First event: timestamp=\(String(format: "%.3f", firstEvent.timestamp))s duration=\(String(format: "%.3f", firstEvent.duration))s intensity=\(String(format: "%.3f", firstEvent.intensity))")
@@ -384,7 +385,9 @@ final class FlashlightController: BaseLightController, LightControlling {
                 // neural entrainment. Gaps in stimulation break synchronization.
                 // (Ref: Nozaradan et al., 2011; Lakatos et al., 2008)
                 
-                guard result.event != nil else {
+                // Note: We only check that event exists for script validation
+                // Actual light intensity is calculated from audio modulation, not from event
+                if result.event == nil {
                     // No active event - turn off
                     setIntensity(0.0)
                     return
@@ -398,42 +401,63 @@ final class FlashlightController: BaseLightController, LightControlling {
                 let phase = (elapsed.truncatingRemainder(dividingBy: period)) / period  // 0.0 to 1.0
                 
                 // Audio-reactive intensity modulation
+                // IMPROVED: Stronger audio response with better dynamic range
                 let audioModulation: Float
                 if let tracker = audioEnergyTracker {
                     // Use spectral flux to modulate pulse intensity based on beat strength
                     let energy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
                     
-                    // Update smoothing buffer for stable modulation
+                    // Reduced smoothing buffer for faster audio response (4 instead of 8)
+                    // This makes the light react more quickly to audio changes
                     recentFluxValues.append(energy)
-                    if recentFluxValues.count > 8 {  // Medium buffer for smooth but reactive modulation
+                    if recentFluxValues.count > 4 {  // Smaller buffer for faster, more reactive modulation
                         recentFluxValues.removeFirst()
                     }
                     
                     let smoothedEnergy = recentFluxValues.count > 0 ? recentFluxValues.reduce(0, +) / Float(recentFluxValues.count) : 0.0
                     
-                    // Amplify and apply power curve to spread values across 0.0-1.0 range
-                    // Binaural beats have very low spectral flux (~0.04-0.07 raw values)
-                    // Aggressive amplification (10x) + power curve ensures full 0.0-1.0 dynamic range
-                    // This creates the sharp pulse effect: complete darkness → full brightness
-                    let amplified = min(smoothedEnergy * 10.0, 1.0)
-                    let curved = sqrt(amplified)  // Power curve to spread dynamic range
+                    // Enhanced amplification and dynamic range mapping
+                    // Problem: Previous 10x amplification + sqrt was too conservative
+                    // Solution: Higher amplification (15x) + steeper curve for better contrast
+                    // This creates more dramatic pulses: dark silence → bright beats
+                    let amplified = min(smoothedEnergy * 15.0, 1.0)
                     
-                    // Map to full intensity range (0.0 - 1.0)
-                    // This creates strong pulse effect: completely dark (0.0) to bright (1.0)
-                    audioModulation = curved
+                    // Use power curve (x^0.7 instead of sqrt) for better dynamic range
+                    // This preserves subtle variations while emphasizing strong beats
+                    // - Low energy (0.0-0.3): Maps to very dark (0.0-0.15) - nearly off
+                    // - Mid energy (0.3-0.7): Maps to moderate (0.15-0.6) - visible
+                    // - High energy (0.7-1.0): Maps to bright (0.6-1.0) - strong pulses
+                    let curved = pow(amplified, 0.7)
+                    
+                    // Apply contrast stretching: emphasize beats more strongly
+                    // Map the lower range (0.0-0.2) to near-darkness (0.0-0.1)
+                    // Map the upper range (0.2-1.0) to visible-bright range (0.1-1.0)
+                    // This ensures quiet passages are nearly off, beats are clearly visible
+                    let minThreshold: Float = 0.2
+                    let rawModulation: Float
+                    if curved < minThreshold {
+                        // Quiet: map 0.0-0.2 → 0.0-0.1 (nearly dark)
+                        rawModulation = (curved / minThreshold) * 0.1
+                    } else {
+                        // Active: map 0.2-1.0 → 0.1-1.0 (visible to bright)
+                        rawModulation = 0.1 + ((curved - minThreshold) / (1.0 - minThreshold)) * 0.9
+                    }
+                    
+                    // Clamp to valid range
+                    audioModulation = max(0.0, min(1.0, rawModulation))
                     
                     // Debug: Log audio energy approximately every second
                     if elapsed - lastAudioLogTime >= 1.0 {
-                        logger.debug("[CINEMATIC AUDIO] useSpectralFlux=\(tracker.useSpectralFlux) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) modulation=\(String(format: "%.3f", audioModulation))")
+                        logger.debug("[CINEMATIC AUDIO] useSpectralFlux=\(tracker.useSpectralFlux) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) amplified=\(String(format: "%.3f", amplified)) curved=\(String(format: "%.3f", curved)) modulation=\(String(format: "%.3f", audioModulation))")
                         lastAudioLogTime = elapsed
                     }
                 } else {
-                    // No audio tracking - use full intensity
-                    audioModulation = 1.0
+                    // No audio tracking - use moderate intensity (not full, to show difference)
+                    audioModulation = 0.5
                     
                     // Debug: Log missing tracker
                     if Int(elapsed * 1000) % 2000 == 0 {
-                        logger.warning("[CINEMATIC AUDIO] audioEnergyTracker is NIL - audio modulation disabled!")
+                        logger.warning("[CINEMATIC AUDIO] audioEnergyTracker is NIL - audio modulation disabled! Using fallback intensity 0.5")
                     }
                 }
                 
