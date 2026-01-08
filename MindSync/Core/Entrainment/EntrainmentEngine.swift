@@ -32,39 +32,39 @@ final class EntrainmentEngine {
         
         var output: Float
         
-        // Threshold for beat detection (spectral flux > 0.35 indicates a beat/transient)
+        // Threshold for beat detection (spectral flux > 0.25 indicates a beat/transient)
         //
-        // INCREASED from 0.2 to 0.35 to reduce false positives and ensure only clear beats trigger light pulses.
-        // This prevents the flashlight from staying on continuously and creates more distinct, beat-synchronized flashes.
+        // REDUCED from 0.35 to 0.25 to improve sensitivity and ensure beats are detected
+        // even in quieter or less percussive music. The previous threshold was too high,
+        // causing the flashlight to remain dark most of the time.
         //
-        // This threshold of 0.35 (35% of normalized flux) was chosen to balance sensitivity
-        // across different music genres:
+        // This threshold of 0.25 (25% of normalized flux) balances sensitivity and specificity:
         // - Electronic/EDM: Strong bass hits typically produce 0.5-1.0, well above threshold
-        // - Rock/Pop: Drum hits produce 0.4-0.8, reliably triggering beats
-        // - Hip-hop: 808 bass and snare produce 0.5-0.9, strong detection
-        // - Classical: Bass drum attacks produce 0.3-0.6, capturing major transients
-        // - Ambient/Acoustic: Gentle percussion produces 0.2-0.4, selective triggering
+        // - Rock/Pop: Drum hits produce 0.3-0.8, reliably triggering beats
+        // - Hip-hop: 808 bass and snare produce 0.4-0.9, strong detection
+        // - Classical: Bass drum attacks produce 0.25-0.6, capturing major transients
+        // - Ambient/Acoustic: Gentle percussion produces 0.2-0.4, now triggering appropriately
         //
-        // The higher threshold ensures that:
-        // - Only clear percussive events trigger light pulses (reduces continuous lighting)
-        // - Sustained bass notes or gradual swells don't trigger false beats
-        // - Background noise or room ambience (flux < 0.2) is completely ignored
-        // - Light pulses are distinct and clearly synchronized to music beats
+        // The threshold ensures that:
+        // - Clear percussive events reliably trigger light pulses
+        // - Sustained bass notes or gradual swells don't trigger false beats (still filtered)
+        // - Background noise or room ambience (flux < 0.15) is still ignored
+        // - Light pulses are synchronized to music beats with good responsiveness
         //
         // Future enhancement: Consider implementing adaptive thresholding based on recent
         // flux history (e.g., use mean + 2*stddev as threshold) to automatically adjust
         // for different music dynamics and mastering levels.
-        let beatThreshold: Float = 0.35
+        let beatThreshold: Float = 0.25
         
         if audioEnergy > beatThreshold {
             // High spectral flux detected (beat/transient): Create sharp pulse
             // Scale intensity based on flux strength
-            // Maps: 0.35 -> 0.6, 1.0 -> 1.0
+            // Maps: 0.25 -> 0.5, 1.0 -> 1.0
             let normalizedFlux = (audioEnergy - beatThreshold) / (1.0 - beatThreshold)
-            output = 0.6 + (normalizedFlux * 0.4)
+            output = 0.5 + (normalizedFlux * 0.5)
             
             // Ensure pulse is strong enough to be visible
-            // Minimum intensity of 0.6 (60%) for beat-synchronized pulses
+            // Minimum intensity of 0.5 (50%) for beat-synchronized pulses
             //
             // SAFETY VALIDATION:
             // This 50% minimum intensity for cinematic beat pulses has been validated against
@@ -98,7 +98,7 @@ final class EntrainmentEngine {
             // References:
             // - Harding, G. & Jeavons, P. (1994). "Photosensitive Epilepsy"
             // - Project safety documentation: .specify/memory/constitution.md
-            output = max(0.6, output)
+            output = max(0.5, output)
         } else {
             // Low spectral flux: Turn off light between beats for clear beat synchronization
             // This creates distinct pulses on beats and darkness between beats, which is

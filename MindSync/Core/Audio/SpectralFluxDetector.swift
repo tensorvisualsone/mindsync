@@ -101,27 +101,29 @@ final class SpectralFluxDetector {
         
         // Normalize flux to 0.0 - 1.0 range
         //
-        // Normalization factor of 100.0 is empirically derived from testing with typical music
-        // at standard listening levels (~70-85 dB SPL) across multiple genres:
-        // - Electronic music (EDM, house): Bass drops and kick drums produce flux ~80-120
-        // - Rock/Pop: Drum hits and bass guitar produce flux ~40-80
-        // - Hip-hop: 808 bass and snare produce flux ~60-100
-        // - Classical/Acoustic: Bass drum and cello attacks produce flux ~30-60
+        // Normalization factor of 80.0 (reduced from 100.0) to improve sensitivity for cinematic mode.
+        // This ensures that more beats are detected, especially in quieter or less percussive music.
+        //
+        // The factor of 80.0 ensures that:
+        // - Moderate percussive events (flux ~20-40) register as 0.25-0.5, triggering light pulses
+        // - Strong bass transients (flux ~60-80+) saturate near 1.0, creating maximal light intensity
+        // - Quiet passages or sustained tones (flux <10) stay below 0.125, maintaining dark baseline
         //
         // Testing was performed on iPhone 13 Pro and iPhone 14 Pro Max with local audio files
-        // (AAC 256kbps) and Apple Music streaming. The factor of 100.0 ensures that:
-        // - Moderate percussive events (flux ~30-50) register as 0.3-0.5, providing clear light response
-        // - Strong bass transients (flux ~70-100+) saturate near 1.0, creating maximal light intensity
-        // - Quiet passages or sustained tones (flux <10) stay below 0.1, maintaining dark baseline
+        // (AAC 256kbps) and Apple Music streaming. The reduced factor improves responsiveness:
+        // - Electronic music (EDM, house): Bass drops and kick drums produce flux ~80-120 → 1.0-1.5 (clamped to 1.0)
+        // - Rock/Pop: Drum hits and bass guitar produce flux ~40-80 → 0.5-1.0
+        // - Hip-hop: 808 bass and snare produce flux ~60-100 → 0.75-1.25 (clamped to 1.0)
+        // - Classical/Acoustic: Bass drum and cello attacks produce flux ~30-60 → 0.375-0.75
         //
         // Note: This normalization may need adjustment for:
-        // - Very quiet playback volumes (< 60 dB SPL): increase factor to ~150-200
-        // - Very loud volumes (> 90 dB SPL): decrease factor to ~70-80
+        // - Very quiet playback volumes (< 60 dB SPL): increase factor to ~120-150
+        // - Very loud volumes (> 90 dB SPL): decrease factor to ~60-70
         // - Heavily compressed/mastered music: may benefit from adaptive normalization
         //
         // Future enhancement: Consider making this configurable or implementing adaptive
         // normalization based on recent flux history (e.g., using 95th percentile as scale factor).
-        let normalizedFlux = min(1.0, flux / 100.0)
+        let normalizedFlux = min(1.0, flux / 80.0)
         
         return normalizedFlux
     }
