@@ -471,14 +471,25 @@ final class FlashlightController: BaseLightController, LightControlling {
                     let minThreshold: Float = 0.05
                     let audioModulation: Float = curved > minThreshold ? (curved - minThreshold) / (1.0 - minThreshold) : 0.0
                     
-                    // Use audio modulation as multiplier for base intensity
-                    // This ensures the base waveform is always visible, modulated by audio energy
-                    // Minimum modulation of 0.3 ensures base waveform remains visible even with low audio
-                    let modulationFactor = max(0.3, audioModulation)
-                    finalIntensity = baseIntensity * modulationFactor
+                    // Use audio modulation as additive enhancement, not replacement
+                    // Base waveform should always be visible, audio adds dynamic variation
+                    // When audioModulation is high, boost intensity; when low, use base waveform
+                    // This ensures continuous entrainment even without strong audio beats
+                    let audioBoost = audioModulation > 0.1 ? audioModulation : 0.0  // Only boost if significant audio
+                    finalIntensity = min(1.0, baseIntensity + (baseIntensity * audioBoost * 0.5))  // Add up to 50% boost
+                    
+                    // Debug logging for troubleshooting
+                    if Int(result.elapsed * 1000) % 500 == 0 {  // Every 500ms
+                        logger.debug("[NON-CINEMATIC] t=\(String(format: "%.3f", result.elapsed))s baseInt=\(String(format: "%.3f", baseIntensity)) eventInt=\(String(format: "%.3f", event.intensity)) audioMod=\(String(format: "%.3f", audioModulation)) boost=\(String(format: "%.3f", audioBoost)) final=\(String(format: "%.3f", finalIntensity))")
+                    }
                 } else {
                     // No audio tracking - use base intensity only
                     finalIntensity = baseIntensity
+                    
+                    // Debug logging for troubleshooting
+                    if Int(result.elapsed * 1000) % 500 == 0 {  // Every 500ms
+                        logger.debug("[NON-CINEMATIC NO-AUDIO] t=\(String(format: "%.3f", result.elapsed))s baseInt=\(String(format: "%.3f", baseIntensity)) eventInt=\(String(format: "%.3f", event.intensity)) final=\(String(format: "%.3f", finalIntensity))")
+                    }
                 }
                 
                 setIntensity(finalIntensity)
