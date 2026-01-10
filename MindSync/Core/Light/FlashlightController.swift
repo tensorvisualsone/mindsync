@@ -54,6 +54,7 @@ final class FlashlightController: BaseLightController, LightControlling {
     // Debug logging timestamp tracking
     private var lastAudioLogTime: TimeInterval = -1.0  // Last time we logged audio energy
     private var noEventLogCount: Int = 0  // Counter for no-event debug logs
+    private var lastNonCinematicLogTime: TimeInterval = -1.0  // Last time we logged NON-CINEMATIC debug info
     
     // Peak detection for cinematic mode - tuned for hard, contrast-rich flashes
     private var recentFluxValues: [Float] = []  // Ring buffer for last N flux values (for local average)
@@ -270,7 +271,15 @@ final class FlashlightController: BaseLightController, LightControlling {
             return
         }
         
+        // Only log setIntensity calls in DEBUG builds, and skip logging 0.0 to reduce log spam
+        #if DEBUG
+        if intensity > 0.001 {
+            logger.debug("setIntensity called with \(intensity)")
+        }
+        #else
         logger.debug("setIntensity called with \(intensity)")
+        #endif
+        
         guard let device = device, isLocked else {
             logger.warning("setIntensity failed: device=\(self.device != nil), isLocked=\(self.isLocked)")
             return
@@ -627,10 +636,12 @@ final class FlashlightController: BaseLightController, LightControlling {
                     finalIntensity = min(1.0, baseIntensity + (baseIntensity * audioBoost * 0.7))  // Add up to 70% boost
                     
 #if DEBUG
-                    // Debug logging for troubleshooting
-                    if Int(result.elapsed * 1000) % 500 == 0 {  // Every 500ms
+                    // Debug logging for troubleshooting - throttle to once per 500ms
+                    let logInterval: TimeInterval = 0.5
+                    if result.elapsed - lastNonCinematicLogTime >= logInterval || lastNonCinematicLogTime < 0 {
                         let historySizeForLog = self.fluxHistory.count
                         logger.debug("[NON-CINEMATIC] t=\(String(format: "%.3f", result.elapsed))s baseInt=\(String(format: "%.3f", baseIntensity)) eventInt=\(String(format: "%.3f", event.intensity)) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) historySize=\(historySizeForLog) historyMin=\(String(format: "%.3f", historyMin)) historyMax=\(String(format: "%.3f", historyMax)) range=\(String(format: "%.3f", historyRange)) normalized=\(String(format: "%.3f", normalizedEnergy)) curved=\(String(format: "%.3f", curved)) rawMod=\(String(format: "%.3f", rawModulation)) boosted=\(String(format: "%.3f", boostedModulation)) audioMod=\(String(format: "%.3f", audioModulation)) boost=\(String(format: "%.3f", audioBoost)) final=\(String(format: "%.3f", finalIntensity))")
+                        lastNonCinematicLogTime = result.elapsed
                     }
 #endif
                 } else {
@@ -638,9 +649,11 @@ final class FlashlightController: BaseLightController, LightControlling {
                     finalIntensity = baseIntensity
                     
 #if DEBUG
-                    // Debug logging for troubleshooting
-                    if Int(result.elapsed * 1000) % 500 == 0 {  // Every 500ms
+                    // Debug logging for troubleshooting - throttle to once per 500ms
+                    let logInterval: TimeInterval = 0.5
+                    if result.elapsed - lastNonCinematicLogTime >= logInterval || lastNonCinematicLogTime < 0 {
                         logger.debug("[NON-CINEMATIC NO-AUDIO] t=\(String(format: "%.3f", result.elapsed))s baseInt=\(String(format: "%.3f", baseIntensity)) eventInt=\(String(format: "%.3f", event.intensity)) final=\(String(format: "%.3f", finalIntensity))")
+                        lastNonCinematicLogTime = result.elapsed
                     }
 #endif
                 }
