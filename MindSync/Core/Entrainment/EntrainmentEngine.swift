@@ -983,8 +983,6 @@ extension EntrainmentEngine {
         // --- PHASE 2: THE ABYSS (12 Min) ---
         // Tiefe Theta-Oszillation bei 4.5 Hz (Sine waves für sanftes Schweben)
         let phase2Duration: TimeInterval = 720 // 12 Minuten
-        let p2Frequency = 4.5
-        let p2Period = 1.0 / p2Frequency
         
         // 2-Sekunden-Events mit alternierender Intensität um Habituation zu verhindern
         let phase2EventCount = Int(phase2Duration / 2.0)

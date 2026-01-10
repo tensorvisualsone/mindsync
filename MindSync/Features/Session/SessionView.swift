@@ -267,6 +267,25 @@ private struct SessionTrackInfoView: View {
     let session: Session
     let currentFrequency: Double?
     
+    // Helper to determine if frequency chip should be shown
+    private var shouldShowFrequency: Bool {
+        guard let _ = script, let currentFrequency = currentFrequency, currentFrequency > 0 else {
+            return false
+        }
+        
+        // For DMN-Shutdown mode, always show frequency
+        if session.mode == .dmnShutdown {
+            return true
+        }
+        
+        // For other modes, only show if it differs significantly from BPM (indicating ramping)
+        if let bpm = track?.bpm {
+            return abs(Int(bpm) - Int(currentFrequency)) >= 2
+        }
+        
+        return false
+    }
+    
     var body: some View {
         VStack(spacing: AppConstants.Spacing.sm) {
             HStack(spacing: AppConstants.Spacing.sm) {
@@ -298,25 +317,12 @@ private struct SessionTrackInfoView: View {
                 )
                 
                 // Show frequency indicator for DMN-Shutdown mode or if frequency differs from BPM
-                if let _ = script, let currentFrequency = currentFrequency, currentFrequency > 0 {
-                    // For DMN-Shutdown mode, always show frequency
-                    // For other modes, only show if it differs significantly from BPM (indicating ramping)
-                    let shouldShow: Bool
-                    if session.mode == .dmnShutdown {
-                        shouldShow = true // Always show for DMN-Shutdown
-                    } else if let bpm = track?.bpm {
-                        shouldShow = abs(Int(bpm) - Int(currentFrequency)) >= 2
-                    } else {
-                        shouldShow = false
-                    }
-                    
-                    if shouldShow {
-                        ModeChip(
-                            icon: "waveform",
-                            text: "\(Int(currentFrequency)) Hz",
-                            color: .mint.opacity(0.6)
-                        )
-                    }
+                if shouldShowFrequency, let currentFrequency = currentFrequency {
+                    ModeChip(
+                        icon: "waveform",
+                        text: "\(Int(currentFrequency)) Hz",
+                        color: .mint.opacity(0.6)
+                    )
                 }
                 
                 Spacer(minLength: 0)
