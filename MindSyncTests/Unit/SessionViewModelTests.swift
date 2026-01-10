@@ -284,5 +284,29 @@ final class SessionViewModelTests: XCTestCase {
         let warningLevel = viewModel.thermalWarningLevel
         XCTAssertNotNil(warningLevel)
     }
+    
+    // MARK: - DMN-Shutdown Mode Tests
+    
+    func testStartDMNShutdownSession_GeneratesCorrectScript() async {
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
+        
+        // Verify that the DMN-Shutdown script generation creates the expected structure
+        let script = EntrainmentEngine.generateDMNShutdownScript()
+        
+        XCTAssertEqual(script.mode, .dmnShutdown)
+        XCTAssertEqual(script.targetFrequency, 40.0)
+        XCTAssertEqual(script.duration, 1800.0, accuracy: 1.0) // 30 minutes
+        XCTAssertGreaterThan(script.events.count, 0)
+    }
+    
+    func testStartDMNShutdownSession_UsesCorrectMode() {
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
+        
+        // Verify that DMN-Shutdown mode properties are correct
+        XCTAssertEqual(EntrainmentMode.dmnShutdown.frequencyRange, 4.5...40.0)
+        XCTAssertEqual(EntrainmentMode.dmnShutdown.targetFrequency, 40.0)
+        XCTAssertEqual(EntrainmentMode.dmnShutdown.startFrequency, 10.0)
+        XCTAssertEqual(EntrainmentMode.dmnShutdown.rampDuration, 240.0)
+    }
 }
 
