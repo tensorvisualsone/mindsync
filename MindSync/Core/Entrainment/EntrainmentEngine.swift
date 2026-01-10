@@ -381,7 +381,7 @@ final class EntrainmentEngine {
             case .theta: return .square   // Changed from .sine for visual patterns (Phosphene)
             case .gamma: return .square   // Hard for focus
             case .cinematic: return .sine // Keep sine for cinematic (dynamically modulated at runtime)
-            case .dmnShutdown: return .square // Default (wird durch Script-Override überschrieben)
+            case .dmnShutdown: return .square // Default (overridden by script)
             }
         }
         
@@ -392,7 +392,7 @@ final class EntrainmentEngine {
             case .theta: return 0.3  // Very soft for trip
             case .gamma: return 0.7  // More intense for focus
             case .cinematic: return 0.5  // Base intensity (dynamically adjusted at runtime)
-            case .dmnShutdown: return 0.5  // Default (wird durch Script-Override überschrieben)
+            case .dmnShutdown: return 0.5  // Default (overridden by script)
             }
         }
         
@@ -461,7 +461,7 @@ final class EntrainmentEngine {
             case .alpha, .theta: return .square  // Changed from .sine for visual patterns
             case .gamma: return .square
             case .cinematic: return .sine
-            case .dmnShutdown: return .square // Default (wird durch Script-Override überschrieben)
+            case .dmnShutdown: return .square // Default (overridden by script)
             }
         }
         
@@ -472,7 +472,7 @@ final class EntrainmentEngine {
             case .theta: return 0.3
             case .gamma: return 0.7
             case .cinematic: return 0.5
-            case .dmnShutdown: return 0.5 // Default (wird durch Script-Override überschrieben)
+            case .dmnShutdown: return 0.5 // Default (overridden by script)
             }
         }
         
@@ -840,29 +840,29 @@ extension EntrainmentEngine {
         )
     }
     
-    /// Generiert den speziellen "DMN-Shutdown" Script für Ego-Dissolution.
-    /// Dieser ignoriert Audio-Beats und erzeugt eine feste 30-minütige Sequenz
-    /// zur gezielten Deaktivierung des Default Mode Network (DMN).
+    /// Generates the special "DMN-Shutdown" script for ego-dissolution.
+    /// This ignores audio beats and creates a fixed 30-minute sequence
+    /// to specifically deactivate the Default Mode Network (DMN).
     /// 
-    /// Phasen:
-    /// - Phase 1: DISCONNECT (4 Min) - 10Hz → 5Hz Ramp (Alpha zu Theta)
-    /// - Phase 2: THE ABYSS (12 Min) - 4.5Hz Theta mit variierender Intensität
+    /// Phases:
+    /// - Phase 1: DISCONNECT (4 Min) - 10Hz → 5Hz Ramp (Alpha to Theta)
+    /// - Phase 2: THE ABYSS (12 Min) - 4.5Hz Theta with varying intensity
     /// - Phase 3: THE VOID / PEAK (8 Min) - 40Hz Gamma-Burst
-    /// - Phase 4: REINTEGRATION (6 Min) - 7.83Hz Schumann-Resonanz
+    /// - Phase 4: REINTEGRATION (6 Min) - 7.83Hz Schumann Resonance
     static func generateDMNShutdownScript() -> LightScript {
         var events: [LightEvent] = []
         var currentTime: TimeInterval = 0.0
         
         // --- PHASE 1: DISCONNECT (4 Min) ---
-        // Wir starten bei 10Hz (Alpha) und ziehen das Bewusstsein schnell runter auf 5Hz (Theta).
-        // Das bricht den Alltagsfokus auf.
-        // Square waves für "härteres" Entrainment (höhere SSVEP-Erfolgsrate: 90.8% vs 75%)
-        let phase1Duration: TimeInterval = 240 // 4 Minuten
+        // We start at 10Hz (Alpha) and quickly pull consciousness down to 5Hz (Theta).
+        // This breaks the everyday focus.
+        // Square waves for "harder" entrainment (higher SSVEP success rate: 90.8% vs 75%)
+        let phase1Duration: TimeInterval = 240 // 4 minutes
         let p1StartFreq = 10.0
         let p1EndFreq = 5.0
         
-        // WICHTIG: Jedes Event hat duration: 1.0 (vollständige Sekunde), nicht period/2.0
-        // Die Square-Wellen-Form wird durch den Duty Cycle gesteuert, nicht durch Event-Dauer
+        // IMPORTANT: Each event has duration: 1.0 (full second), not period/2.0
+        // The square wave shape is controlled by duty cycle, not by event duration
         for i in 0..<Int(phase1Duration) {
             let progress = Double(i) / phase1Duration
             let smoothProgress = MathHelpers.smoothstep(progress)
@@ -871,8 +871,8 @@ extension EntrainmentEngine {
             events.append(LightEvent(
                 timestamp: currentTime,
                 intensity: 0.4,
-                duration: 1.0, // Vollständige Sekunde - NICHT period/2.0!
-                waveform: .square, // Square waves für maximale kortikale Erregung
+                duration: 1.0, // Full second - NOT period/2.0!
+                waveform: .square, // Square waves for maximum cortical excitation
                 color: .blue,
                 frequencyOverride: currentFreq
             ))
@@ -880,23 +880,23 @@ extension EntrainmentEngine {
         }
         
         // --- PHASE 2: THE ABYSS (12 Min) ---
-        // Tiefe Theta-Oszillation bei 4.5 Hz.
-        // Hier schalten wir das DMN "offline". Wir nutzen einen schwankenden
-        // Intensitäts-Cycle, um Habituation (Gewöhnung) zu verhindern.
-        let phase2Duration: TimeInterval = 720 // 12 Minuten
+        // Deep theta oscillation at 4.5 Hz.
+        // Here we switch the DMN "offline". We use a fluctuating
+        // intensity cycle to prevent habituation (adaptation).
+        let phase2Duration: TimeInterval = 720 // 12 minutes
         let p2Frequency = 4.5
         
-        // 2-Sekunden-Events mit alternierender Intensität (0.35/0.25) um Habituation zu verhindern
-        // WICHTIG: duration: 2.0 (vollständige 2 Sekunden), nicht period/2.0
+        // 2-second events with alternating intensity (0.35/0.25) to prevent habituation
+        // IMPORTANT: duration: 2.0 (full 2 seconds), not period/2.0
         for i in 0..<Int(phase2Duration / 2) {
-            // Wir variieren die Intensität leicht zwischen 0.35 und 0.25
+            // We vary the intensity slightly between 0.35 and 0.25
             let intensity: Float = (i % 2 == 0) ? 0.35 : 0.25
             
             events.append(LightEvent(
                 timestamp: currentTime,
                 intensity: intensity,
-                duration: 2.0, // Vollständige 2 Sekunden - NICHT period/2.0!
-                waveform: .sine, // Sine für das "Schweben" und sanfte Entspannung
+                duration: 2.0, // Full 2 seconds - NOT period/2.0!
+                waveform: .sine, // Sine for "floating" and gentle relaxation
                 color: .purple,
                 frequencyOverride: p2Frequency
             ))
@@ -904,35 +904,35 @@ extension EntrainmentEngine {
         }
         
         // --- PHASE 3: THE VOID / PEAK (8 Min) ---
-        // Der "Nichts"-Zustand. Wir ballern mit 40Hz Gamma-Synchronisation rein.
-        // Das ist der "Aha-Moment" oder das spirituelle High.
-        let phase3Duration: TimeInterval = 480 // 8 Minuten
+        // The "nothingness" state. We blast in with 40Hz gamma synchronization.
+        // This is the "Aha-moment" or spiritual high.
+        let phase3Duration: TimeInterval = 480 // 8 minutes
         events.append(LightEvent(
             timestamp: currentTime,
-            intensity: 0.75, // Hohe Intensität für maximale Wirkung
-            duration: phase3Duration, // Vollständige Dauer - NICHT period/2.0!
-            waveform: .square, // Square wave ist Goldstandard für Gamma-Sync
+            intensity: 0.75, // High intensity for maximum effect
+            duration: phase3Duration, // Full duration - NOT period/2.0!
+            waveform: .square, // Square wave is gold standard for gamma sync
             color: .white,
             frequencyOverride: 40.0
         ))
         currentTime += phase3Duration
         
         // --- PHASE 4: REINTEGRATION (6 Min) ---
-        // Schumann-Resonanz (7.83Hz) für das friedliche "Nachglühen" und Erdung.
-        let phase4Duration: TimeInterval = 360 // 6 Minuten
+        // Schumann Resonance (7.83Hz) for peaceful "afterglow" and grounding.
+        let phase4Duration: TimeInterval = 360 // 6 minutes
         events.append(LightEvent(
             timestamp: currentTime,
             intensity: 0.4,
-            duration: phase4Duration, // Vollständige Dauer - NICHT period/2.0!
-            waveform: .sine, // Sine für sanfte Erdung
+            duration: phase4Duration, // Full duration - NOT period/2.0!
+            waveform: .sine, // Sine for gentle grounding
             color: .green,
             frequencyOverride: 7.83
         ))
         
-        // Dummy Audio Track ID (Da wir hier keine Musik analysieren, sondern Frequenzen vorgeben)
+        // Dummy Audio Track ID (since we don't analyze music here, but provide frequencies)
         return LightScript(
             trackId: UUID(),
-            mode: .dmnShutdown, // Verwendet den neuen DMN-Shutdown Modus
+            mode: .dmnShutdown, // Uses the new DMN-Shutdown mode
             targetFrequency: 40.0,
             multiplier: 1,
             events: events
@@ -957,57 +957,57 @@ extension EntrainmentEngine {
         let baseIntensity = max(Self.minVibrationIntensity, intensity)
         
         // --- PHASE 1: DISCONNECT (4 Min) ---
-        // Ramp von 10Hz → 5Hz (Square waves für "härteres" Entrainment)
-        // OPTIMIZATION: Use 0.1s events instead of period-based to reduce event count from ~1,800 to ~2,400
-        let phase1Duration: TimeInterval = 240 // 4 Minuten
+        // Ramp from 10Hz → 5Hz (Square waves for "harder" entrainment)
+        // The vibration frequency is ramped by varying event duration (period) linearly from 10Hz to 5Hz
+        let phase1Duration: TimeInterval = 240 // 4 minutes
         let p1StartFreq = 10.0
         let p1EndFreq = 5.0
         
-        // Use 0.1s events for Phase 1 to reduce event count
-        let phase1EventDuration: TimeInterval = 0.1 // 100ms events
         var phase1Time: TimeInterval = 0
         
         while phase1Time < phase1Duration {
-            // Note: Frequency calculation removed since we use fixed event duration
-            // The frequency is still implied by the event timing pattern
+            // Linear ramp of frequency from 10Hz → 5Hz based on elapsed phase time
+            let progress = phase1Time / phase1Duration
+            let currentFreq = p1StartFreq + (p1EndFreq - p1StartFreq) * progress
+            let period = 1.0 / currentFreq
             
             events.append(try VibrationEvent(
                 timestamp: currentTime + phase1Time,
                 intensity: baseIntensity,
-                duration: phase1EventDuration,
+                duration: period,
                 waveform: .square
             ))
-            phase1Time += phase1EventDuration
+            phase1Time += period
         }
         currentTime += phase1Duration
         
         // --- PHASE 2: THE ABYSS (12 Min) ---
-        // Tiefe Theta-Oszillation bei 4.5 Hz (Sine waves für sanftes Schweben)
+        // Deep theta oscillation at 4.5 Hz (Sine waves for gentle floating)
         let phase2Duration: TimeInterval = 720 // 12 Minuten
         
-        // 2-Sekunden-Events mit alternierender Intensität um Habituation zu verhindern
+        // 2-second events with alternating intensity to prevent habituation
         let phase2EventCount = Int(phase2Duration / 2.0)
         for i in 0..<phase2EventCount {
-            // Variiere Intensität leicht (0.85x - 1.0x baseIntensity)
+            // Vary intensity slightly (0.85x - 1.0x baseIntensity)
             let intensityVariation: Float = (i % 2 == 0) ? baseIntensity : baseIntensity * 0.85
             
             events.append(try VibrationEvent(
                 timestamp: currentTime,
                 intensity: max(Self.minVibrationIntensity, intensityVariation),
-                duration: 2.0, // 2 Sekunden Events
-                waveform: .sine // Sine für sanftes Schweben
+                duration: 2.0, // 2-second events
+                waveform: .sine // Sine for gentle floating
             ))
             currentTime += 2.0
         }
         
         // --- PHASE 3: THE VOID / PEAK (8 Min) ---
-        // 40Hz Gamma-Burst (Square waves für maximale kortikale Erregung)
+        // 40Hz Gamma-Burst (Square waves for maximum cortical excitation)
         // OPTIMIZATION: Create longer events (0.1s) instead of individual periods (0.0125s)
         // to reduce event count from 38,400 to ~4,800 events and prevent main thread blocking
-        let phase3Duration: TimeInterval = 480 // 8 Minuten
+        let phase3Duration: TimeInterval = 480 // 8 minutes
         // Note: p3Frequency (40.0 Hz) is implied by the event timing, no explicit calculation needed
         
-        // Hohe Intensität für Phase 3 (1.2x baseIntensity, clamped to 1.0)
+        // High intensity for Phase 3 (1.2x baseIntensity, clamped to 1.0)
         let phase3Intensity = min(1.0, baseIntensity * 1.2)
         
         // Use 0.1s events instead of period/2 (0.0125s) to reduce event count by 8x
@@ -1018,16 +1018,16 @@ extension EntrainmentEngine {
                 timestamp: currentTime + phase3Time,
                 intensity: phase3Intensity,
                 duration: phase3EventDuration,
-                waveform: .square // Square wave für Gamma-Sync
+                waveform: .square // Square wave for gamma sync
             ))
             phase3Time += phase3EventDuration
         }
         currentTime += phase3Duration
         
         // --- PHASE 4: REINTEGRATION (6 Min) ---
-        // Schumann-Resonanz (7.83Hz) für friedliche Erdung (Sine waves)
+        // Schumann Resonance (7.83Hz) for peaceful grounding (Sine waves)
         // OPTIMIZATION: Use longer events (0.2s) to reduce event count
-        let phase4Duration: TimeInterval = 360 // 6 Minuten
+        let phase4Duration: TimeInterval = 360 // 6 minutes
         // Note: p4Frequency (7.83 Hz) is implied by the event timing, no explicit calculation needed
         
         // Use 0.2s events instead of full period (~0.128s) to reduce event count
@@ -1038,7 +1038,7 @@ extension EntrainmentEngine {
                 timestamp: currentTime + phase4Time,
                 intensity: baseIntensity,
                 duration: phase4EventDuration,
-                waveform: .sine // Sine für sanfte Erdung
+                waveform: .sine // Sine for gentle grounding
             ))
             phase4Time += phase4EventDuration
         }

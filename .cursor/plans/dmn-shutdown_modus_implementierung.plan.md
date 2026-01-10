@@ -4,38 +4,38 @@ overview: Implementierung des neuen "DMN-Shutdown" Entrainment-Modus mit festem 
 todos:
   - id: add-dmn-shutdown-mode
     content: EntrainmentMode Enum um .dmnShutdown Case erweitern mit allen Properties (frequencyRange, targetFrequency, startFrequency, rampDuration, iconName)
-    status: pending
+    status: completed
   - id: implement-script-generator
     content: generateDMNShutdownScript() Funktion in EntrainmentEngine Extension implementieren mit 4 Phasen (DISCONNECT, THE ABYSS, THE VOID, REINTEGRATION). WICHTIG: Alle Events müssen vollständige Dauern haben (nicht period/2.0 für Square-Wellen). Square-Wellen-Form wird über Duty Cycle gesteuert, nicht über Event-Dauer.
-    status: pending
+    status: completed
     dependencies:
       - add-dmn-shutdown-mode
   - id: update-engine-logic
     content: EntrainmentEngine.generateLightScript() und generateLightEvents() um DMN-Shutdown Special Case erweitern
-    status: pending
+    status: completed
     dependencies:
       - implement-script-generator
   - id: add-master-audio-support
     content: SessionViewModel um startDMNShutdownFlow() Methode erweitern, die automatisch Master-Audio-File lädt (void_master.mp3 aus Bundle) statt User-Auswahl. Ähnlich wie startAwakeningFlow().
-    status: pending
+    status: completed
     dependencies:
       - add-dmn-shutdown-mode
   - id: add-audio-resource
     content: Master-Audio-File void_master.mp3 (30 Minuten, Brown Noise mit isochronen Tönen) zum App-Bundle hinzufügen (MindSync/Resources/)
-    status: pending
+    status: completed
   - id: add-localization
     content: Lokalisierungsstrings für DMN-Shutdown Modus in Localizable.strings hinzufügen (displayName und description)
-    status: pending
+    status: completed
     dependencies:
       - add-dmn-shutdown-mode
   - id: update-selectors
     content: Waveform- und Intensity-Selektoren in EntrainmentEngine um DMN-Shutdown Case erweitern
-    status: pending
+    status: completed
     dependencies:
       - add-dmn-shutdown-mode
   - id: verify-ui-integration
     content: "UI-Integration testen: Modus sollte automatisch in ModeSelectionView erscheinen. Session startet automatisch mit Master-Audio ohne User-Auswahl."
-    status: pending
+    status: completed
     dependencies:
       - add-dmn-shutdown-mode
       - add-localization
