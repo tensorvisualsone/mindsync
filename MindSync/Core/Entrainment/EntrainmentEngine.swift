@@ -949,7 +949,7 @@ extension EntrainmentEngine {
     ///   - intensity: User preference for vibration intensity (0.1 - 1.0)
     /// - Returns: A VibrationScript synchronized with the light script
     /// - Throws: VibrationScriptError if validation fails
-    static func generateDMNShutdownVibrationScript(intensity: Float) throws -> VibrationScript {
+    nonisolated static func generateDMNShutdownVibrationScript(intensity: Float) throws -> VibrationScript {
         var events: [VibrationEvent] = []
         var currentTime: TimeInterval = 0.0
         

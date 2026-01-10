@@ -49,7 +49,7 @@ final class FlashlightController: BaseLightController, LightControlling {
     ///   consider making this value configurable or revisiting with additional user testing.
     private var lastBeatTime: TimeInterval = 0
     private var lastBeatIntensity: Float = 0.0
-    private let pulseDecayDuration: TimeInterval = 0.05 // 50ms pulse duration for hard, sharp flashes
+    private let pulseDecayDuration: TimeInterval = 0.08 // 80ms pulse duration for better visibility (increased from 50ms)
     
     // Debug logging timestamp tracking
     private var lastAudioLogTime: TimeInterval = -1.0  // Last time we logged audio energy
@@ -472,29 +472,49 @@ final class FlashlightController: BaseLightController, LightControlling {
                     }
                     
                     // Peak detection: Check if current energy is significantly above local average
-                    // OR above adaptive threshold (relaxed condition for better sensitivity),
-                    // with cooldown period to prevent double-triggers
+                    // OR above adaptive threshold (relaxed condition for better beat detection)
+                    // with cooldown period to prevent double-triggers and ensure proper beat spacing
                     let timeSinceLastPeak = elapsed - lastPeakTime
                     let isAboveLocalAverage = rawEnergy > (localAverage + peakRiseThreshold)
                     let isAboveThreshold = rawEnergy > adaptiveThreshold
                     let isAfterCooldown = timeSinceLastPeak >= peakCooldownDuration
                     
-                    // Relaxed condition: accept peak if EITHER condition is met (not both)
-                    // This ensures moderate peaks are detected even when local average is elevated
-                    // after a previous peak. The adaptive threshold still provides filtering.
+                    // Relaxed condition: accept peak if EITHER condition is met (OR, not AND)
+                    // This ensures beats are detected even when local average is elevated after
+                    // a previous peak. The adaptive threshold still provides filtering for clear beats.
+                    // The cooldown period ensures beats are properly spaced and synchronized to music.
                     if (isAboveLocalAverage || isAboveThreshold) && isAfterCooldown {
-                        // PEAK DETECTED: Create hard flash
+                        // PEAK DETECTED: Create hard flash synchronized to audio
                         lastPeakTime = elapsed
                         lastBeatTime = elapsed  // Track for decay phase
                         
-                        // Map peak strength to flash intensity with better dynamic range
-                        // Strong peaks → maximum intensity (1.0)
-                        // Moderate peaks → medium intensity (0.5-0.8)
-                        // Weak peaks → low intensity (0.3-0.5) for subtle beats
-                        let peakStrength = min(1.0, max(0.0, (rawEnergy - adaptiveThreshold) / max(0.001, 1.0 - adaptiveThreshold)))
-                        // Expanded range: 0.3 to 1.0 for better visibility of all peaks
-                        lastBeatIntensity = 0.3 + (peakStrength * 0.7)  // 0.3 to 1.0 range for better dynamic range
-                        finalIntensity = lastBeatIntensity
+                        // Map raw audio energy directly to flash intensity for audio-reactive behavior
+                        // Normalize raw energy relative to typical peak values (0.0-0.3 range for spectral flux)
+                        // This ensures the flashlight intensity directly reflects the audio beat strength
+                        let energyMax: Float = 0.3  // Typical maximum spectral flux value
+                        let normalizedEnergy = min(1.0, max(0.0, rawEnergy / energyMax))
+                        
+                        // Apply aggressive boost to ensure visible flashes synchronized to beats
+                        // Strong beats (normalizedEnergy > 0.8) → maximum intensity (1.0)
+                        // Moderate beats (0.5-0.8) → high intensity (0.8-1.0)
+                        // Weak beats (0.3-0.5) → medium intensity (0.6-0.8)
+                        // Very weak beats (0.0-0.3) → minimum visible (0.5-0.6)
+                        let boostedEnergy: Float
+                        if normalizedEnergy > 0.8 {
+                            // Strong beats: map to 0.85-1.0 range
+                            boostedEnergy = 0.85 + ((normalizedEnergy - 0.8) / 0.2) * 0.15
+                        } else if normalizedEnergy > 0.5 {
+                            // Moderate beats: map to 0.75-0.85 range
+                            boostedEnergy = 0.75 + ((normalizedEnergy - 0.5) / 0.3) * 0.10
+                        } else if normalizedEnergy > 0.3 {
+                            // Weak beats: map to 0.65-0.75 range
+                            boostedEnergy = 0.65 + ((normalizedEnergy - 0.3) / 0.2) * 0.10
+                        } else {
+                            // Very weak beats: map to 0.5-0.65 range (still visible)
+                            boostedEnergy = 0.5 + (normalizedEnergy / 0.3) * 0.15
+                        }
+                        lastBeatIntensity = boostedEnergy
+                        finalIntensity = boostedEnergy
                         
 #if DEBUG
                         if elapsed - lastAudioLogTime >= 0.5 {

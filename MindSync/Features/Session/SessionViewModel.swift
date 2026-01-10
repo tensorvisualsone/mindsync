@@ -1101,7 +1101,7 @@ final class SessionViewModel: ObservableObject {
             
             // Start playback progress updates for script duration
             // Use actual audio duration if available, otherwise use script duration
-            let audioDuration = audioPlayback?.duration ?? script.duration
+            let audioDuration = script.duration // Use script duration for DMN-Shutdown mode
             startPlaybackProgressUpdates(for: audioDuration)
             
             // Note: Spectral flux is NOT enabled for DMN-Shutdown mode since it uses
@@ -1122,8 +1122,9 @@ final class SessionViewModel: ObservableObject {
                 Task { @MainActor in
                     do {
                         // Generate on background thread to avoid blocking UI
+                        // Note: Method is marked as nonisolated, so it can be called from detached task
                         let vibrationScript = try await Task.detached(priority: .userInitiated) {
-                            try EntrainmentEngine.generateDMNShutdownVibrationScript(
+                            return try EntrainmentEngine.generateDMNShutdownVibrationScript(
                                 intensity: vibrationIntensity
                             )
                         }.value
