@@ -1038,7 +1038,16 @@ final class SessionViewModel: ObservableObject {
             // Load Master-Audio-File from Bundle
             logger.info("Loading Master-Audio-File from Bundle")
             guard let masterAudioURL = Bundle.main.url(forResource: "void_master", withExtension: "mp3") else {
-                throw NSError(domain: "DMNShutdownSession", code: 1, userInfo: [NSLocalizedDescriptionKey: "Master-Audio-File 'void_master.mp3' nicht im Bundle gefunden. Bitte sicherstellen, dass die Datei zum App-Bundle hinzugefügt wurde."])
+                throw NSError(
+                    domain: "DMNShutdownSession",
+                    code: 1,
+                    userInfo: [
+                        NSLocalizedDescriptionKey: NSLocalizedString(
+                            "error.dmnShutdown.audioFileNotFound",
+                            comment: "Master audio file 'void_master.mp3' not found in bundle"
+                        )
+                    ]
+                )
             }
             logger.info("Master-Audio-File loaded: \(masterAudioURL.lastPathComponent)")
             
@@ -1092,11 +1101,11 @@ final class SessionViewModel: ObservableObject {
             
             // Start playback progress updates for script duration
             // Use actual audio duration if available, otherwise use script duration
-            let audioDuration = script.duration // Script duration matches intended audio length
+            let audioDuration = audioPlayback?.duration ?? script.duration
             startPlaybackProgressUpdates(for: audioDuration)
             
-            // Enable spectral flux for audio-reactive modulation (similar to other modes)
-            enableSpectralFluxForCinematicMode(.dmnShutdown)
+            // Note: Spectral flux is NOT enabled for DMN-Shutdown mode since it uses
+            // a fixed timeline with frequency overrides rather than audio-reactive behavior
             
             // Setup Bluetooth latency monitoring for dynamic audio synchronization
             setupBluetoothLatencyMonitoring()

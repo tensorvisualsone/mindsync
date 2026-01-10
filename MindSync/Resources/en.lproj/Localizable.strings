@@ -169,6 +169,8 @@
 "mode.gamma.description" = "Peak concentration, memory, cognitive insight";
 "mode.cinematic.displayName" = "Cinematic (6.5 Hz)";
 "mode.cinematic.description" = "Flow state sync – audio-reactive immersion";
+"mode.dmnShutdown.displayName" = "DMN-Shutdown (4.5-40 Hz)";
+"mode.dmnShutdown.description" = "Ego-dissolution: Deep theta relaxation followed by gamma synchronization for transcendent states";
 
 // MARK: - Safety Banner
 "safety.thermalReduced" = "Intensity reduced due to device heat";
@@ -193,6 +195,7 @@
 "error.audio.unsupportedFormat" = "Audio format is not supported.";
 "error.audio.analysisFailure" = "Analysis failed: %@";
 "error.audio.cancelled" = "Analysis cancelled.";
+"error.dmnShutdown.audioFileNotFound" = "Master audio file 'void_master.mp3' not found in bundle. Please ensure the file has been added to the app bundle.";
 "status.audio.cancelled" = "Analysis was cancelled.";
 "status.vibration.unavailable" = "Vibration is unavailable. Session continues without vibration.";
 "status.light.failed" = "Light synchronization failed. Session continues in audio-only mode.";
