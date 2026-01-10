@@ -984,6 +984,134 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
+    /// Starts a DMN-Shutdown session (30-minute timeline-based entrainment flow with Master-Audio)
+    /// This session uses a pre-generated script with frequency overrides and loads a fixed
+    /// Master-Audio-File from the App-Bundle for synesthetic coherence.
+    /// 
+    /// Master-Audio: void_master.mp3 (30 minutes, Brown/Pink Noise with isochronic tones)
+    func startDMNShutdownSession() async {
+        logger.info("Starting DMN-Shutdown session - BEGIN")
+        
+        guard state == .idle else {
+            logger.warning("Attempted to start DMN-Shutdown session while state is \(String(describing: self.state))")
+            return
+        }
+        
+        logger.info("Setting state to analyzing")
+        state = .analyzing
+        analysisProgress = AnalysisProgress(phase: .loading, progress: 0.0, message: NSLocalizedString("analysis.loading", comment: ""))
+        stopPlaybackProgressUpdates()
+        
+        // Refresh cached preferences to ensure we use current user settings
+        logger.info("Loading cached preferences")
+        cachedPreferences = UserPreferences.load()
+        
+        // Set the light controller based on current preferences
+        logger.info("Setting light controller based on preferences: \(self.cachedPreferences.preferredLightSource.rawValue)")
+        // Always use flashlight (screen mode removed)
+        lightController = services.flashlightController
+        
+        // Pre-warm flashlight if needed
+        logger.info("Pre-warming flashlight if needed")
+        await prewarmFlashlightIfNeeded()
+        
+        do {
+            // Load Master-Audio-File from Bundle
+            logger.info("Loading Master-Audio-File from Bundle")
+            guard let masterAudioURL = Bundle.main.url(forResource: "void_master", withExtension: "mp3") else {
+                throw NSError(domain: "DMNShutdownSession", code: 1, userInfo: [NSLocalizedDescriptionKey: "Master-Audio-File 'void_master.mp3' nicht im Bundle gefunden. Bitte sicherstellen, dass die Datei zum App-Bundle hinzugefügt wurde."])
+            }
+            logger.info("Master-Audio-File loaded: \(masterAudioURL.lastPathComponent)")
+            
+            // Generate DMN-Shutdown Script (no audio analysis needed - script is fixed)
+            logger.info("Generating DMN-Shutdown script")
+            let script = EntrainmentEngine.generateDMNShutdownScript()
+            currentScript = script
+            logger.info("DMN-Shutdown script generated")
+            
+            // Create session with .dmnShutdown mode
+            logger.info("Creating DMN-Shutdown session object")
+            let session = Session(
+                mode: .dmnShutdown,
+                lightSource: cachedPreferences.preferredLightSource,
+                audioSource: .localFile,
+                trackTitle: "DMN-Shutdown Flow",
+                trackArtist: nil,
+                trackBPM: nil
+            )
+            currentSession = session
+            updateAffirmationStatusForCurrentPreferences()
+            
+            // Apply audio latency offset from user preferences for Bluetooth compensation
+            if let baseController = lightController as? BaseLightController {
+                baseController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+                // Set audio playback reference for precise audio-thread timing
+                baseController.audioPlayback = audioPlayback
+            }
+            
+            // Start playback and light (synchronized)
+            logger.info("Starting light controller and audio playback")
+            let startTime = Date()
+            sessionStartTime = startTime
+            updateCurrentFrequency()
+            startFrequencyUpdates()
+            
+            // Start audio playback and light synchronization
+            try await startPlaybackAndLight(url: masterAudioURL, script: script, startTime: startTime)
+            
+            // Start playback progress updates for 30-minute duration
+            startPlaybackProgressUpdates(for: script.duration)
+            
+            // Enable spectral flux for audio-reactive modulation (similar to other modes)
+            enableSpectralFluxForCinematicMode(.dmnShutdown)
+            
+            // Setup Bluetooth latency monitoring for dynamic audio synchronization
+            setupBluetoothLatencyMonitoring()
+            
+            // Vibration is optional (if enabled in preferences)
+            // Note: We don't generate a vibration script for DMN-Shutdown as it's audio-independent
+            // If vibration is desired, it would need a separate vibration script generator
+            vibrationController = nil
+            currentVibrationScript = nil
+            
+            // Prevent screen from turning off during session
+            UIApplication.shared.isIdleTimerDisabled = true
+            
+            logger.info("Setting state to running")
+            state = .running
+            affirmationPlayed = false
+            
+            // Start observing for affirmation trigger
+            startAffirmationObserver()
+            
+            // Haptic feedback for session start (if enabled)
+            if cachedPreferences.hapticFeedbackEnabled {
+                HapticFeedback.medium()
+            }
+            
+            logger.info("DMN-Shutdown session started successfully - END")
+            
+        } catch is CancellationError {
+            logger.info("DMN-Shutdown session start cancelled")
+            lightController?.stop()
+            vibrationController?.stop()
+            audioPlayback.stop()
+            stopPlaybackProgressUpdates()
+            UIApplication.shared.isIdleTimerDisabled = false
+            state = .idle
+        } catch {
+            logger.error("DMN-Shutdown session start failed: \(error.localizedDescription, privacy: .public)")
+            errorMessage = error.localizedDescription
+            state = .error
+            
+            lightController?.stop()
+            vibrationController?.stop()
+            audioPlayback.stop()
+            stopPlaybackProgressUpdates()
+            UIApplication.shared.isIdleTimerDisabled = false
+        }
+    }
+    
     /// Pauses the current session
     func pauseSession() {
         guard state == .running else { return }

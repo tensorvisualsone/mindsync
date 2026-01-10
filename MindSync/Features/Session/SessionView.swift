@@ -7,6 +7,7 @@ struct SessionView: View {
     
     let mediaItem: MPMediaItem?
     let audioFileURL: URL?
+    let dmnShutdown: Bool
     
     /// Height of the status banner including padding (used for offset calculations)
     /// Calculated from: top padding (8) + banner vertical padding (sm + xs = 12) + content height (icon ~24 or text ~20)
@@ -22,9 +23,10 @@ struct SessionView: View {
         return topPadding + bannerVerticalPadding + contentHeight // 8 + 12 + 24 = 44
     }
     
-    init(song: MPMediaItem? = nil, audioFileURL: URL? = nil) {
+    init(song: MPMediaItem? = nil, audioFileURL: URL? = nil, dmnShutdown: Bool = false) {
         self.mediaItem = song
         self.audioFileURL = audioFileURL
+        self.dmnShutdown = dmnShutdown
     }
     
     var body: some View {
@@ -99,7 +101,10 @@ struct SessionView: View {
             // Start the session immediately when view appears
             // Use Task to ensure it runs even if the view is already loaded
             Task { @MainActor in
-                if let mediaItem = mediaItem {
+                if dmnShutdown {
+                    // DMN-Shutdown mode: Start automatically without audio selection
+                    await viewModel.startDMNShutdownSession()
+                } else if let mediaItem = mediaItem {
                     await viewModel.startSession(with: mediaItem)
                 } else if let audioFileURL = audioFileURL {
                     await viewModel.startSession(with: audioFileURL)
@@ -115,7 +120,10 @@ struct SessionView: View {
             // This ensures the session starts even if the task modifier fails
             if viewModel.state == .idle {
                 Task { @MainActor in
-                    if let mediaItem = mediaItem {
+                    if dmnShutdown {
+                        // DMN-Shutdown mode: Start automatically without audio selection
+                        await viewModel.startDMNShutdownSession()
+                    } else if let mediaItem = mediaItem {
                         await viewModel.startSession(with: mediaItem)
                     } else if let audioFileURL = audioFileURL {
                         await viewModel.startSession(with: audioFileURL)

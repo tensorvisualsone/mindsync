@@ -6,6 +6,7 @@ enum EntrainmentMode: String, Codable, CaseIterable, Identifiable {
     case theta   // Trip / Deep Dive
     case gamma   // Fokus
     case cinematic  // Flow State Sync - Dynamisch & Reaktiv
+    case dmnShutdown  // Ego-Dissolution: DMN-Deaktivierung für transzendente Zustände
 
     var id: String { rawValue }
 
@@ -28,6 +29,7 @@ enum EntrainmentMode: String, Codable, CaseIterable, Identifiable {
         case .theta: return 4.0...8.0
         case .gamma: return 30.0...40.0
         case .cinematic: return 5.5...7.5  // Theta/Low Alpha Flow State
+        case .dmnShutdown: return 4.5...40.0  // Spans alle Phasen (Theta bis Gamma)
         }
     }
 
@@ -37,6 +39,9 @@ enum EntrainmentMode: String, Codable, CaseIterable, Identifiable {
         case .gamma:
             // 40 Hz ist der wissenschaftliche Goldstandard für Gamma-Entrainment
             // MIT-Studien zeigen maximale kognitive Verbesserung bei exakt 40 Hz
+            return 40.0
+        case .dmnShutdown:
+            // 40 Hz Gamma-Peak für Phase 3 (THE VOID)
             return 40.0
         default:
             let range = frequencyRange
@@ -52,6 +57,7 @@ enum EntrainmentMode: String, Codable, CaseIterable, Identifiable {
         case .theta: return 16.0
         case .gamma: return 12.0
         case .cinematic: return 18.0
+        case .dmnShutdown: return 10.0  // Phase 1 Start: 10Hz Alpha
         }
     }
 
@@ -62,6 +68,7 @@ enum EntrainmentMode: String, Codable, CaseIterable, Identifiable {
         case .theta: return 180.0   // 3 Minuten
         case .gamma: return 120.0   // 2 Minuten (schneller Hochfahren)
         case .cinematic: return 180.0
+        case .dmnShutdown: return 240.0  // 4 Minuten (Phase 1: DISCONNECT)
         }
     }
 
@@ -72,6 +79,7 @@ enum EntrainmentMode: String, Codable, CaseIterable, Identifiable {
         case .theta: return "sparkles"
         case .gamma: return "bolt.fill"
         case .cinematic: return "film.fill"
+        case .dmnShutdown: return "moon.stars.fill"  // Spiritueller/transzendenter Zustand
         }
     }
 }
