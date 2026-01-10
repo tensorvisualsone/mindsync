@@ -61,12 +61,12 @@ final class FlashlightController: BaseLightController, LightControlling {
     private var fluxHistory: [Float] = []  // Longer history for adaptive threshold calculation
     private var lastPeakTime: TimeInterval = 0
     private let peakCooldownDuration: TimeInterval = 0.08  // 80ms minimum between peaks (prevents double-triggers)
-    private let peakRiseThreshold: Float = 0.08  // Minimum 8% rise above local average for peak (higher = harder, more selective)
+    private let peakRiseThreshold: Float = 0.04  // Minimum 4% rise above local average for peak (reduced from 0.08 for better sensitivity)
     private let maxFluxHistorySize = 10  // Keep last 10 flux values for local average calculation
     private let maxAdaptiveHistorySize = 200  // Keep last 200 flux values for adaptive threshold (~20 seconds at 10 Hz)
-    private let absoluteMinimumThreshold: Float = 0.1  // Absolute minimum flux value to consider (higher = more selective)
-    private let fixedThreshold: Float = 0.15  // Fallback threshold when not enough history (higher = more selective)
-    private let adaptiveThresholdMultiplier: Float = 0.4  // Use mean + 0.4 * stdDev (higher = more selective, harder flashes)
+    private let absoluteMinimumThreshold: Float = 0.05  // Absolute minimum flux value to consider (reduced from 0.1 for better sensitivity)
+    private let fixedThreshold: Float = 0.08  // Fallback threshold when not enough history (reduced from 0.15 for better sensitivity)
+    private let adaptiveThresholdMultiplier: Float = 0.25  // Use mean + 0.25 * stdDev (reduced from 0.4 for more sensitive peak detection)
     
     /// Precision timer interval shared across light controllers
     /// OPTIMIZED FOR LAMBDA: 1ms (1000 Hz) resolution needed for stable 100 Hz output.
@@ -472,22 +472,28 @@ final class FlashlightController: BaseLightController, LightControlling {
                     }
                     
                     // Peak detection: Check if current energy is significantly above local average
-                    // and above adaptive threshold, with cooldown period to prevent double-triggers
+                    // OR above adaptive threshold (relaxed condition for better sensitivity),
+                    // with cooldown period to prevent double-triggers
                     let timeSinceLastPeak = elapsed - lastPeakTime
                     let isAboveLocalAverage = rawEnergy > (localAverage + peakRiseThreshold)
                     let isAboveThreshold = rawEnergy > adaptiveThreshold
                     let isAfterCooldown = timeSinceLastPeak >= peakCooldownDuration
                     
-                    if isAboveLocalAverage && isAboveThreshold && isAfterCooldown {
+                    // Relaxed condition: accept peak if EITHER condition is met (not both)
+                    // This ensures moderate peaks are detected even when local average is elevated
+                    // after a previous peak. The adaptive threshold still provides filtering.
+                    if (isAboveLocalAverage || isAboveThreshold) && isAfterCooldown {
                         // PEAK DETECTED: Create hard flash
                         lastPeakTime = elapsed
                         lastBeatTime = elapsed  // Track for decay phase
                         
-                        // Map peak strength to flash intensity with aggressive contrast
+                        // Map peak strength to flash intensity with better dynamic range
                         // Strong peaks → maximum intensity (1.0)
-                        // Moderate peaks → high intensity (0.8-1.0) for harder, more contrast-rich flashes
+                        // Moderate peaks → medium intensity (0.5-0.8)
+                        // Weak peaks → low intensity (0.3-0.5) for subtle beats
                         let peakStrength = min(1.0, max(0.0, (rawEnergy - adaptiveThreshold) / max(0.001, 1.0 - adaptiveThreshold)))
-                        lastBeatIntensity = 0.8 + (peakStrength * 0.2)  // 0.8 to 1.0 range for hard, contrast-rich flashes
+                        // Expanded range: 0.3 to 1.0 for better visibility of all peaks
+                        lastBeatIntensity = 0.3 + (peakStrength * 0.7)  // 0.3 to 1.0 range for better dynamic range
                         finalIntensity = lastBeatIntensity
                         
 #if DEBUG
@@ -512,6 +518,14 @@ final class FlashlightController: BaseLightController, LightControlling {
                                 lastBeatTime = 0
                                 lastBeatIntensity = 0.0
                             }
+                            
+#if DEBUG
+                            // Log diagnostic info when no peak detected (throttled to avoid spam)
+                            if elapsed - lastAudioLogTime >= 2.0 {
+                                logger.debug("[CINEMATIC NO-PEAK] t=\(String(format: "%.3f", elapsed))s raw=\(String(format: "%.3f", rawEnergy)) localAvg=\(String(format: "%.3f", localAverage)) threshold=\(String(format: "%.3f", adaptiveThreshold)) aboveLocalAvg=\(isAboveLocalAverage) aboveThreshold=\(isAboveThreshold) cooldown=\(isAfterCooldown)")
+                                lastAudioLogTime = elapsed
+                            }
+#endif
                         }
                     }
                 } else {
