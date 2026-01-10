@@ -297,15 +297,26 @@ private struct SessionTrackInfoView: View {
                     color: session.mode.themeColor
                 )
                 
-                // Show frequency indicator only if it provides useful information
-                if let _ = script, let currentFrequency = currentFrequency, currentFrequency > 0,
-                   let bpm = track?.bpm, abs(Int(bpm) - Int(currentFrequency)) >= 2 {
-                    // Only show frequency if it differs significantly from BPM (indicating ramping)
-                    ModeChip(
-                        icon: "waveform",
-                        text: "\(Int(currentFrequency)) Hz",
-                        color: .mint.opacity(0.6)
-                    )
+                // Show frequency indicator for DMN-Shutdown mode or if frequency differs from BPM
+                if let _ = script, let currentFrequency = currentFrequency, currentFrequency > 0 {
+                    // For DMN-Shutdown mode, always show frequency
+                    // For other modes, only show if it differs significantly from BPM (indicating ramping)
+                    let shouldShow: Bool
+                    if session.mode == .dmnShutdown {
+                        shouldShow = true // Always show for DMN-Shutdown
+                    } else if let bpm = track?.bpm {
+                        shouldShow = abs(Int(bpm) - Int(currentFrequency)) >= 2
+                    } else {
+                        shouldShow = false
+                    }
+                    
+                    if shouldShow {
+                        ModeChip(
+                            icon: "waveform",
+                            text: "\(Int(currentFrequency)) Hz",
+                            color: .mint.opacity(0.6)
+                        )
+                    }
                 }
                 
                 Spacer(minLength: 0)

@@ -938,4 +938,117 @@ extension EntrainmentEngine {
             events: events
         )
     }
+    
+    /// Generates a VibrationScript for DMN-Shutdown mode
+    /// This follows the same 4-phase structure as the light script:
+    /// - Phase 1: DISCONNECT (4 Min) - 10Hz → 5Hz ramp
+    /// - Phase 2: THE ABYSS (12 Min) - 4.5Hz Theta
+    /// - Phase 3: THE VOID / PEAK (8 Min) - 40Hz Gamma
+    /// - Phase 4: REINTEGRATION (6 Min) - 7.83Hz Schumann
+    /// - Parameters:
+    ///   - intensity: User preference for vibration intensity (0.1 - 1.0)
+    /// - Returns: A VibrationScript synchronized with the light script
+    /// - Throws: VibrationScriptError if validation fails
+    static func generateDMNShutdownVibrationScript(intensity: Float) throws -> VibrationScript {
+        var events: [VibrationEvent] = []
+        var currentTime: TimeInterval = 0.0
+        
+        // Ensure minimum intensity for vibration to be noticeable
+        let baseIntensity = max(Self.minVibrationIntensity, intensity)
+        
+        // --- PHASE 1: DISCONNECT (4 Min) ---
+        // Ramp von 10Hz → 5Hz (Square waves für "härteres" Entrainment)
+        let phase1Duration: TimeInterval = 240 // 4 Minuten
+        let p1StartFreq = 10.0
+        let p1EndFreq = 5.0
+        
+        for i in 0..<Int(phase1Duration) {
+            let progress = Double(i) / phase1Duration
+            let smoothProgress = MathHelpers.smoothstep(progress)
+            let currentFreq = p1StartFreq + (p1EndFreq - p1StartFreq) * smoothProgress
+            let period = 1.0 / max(0.0001, currentFreq)
+            
+            // Square waves für Phase 1 (härteres Entrainment)
+            let eventDuration = period / 2.0 // Half period for square waves
+            
+            events.append(try VibrationEvent(
+                timestamp: currentTime,
+                intensity: baseIntensity,
+                duration: eventDuration,
+                waveform: .square
+            ))
+            currentTime += period
+        }
+        
+        // --- PHASE 2: THE ABYSS (12 Min) ---
+        // Tiefe Theta-Oszillation bei 4.5 Hz (Sine waves für sanftes Schweben)
+        let phase2Duration: TimeInterval = 720 // 12 Minuten
+        let p2Frequency = 4.5
+        let p2Period = 1.0 / p2Frequency
+        
+        // 2-Sekunden-Events mit alternierender Intensität um Habituation zu verhindern
+        let phase2EventCount = Int(phase2Duration / 2.0)
+        for i in 0..<phase2EventCount {
+            // Variiere Intensität leicht (0.85x - 1.0x baseIntensity)
+            let intensityVariation: Float = (i % 2 == 0) ? baseIntensity : baseIntensity * 0.85
+            
+            events.append(try VibrationEvent(
+                timestamp: currentTime,
+                intensity: max(Self.minVibrationIntensity, intensityVariation),
+                duration: 2.0, // 2 Sekunden Events
+                waveform: .sine // Sine für sanftes Schweben
+            ))
+            currentTime += 2.0
+        }
+        
+        // --- PHASE 3: THE VOID / PEAK (8 Min) ---
+        // 40Hz Gamma-Burst (Square waves für maximale kortikale Erregung)
+        let phase3Duration: TimeInterval = 480 // 8 Minuten
+        let p3Frequency = 40.0
+        let p3Period = 1.0 / p3Frequency
+        
+        // Hohe Intensität für Phase 3 (1.2x baseIntensity, clamped to 1.0)
+        let phase3Intensity = min(1.0, baseIntensity * 1.2)
+        
+        var phase3Time: TimeInterval = 0
+        while phase3Time < phase3Duration {
+            let eventDuration = p3Period / 2.0 // Half period for square waves
+            
+            events.append(try VibrationEvent(
+                timestamp: currentTime + phase3Time,
+                intensity: phase3Intensity,
+                duration: eventDuration,
+                waveform: .square // Square wave für Gamma-Sync
+            ))
+            phase3Time += p3Period
+        }
+        currentTime += phase3Duration
+        
+        // --- PHASE 4: REINTEGRATION (6 Min) ---
+        // Schumann-Resonanz (7.83Hz) für friedliche Erdung (Sine waves)
+        let phase4Duration: TimeInterval = 360 // 6 Minuten
+        let p4Frequency = 7.83
+        let p4Period = 1.0 / p4Frequency
+        
+        var phase4Time: TimeInterval = 0
+        while phase4Time < phase4Duration {
+            // Full period für Sine waves
+            events.append(try VibrationEvent(
+                timestamp: currentTime + phase4Time,
+                intensity: baseIntensity,
+                duration: p4Period,
+                waveform: .sine // Sine für sanfte Erdung
+            ))
+            phase4Time += p4Period
+        }
+        
+        // Create VibrationScript
+        return try VibrationScript(
+            trackId: UUID(),
+            mode: .dmnShutdown,
+            targetFrequency: 40.0, // Peak frequency (Gamma)
+            multiplier: 1,
+            events: events
+        )
+    }
 }

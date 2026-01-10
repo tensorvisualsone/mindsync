@@ -492,6 +492,25 @@ final class SessionViewModel: ObservableObject {
         let elapsed = Date().timeIntervalSince(startTime) - totalPauseDuration
         let mode = session.mode
         
+        // SPECIAL CASE: DMN-Shutdown mode uses fixed script with frequency overrides per phase
+        if mode == .dmnShutdown {
+            // Find the current event based on elapsed time
+            // This gives us the correct frequency from the script's frequencyOverride
+            let currentEvent = script.events.first { event in
+                elapsed >= event.timestamp && elapsed < (event.timestamp + event.duration)
+            }
+            
+            if let event = currentEvent, let frequencyOverride = event.frequencyOverride {
+                // Use the frequency override from the current event
+                currentFrequency = frequencyOverride
+            } else {
+                // Fallback: use target frequency if no event found (shouldn't happen)
+                currentFrequency = script.targetFrequency
+            }
+            return
+        }
+        
+        // Standard ramping calculation for other modes
         // Calculate ramping progress
         let rampTime = mode.rampDuration
         let progress = rampTime > 0 ? min(elapsed / rampTime, 1.0) : 1.0
@@ -1029,15 +1048,27 @@ final class SessionViewModel: ObservableObject {
             currentScript = script
             logger.info("DMN-Shutdown script generated")
             
+            // Create a dummy AudioTrack for display purposes (so Status Bar works)
+            let track = AudioTrack(
+                id: UUID(),
+                title: NSLocalizedString("mode.dmnShutdown.displayName", comment: ""),
+                artist: "MindSync",
+                duration: script.duration,
+                bpm: 0, // Not applicable for fixed script
+                beatTimestamps: []
+            )
+            currentTrack = track
+            logger.info("AudioTrack created for DMN-Shutdown mode")
+            
             // Create session with .dmnShutdown mode
             logger.info("Creating DMN-Shutdown session object")
             let session = Session(
                 mode: .dmnShutdown,
                 lightSource: cachedPreferences.preferredLightSource,
                 audioSource: .localFile,
-                trackTitle: "DMN-Shutdown Flow",
-                trackArtist: nil,
-                trackBPM: nil
+                trackTitle: track.title,
+                trackArtist: track.artist,
+                trackBPM: track.bpm
             )
             currentSession = session
             updateAffirmationStatusForCurrentPreferences()
@@ -1059,8 +1090,10 @@ final class SessionViewModel: ObservableObject {
             // Start audio playback and light synchronization
             try await startPlaybackAndLight(url: masterAudioURL, script: script, startTime: startTime)
             
-            // Start playback progress updates for 30-minute duration
-            startPlaybackProgressUpdates(for: script.duration)
+            // Start playback progress updates for script duration
+            // Use actual audio duration if available, otherwise use script duration
+            let audioDuration = script.duration // Script duration matches intended audio length
+            startPlaybackProgressUpdates(for: audioDuration)
             
             // Enable spectral flux for audio-reactive modulation (similar to other modes)
             enableSpectralFluxForCinematicMode(.dmnShutdown)
@@ -1068,11 +1101,34 @@ final class SessionViewModel: ObservableObject {
             // Setup Bluetooth latency monitoring for dynamic audio synchronization
             setupBluetoothLatencyMonitoring()
             
-            // Vibration is optional (if enabled in preferences)
-            // Note: We don't generate a vibration script for DMN-Shutdown as it's audio-independent
-            // If vibration is desired, it would need a separate vibration script generator
-            vibrationController = nil
-            currentVibrationScript = nil
+            // Generate VibrationScript if vibration is enabled in preferences
+            if cachedPreferences.vibrationEnabled {
+                logger.info("Generating DMN-Shutdown vibration script")
+                do {
+                    let vibrationScript = try EntrainmentEngine.generateDMNShutdownVibrationScript(
+                        intensity: cachedPreferences.vibrationIntensity
+                    )
+                    currentVibrationScript = vibrationScript
+                    vibrationController = services.vibrationController
+                    logger.info("DMN-Shutdown vibration script generated")
+                    
+                    // Start vibration with same startTime for synchronization
+                    vibrationController?.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+                    vibrationController?.audioPlayback = audioPlayback
+                    try await vibrationController?.start()
+                    vibrationController?.execute(script: vibrationScript, syncedTo: startTime)
+                    logger.info("Vibration controller started for DMN-Shutdown")
+                } catch {
+                    logger.error("Failed to generate/start vibration script: \(error.localizedDescription, privacy: .public)")
+                    // Degrade gracefully: continue without vibration instead of blocking session start
+                    vibrationController = nil
+                    currentVibrationScript = nil
+                    statusMessage = NSLocalizedString("status.vibration.unavailable", comment: "")
+                }
+            } else {
+                vibrationController = nil
+                currentVibrationScript = nil
+            }
             
             // Prevent screen from turning off during session
             UIApplication.shared.isIdleTimerDisabled = true
