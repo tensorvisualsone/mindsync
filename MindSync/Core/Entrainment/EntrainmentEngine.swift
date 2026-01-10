@@ -403,24 +403,19 @@ final class EntrainmentEngine {
             let period = 1.0 / max(0.0001, currentFreq)
             
             // Calculate event duration:
-            // - For square wave: half period (hard on/off)
-            // - For sine/triangle: extend to next beat or end of track to prevent gaps
-            let eventDuration: TimeInterval
-            if waveform == .square {
-                eventDuration = period / 2.0
+            // For ALL waveforms (including square): extend to next beat or end of track to prevent gaps
+            // The square wave shape is achieved within the event duration using duty cycle control
+            // in FlashlightController/WaveformGenerator, not by making events shorter
+            let nextTimestamp: TimeInterval
+            if index + 1 < normalizedTimestamps.count {
+                nextTimestamp = normalizedTimestamps[index + 1]
             } else {
-                // Duration extends to next beat timestamp (or end of track)
-                // This ensures continuous pulsation without gaps
-                let nextTimestamp: TimeInterval
-                if index + 1 < normalizedTimestamps.count {
-                    nextTimestamp = normalizedTimestamps[index + 1]
-                } else {
-                    // Last beat: extend to end of track (normalized)
-                    nextTimestamp = max(trackDuration - firstTimestamp, timestamp + period)
-                }
-                // Duration = time until next beat, but at least one period
-                eventDuration = max(period, nextTimestamp - timestamp)
+                // Last beat: extend to end of track (normalized)
+                nextTimestamp = max(trackDuration - firstTimestamp, timestamp + period)
             }
+            // Duration = time until next beat, but at least one period
+            // This ensures continuous pulsation without gaps for all waveforms
+            let eventDuration = max(period, nextTimestamp - timestamp)
             
             let event = LightEvent(
                 timestamp: timestamp,
@@ -464,12 +459,12 @@ final class EntrainmentEngine {
             }
         }
         
-        // Duration calculator: half period for square, 2x period for sine/triangle to match beat-based logic
+        // Duration calculator: For all waveforms, use full period for continuous pulsation
+        // The square wave shape is achieved within the event duration using duty cycle control,
+        // not by making events shorter
         let durationCalculator: (LightEvent.Waveform, TimeInterval) -> TimeInterval = { waveform, period in
-            switch waveform {
-            case .square: return period / 2.0  // Short for hard blink
-            case .sine, .triangle: return period * 2.0  // Approx 2x period for fallback (approximation of next-beat logic)
-            }
+            // Use full period (or slightly longer) for all waveforms to prevent gaps
+            return period * 2.0  // Approx 2x period for fallback (ensures continuous pulsation)
         }
         
         return generateUniformEvents(
