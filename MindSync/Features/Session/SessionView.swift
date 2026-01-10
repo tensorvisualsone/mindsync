@@ -7,6 +7,7 @@ struct SessionView: View {
     
     let mediaItem: MPMediaItem?
     let audioFileURL: URL?
+    let dmnShutdown: Bool
     
     /// Height of the status banner including padding (used for offset calculations)
     /// Calculated from: top padding (8) + banner vertical padding (sm + xs = 12) + content height (icon ~24 or text ~20)
@@ -22,9 +23,10 @@ struct SessionView: View {
         return topPadding + bannerVerticalPadding + contentHeight // 8 + 12 + 24 = 44
     }
     
-    init(song: MPMediaItem? = nil, audioFileURL: URL? = nil) {
+    init(song: MPMediaItem? = nil, audioFileURL: URL? = nil, dmnShutdown: Bool = false) {
         self.mediaItem = song
         self.audioFileURL = audioFileURL
+        self.dmnShutdown = dmnShutdown
     }
     
     var body: some View {
@@ -98,8 +100,14 @@ struct SessionView: View {
         .task {
             // Start the session immediately when view appears
             // Use Task to ensure it runs even if the view is already loaded
+            // Only start if state is still idle to prevent race conditions
+            guard viewModel.state == .idle else { return }
+            
             Task { @MainActor in
-                if let mediaItem = mediaItem {
+                if dmnShutdown {
+                    // DMN-Shutdown mode: Start automatically without audio selection
+                    await viewModel.startDMNShutdownSession()
+                } else if let mediaItem = mediaItem {
                     await viewModel.startSession(with: mediaItem)
                 } else if let audioFileURL = audioFileURL {
                     await viewModel.startSession(with: audioFileURL)
@@ -107,22 +115,6 @@ struct SessionView: View {
                     // No media item or file URL - show error
                     viewModel.errorMessage = NSLocalizedString("session.noMediaItem", comment: "")
                     viewModel.state = .error
-                }
-            }
-        }
-        .onAppear {
-            // Fallback: If task didn't run and we're still idle, start the session
-            // This ensures the session starts even if the task modifier fails
-            if viewModel.state == .idle {
-                Task { @MainActor in
-                    if let mediaItem = mediaItem {
-                        await viewModel.startSession(with: mediaItem)
-                    } else if let audioFileURL = audioFileURL {
-                        await viewModel.startSession(with: audioFileURL)
-                    } else {
-                        viewModel.errorMessage = NSLocalizedString("session.noMediaItem", comment: "")
-                        viewModel.state = .error
-                    }
                 }
             }
         }
@@ -259,6 +251,25 @@ private struct SessionTrackInfoView: View {
     let session: Session
     let currentFrequency: Double?
     
+    // Helper to determine if frequency chip should be shown
+    private var shouldShowFrequency: Bool {
+        guard let _ = script, let currentFrequency = currentFrequency, currentFrequency > 0 else {
+            return false
+        }
+        
+        // For DMN-Shutdown mode, always show frequency
+        if session.mode == .dmnShutdown {
+            return true
+        }
+        
+        // For other modes, only show if it differs significantly from BPM (indicating ramping)
+        if let bpm = track?.bpm {
+            return abs(Int(bpm) - Int(currentFrequency)) >= 2
+        }
+        
+        return false
+    }
+    
     var body: some View {
         VStack(spacing: AppConstants.Spacing.sm) {
             HStack(spacing: AppConstants.Spacing.sm) {
@@ -289,10 +300,8 @@ private struct SessionTrackInfoView: View {
                     color: session.mode.themeColor
                 )
                 
-                // Show frequency indicator only if it provides useful information
-                if let _ = script, let currentFrequency = currentFrequency, currentFrequency > 0,
-                   let bpm = track?.bpm, abs(Int(bpm) - Int(currentFrequency)) >= 2 {
-                    // Only show frequency if it differs significantly from BPM (indicating ramping)
+                // Show frequency indicator for DMN-Shutdown mode or if frequency differs from BPM
+                if shouldShowFrequency, let currentFrequency = currentFrequency {
                     ModeChip(
                         icon: "waveform",
                         text: "\(Int(currentFrequency)) Hz",

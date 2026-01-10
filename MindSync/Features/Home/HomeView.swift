@@ -5,6 +5,7 @@ import MediaPlayer
 enum SessionType: Identifiable {
     case mediaItem(MPMediaItem)
     case audioFile(URL)
+    case dmnShutdown
     
     var id: String {
         switch self {
@@ -12,6 +13,8 @@ enum SessionType: Identifiable {
             return "media-\(item.persistentID)"
         case .audioFile(let url):
             return "file-\(url.absoluteString)"
+        case .dmnShutdown:
+            return "dmn-shutdown"
         }
     }
 }
@@ -46,7 +49,12 @@ struct HomeView: View {
                         style: .filled(.mindSyncAccent)
                     ) {
                         HapticFeedback.light()
-                        showingSourceSelection = true
+                        // Special case: DMN-Shutdown mode starts automatically without audio selection
+                        if preferences.preferredMode == .dmnShutdown {
+                            sessionToStart = .dmnShutdown
+                        } else {
+                            showingSourceSelection = true
+                        }
                     }
                     .accessibilityIdentifier("home.startSessionButton")
                     
@@ -126,6 +134,8 @@ struct HomeView: View {
                     SessionView(song: item)
                 case .audioFile(let url):
                     SessionView(audioFileURL: url)
+                case .dmnShutdown:
+                    SessionView(dmnShutdown: true)
                 }
             }
         }
