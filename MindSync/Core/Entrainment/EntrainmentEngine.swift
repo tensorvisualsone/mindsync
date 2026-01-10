@@ -364,10 +364,10 @@ final class EntrainmentEngine {
         // Waveform selector based on mode
         let waveformSelector: (EntrainmentMode) -> LightEvent.Waveform = { mode in
             switch mode {
-            case .alpha: return .sine      // Smooth for relaxation
-            case .theta: return .sine     // Smooth for trip
+            case .alpha: return .square   // Changed from .sine for visual patterns (Phosphene)
+            case .theta: return .square   // Changed from .sine for visual patterns (Phosphene)
             case .gamma: return .square   // Hard for focus
-            case .cinematic: return .sine // Smooth for cinematic (dynamically modulated at runtime)
+            case .cinematic: return .sine // Keep sine for cinematic (dynamically modulated at runtime)
             }
         }
         
@@ -448,8 +448,9 @@ final class EntrainmentEngine {
         // Waveform selector for fallback based on mode
         let waveformSelector: (EntrainmentMode) -> LightEvent.Waveform = { mode in
             switch mode {
-            case .alpha, .theta, .cinematic: return .sine
+            case .alpha, .theta: return .square  // Changed from .sine for visual patterns
             case .gamma: return .square
+            case .cinematic: return .sine
             }
         }
         

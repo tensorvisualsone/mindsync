@@ -98,10 +98,10 @@ final class FlashlightController: BaseLightController, LightControlling {
     ///   gives a crisp perceptual strobe while keeping thermal load manageable.
     /// - `gammaDuty = 0.20` (20%): default gamma duty. Slightly longer pulses improve
     ///   entrainment contrast without making the torch appear continuously on.
-    /// - `alphaDuty = 0.30` (30%): alpha has longer periods, so we can afford more “on” time
-    ///   for a smoother, brighter subjective experience without losing distinct flashes.
-    /// - `thetaDuty = 0.45` (45%): theta is very low frequency; tests show that higher duty
-    ///   cycles are perceived as pleasant and still clearly pulsatile at these periods.
+        /// - `alphaDuty = 0.25` (25%): alpha has longer periods; reduced from 0.30 for crisper visual patterns
+        ///   while maintaining smooth perception. The shorter duty cycle improves pulse clarity.
+        /// - `thetaDuty = 0.30` (30%): theta is very low frequency; reduced from 0.45 for lighter feel
+        ///   and better visual pattern generation (Phosphene). More darkness creates "lighter" perception.
     ///
     /// Minimum duty floor:
     /// - `minimumDutyFloor = 0.05` (5%): below ≈5% the effective pulse width approaches the
@@ -123,10 +123,12 @@ final class FlashlightController: BaseLightController, LightControlling {
         static let gammaHighDuty: Double = 0.15
         /// Default duty cycle for gamma band entrainment.
         static let gammaDuty: Double = 0.20
-        /// Duty cycle for alpha band entrainment (longer, smoother flashes).
-        static let alphaDuty: Double = 0.30
-        /// Duty cycle for theta band entrainment (slow, bright pulses).
-        static let thetaDuty: Double = 0.45
+        /// Duty cycle for alpha band entrainment (reduced from 0.30 to 0.25 for crisper pulses).
+        static let alphaDuty: Double = 0.25  // Changed from 0.30
+        /// Duty cycle for theta band entrainment (reduced from 0.45 to 0.30 for lighter feel and better patterns).
+        /// Shorter, more pronounced flashes create better visual patterns (Phosphene) than long light phases.
+        /// 0.30 means: 30% light, 70% darkness per cycle.
+        static let thetaDuty: Double = 0.30  // Changed from 0.45
         /// Absolute lower bound to keep pulses above LED rise/fall time and maintain visibility.
         static let minimumDutyFloor: Double = 0.05
     }
