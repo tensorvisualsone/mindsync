@@ -20,6 +20,7 @@ final class FlashlightController: BaseLightController, LightControlling {
     private let thermalManager: ThermalManager
     private let logger = Logger(subsystem: "com.mindsync", category: "FlashlightController")
     private var torchFailureNotified = false
+    private var currentIntensity: Float = -1.0 // Track current intensity to prevent redundant setIntensity calls
     
     // Cinematic mode pulse state tracking - hard flash decay
     /// Pulse decay duration for cinematic mode peak-based flashes.
@@ -216,6 +217,7 @@ final class FlashlightController: BaseLightController, LightControlling {
         torchFailureNotified = false
         
         // Reset state
+        currentIntensity = -1.0 // Reset tracked intensity
         setIntensity(0.0)
         resetScriptExecution()
         lastBeatTime = 0
@@ -261,11 +263,21 @@ final class FlashlightController: BaseLightController, LightControlling {
     }
 
     func setIntensity(_ intensity: Float) {
+        // Prevent redundant calls with same intensity (especially 0.0 which causes spam in logs)
+        // Use epsilon comparison (0.001) to account for floating point precision
+        if abs(currentIntensity - intensity) < 0.001 {
+            // Same intensity - skip to avoid redundant torch operations
+            return
+        }
+        
         logger.debug("setIntensity called with \(intensity)")
         guard let device = device, isLocked else {
             logger.warning("setIntensity failed: device=\(self.device != nil), isLocked=\(self.isLocked)")
             return
         }
+        
+        // Update tracked intensity
+        currentIntensity = intensity
 
         if thermalManager.maxFlashlightIntensity <= 0 {
             logger.warning("Thermal manager blocking flashlight: maxIntensity=\(self.thermalManager.maxFlashlightIntensity)")

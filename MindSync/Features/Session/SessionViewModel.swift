@@ -1102,28 +1102,42 @@ final class SessionViewModel: ObservableObject {
             setupBluetoothLatencyMonitoring()
             
             // Generate VibrationScript if vibration is enabled in preferences
+            // IMPORTANT: Generate asynchronously to avoid blocking the main thread
+            // The vibration script for DMN-Shutdown can contain thousands of events
             if cachedPreferences.vibrationEnabled {
-                logger.info("Generating DMN-Shutdown vibration script")
-                do {
-                    let vibrationScript = try EntrainmentEngine.generateDMNShutdownVibrationScript(
-                        intensity: cachedPreferences.vibrationIntensity
-                    )
-                    currentVibrationScript = vibrationScript
-                    vibrationController = services.vibrationController
-                    logger.info("DMN-Shutdown vibration script generated")
-                    
-                    // Start vibration with same startTime for synchronization
-                    vibrationController?.audioLatencyOffset = cachedPreferences.audioLatencyOffset
-                    vibrationController?.audioPlayback = audioPlayback
-                    try await vibrationController?.start()
-                    vibrationController?.execute(script: vibrationScript, syncedTo: startTime)
-                    logger.info("Vibration controller started for DMN-Shutdown")
-                } catch {
-                    logger.error("Failed to generate/start vibration script: \(error.localizedDescription, privacy: .public)")
-                    // Degrade gracefully: continue without vibration instead of blocking session start
-                    vibrationController = nil
-                    currentVibrationScript = nil
-                    statusMessage = NSLocalizedString("status.vibration.unavailable", comment: "")
+                logger.info("Generating DMN-Shutdown vibration script (async)")
+                Task { @MainActor in
+                    do {
+                        // Generate on background thread to avoid blocking UI
+                        let vibrationScript = try await Task.detached(priority: .userInitiated) {
+                            try EntrainmentEngine.generateDMNShutdownVibrationScript(
+                                intensity: cachedPreferences.vibrationIntensity
+                            )
+                        }.value
+                        
+                        // Only start vibration if session is still running
+                        guard self.state == .running else {
+                            logger.info("Session stopped before vibration script generated")
+                            return
+                        }
+                        
+                        self.currentVibrationScript = vibrationScript
+                        self.vibrationController = self.services.vibrationController
+                        logger.info("DMN-Shutdown vibration script generated (\(vibrationScript.events.count) events)")
+                        
+                        // Start vibration with same startTime for synchronization
+                        self.vibrationController?.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+                        self.vibrationController?.audioPlayback = self.audioPlayback
+                        try await self.vibrationController?.start()
+                        self.vibrationController?.execute(script: vibrationScript, syncedTo: startTime)
+                        logger.info("Vibration controller started for DMN-Shutdown")
+                    } catch {
+                        logger.error("Failed to generate/start vibration script: \(error.localizedDescription, privacy: .public)")
+                        // Degrade gracefully: continue without vibration instead of blocking session start
+                        self.vibrationController = nil
+                        self.currentVibrationScript = nil
+                        self.statusMessage = NSLocalizedString("status.vibration.unavailable", comment: "")
+                    }
                 }
             } else {
                 vibrationController = nil

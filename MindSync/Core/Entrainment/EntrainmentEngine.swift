@@ -958,27 +958,29 @@ extension EntrainmentEngine {
         
         // --- PHASE 1: DISCONNECT (4 Min) ---
         // Ramp von 10Hz → 5Hz (Square waves für "härteres" Entrainment)
+        // OPTIMIZATION: Use 0.1s events instead of period-based to reduce event count from ~1,800 to ~2,400
         let phase1Duration: TimeInterval = 240 // 4 Minuten
         let p1StartFreq = 10.0
         let p1EndFreq = 5.0
         
-        for i in 0..<Int(phase1Duration) {
-            let progress = Double(i) / phase1Duration
+        // Use 0.1s events for Phase 1 to reduce event count
+        let phase1EventDuration: TimeInterval = 0.1 // 100ms events
+        var phase1Time: TimeInterval = 0
+        
+        while phase1Time < phase1Duration {
+            let progress = phase1Time / phase1Duration
             let smoothProgress = MathHelpers.smoothstep(progress)
             let currentFreq = p1StartFreq + (p1EndFreq - p1StartFreq) * smoothProgress
-            let period = 1.0 / max(0.0001, currentFreq)
-            
-            // Square waves für Phase 1 (härteres Entrainment)
-            let eventDuration = period / 2.0 // Half period for square waves
             
             events.append(try VibrationEvent(
-                timestamp: currentTime,
+                timestamp: currentTime + phase1Time,
                 intensity: baseIntensity,
-                duration: eventDuration,
+                duration: phase1EventDuration,
                 waveform: .square
             ))
-            currentTime += period
+            phase1Time += phase1EventDuration
         }
+        currentTime += phase1Duration
         
         // --- PHASE 2: THE ABYSS (12 Min) ---
         // Tiefe Theta-Oszillation bei 4.5 Hz (Sine waves für sanftes Schweben)
@@ -1001,6 +1003,8 @@ extension EntrainmentEngine {
         
         // --- PHASE 3: THE VOID / PEAK (8 Min) ---
         // 40Hz Gamma-Burst (Square waves für maximale kortikale Erregung)
+        // OPTIMIZATION: Create longer events (0.1s) instead of individual periods (0.0125s)
+        // to reduce event count from 38,400 to ~4,800 events and prevent main thread blocking
         let phase3Duration: TimeInterval = 480 // 8 Minuten
         let p3Frequency = 40.0
         let p3Period = 1.0 / p3Frequency
@@ -1008,36 +1012,37 @@ extension EntrainmentEngine {
         // Hohe Intensität für Phase 3 (1.2x baseIntensity, clamped to 1.0)
         let phase3Intensity = min(1.0, baseIntensity * 1.2)
         
+        // Use 0.1s events instead of period/2 (0.0125s) to reduce event count by 8x
+        let phase3EventDuration: TimeInterval = 0.1 // 100ms events for Phase 3
         var phase3Time: TimeInterval = 0
         while phase3Time < phase3Duration {
-            let eventDuration = p3Period / 2.0 // Half period for square waves
-            
             events.append(try VibrationEvent(
                 timestamp: currentTime + phase3Time,
                 intensity: phase3Intensity,
-                duration: eventDuration,
+                duration: phase3EventDuration,
                 waveform: .square // Square wave für Gamma-Sync
             ))
-            phase3Time += p3Period
+            phase3Time += phase3EventDuration
         }
         currentTime += phase3Duration
         
         // --- PHASE 4: REINTEGRATION (6 Min) ---
         // Schumann-Resonanz (7.83Hz) für friedliche Erdung (Sine waves)
+        // OPTIMIZATION: Use longer events (0.2s) to reduce event count
         let phase4Duration: TimeInterval = 360 // 6 Minuten
         let p4Frequency = 7.83
-        let p4Period = 1.0 / p4Frequency
         
+        // Use 0.2s events instead of full period (~0.128s) to reduce event count
+        let phase4EventDuration: TimeInterval = 0.2 // 200ms events for Phase 4
         var phase4Time: TimeInterval = 0
         while phase4Time < phase4Duration {
-            // Full period für Sine waves
             events.append(try VibrationEvent(
                 timestamp: currentTime + phase4Time,
                 intensity: baseIntensity,
-                duration: p4Period,
+                duration: phase4EventDuration,
                 waveform: .sine // Sine für sanfte Erdung
             ))
-            phase4Time += p4Period
+            phase4Time += phase4EventDuration
         }
         
         // Create VibrationScript

@@ -100,6 +100,9 @@ struct SessionView: View {
         .task {
             // Start the session immediately when view appears
             // Use Task to ensure it runs even if the view is already loaded
+            // Only start if state is still idle to prevent race conditions
+            guard viewModel.state == .idle else { return }
+            
             Task { @MainActor in
                 if dmnShutdown {
                     // DMN-Shutdown mode: Start automatically without audio selection
@@ -112,25 +115,6 @@ struct SessionView: View {
                     // No media item or file URL - show error
                     viewModel.errorMessage = NSLocalizedString("session.noMediaItem", comment: "")
                     viewModel.state = .error
-                }
-            }
-        }
-        .onAppear {
-            // Fallback: If task didn't run and we're still idle, start the session
-            // This ensures the session starts even if the task modifier fails
-            if viewModel.state == .idle {
-                Task { @MainActor in
-                    if dmnShutdown {
-                        // DMN-Shutdown mode: Start automatically without audio selection
-                        await viewModel.startDMNShutdownSession()
-                    } else if let mediaItem = mediaItem {
-                        await viewModel.startSession(with: mediaItem)
-                    } else if let audioFileURL = audioFileURL {
-                        await viewModel.startSession(with: audioFileURL)
-                    } else {
-                        viewModel.errorMessage = NSLocalizedString("session.noMediaItem", comment: "")
-                        viewModel.state = .error
-                    }
                 }
             }
         }
