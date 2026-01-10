@@ -1106,12 +1106,16 @@ final class SessionViewModel: ObservableObject {
             // The vibration script for DMN-Shutdown can contain thousands of events
             if cachedPreferences.vibrationEnabled {
                 logger.info("Generating DMN-Shutdown vibration script (async)")
+                // Extract values before async Task to avoid capture issues
+                let vibrationIntensity = cachedPreferences.vibrationIntensity
+                let audioLatencyOffset = cachedPreferences.audioLatencyOffset
+                
                 Task { @MainActor in
                     do {
                         // Generate on background thread to avoid blocking UI
                         let vibrationScript = try await Task.detached(priority: .userInitiated) {
                             try EntrainmentEngine.generateDMNShutdownVibrationScript(
-                                intensity: cachedPreferences.vibrationIntensity
+                                intensity: vibrationIntensity
                             )
                         }.value
                         
@@ -1126,7 +1130,7 @@ final class SessionViewModel: ObservableObject {
                         logger.info("DMN-Shutdown vibration script generated (\(vibrationScript.events.count) events)")
                         
                         // Start vibration with same startTime for synchronization
-                        self.vibrationController?.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+                        self.vibrationController?.audioLatencyOffset = audioLatencyOffset
                         self.vibrationController?.audioPlayback = self.audioPlayback
                         try await self.vibrationController?.start()
                         self.vibrationController?.execute(script: vibrationScript, syncedTo: startTime)

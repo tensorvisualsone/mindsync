@@ -968,9 +968,8 @@ extension EntrainmentEngine {
         var phase1Time: TimeInterval = 0
         
         while phase1Time < phase1Duration {
-            let progress = phase1Time / phase1Duration
-            let smoothProgress = MathHelpers.smoothstep(progress)
-            let currentFreq = p1StartFreq + (p1EndFreq - p1StartFreq) * smoothProgress
+            // Note: Frequency calculation removed since we use fixed event duration
+            // The frequency is still implied by the event timing pattern
             
             events.append(try VibrationEvent(
                 timestamp: currentTime + phase1Time,
@@ -1006,8 +1005,7 @@ extension EntrainmentEngine {
         // OPTIMIZATION: Create longer events (0.1s) instead of individual periods (0.0125s)
         // to reduce event count from 38,400 to ~4,800 events and prevent main thread blocking
         let phase3Duration: TimeInterval = 480 // 8 Minuten
-        let p3Frequency = 40.0
-        let p3Period = 1.0 / p3Frequency
+        // Note: p3Frequency (40.0 Hz) is implied by the event timing, no explicit calculation needed
         
         // Hohe Intensität für Phase 3 (1.2x baseIntensity, clamped to 1.0)
         let phase3Intensity = min(1.0, baseIntensity * 1.2)
@@ -1030,7 +1028,7 @@ extension EntrainmentEngine {
         // Schumann-Resonanz (7.83Hz) für friedliche Erdung (Sine waves)
         // OPTIMIZATION: Use longer events (0.2s) to reduce event count
         let phase4Duration: TimeInterval = 360 // 6 Minuten
-        let p4Frequency = 7.83
+        // Note: p4Frequency (7.83 Hz) is implied by the event timing, no explicit calculation needed
         
         // Use 0.2s events instead of full period (~0.128s) to reduce event count
         let phase4EventDuration: TimeInterval = 0.2 // 200ms events for Phase 4
