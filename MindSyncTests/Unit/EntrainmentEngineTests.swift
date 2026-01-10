@@ -50,7 +50,7 @@ final class EntrainmentEngineTests: XCTestCase {
         XCTAssertGreaterThan(script.events.count, 0)
     }
     
-    func testGenerateLightScript_AlphaMode_SineWaveform() {
+    func testGenerateLightScript_AlphaMode_SquareWaveform() {
         let track = AudioTrack(
             title: "Test",
             duration: 5.0,
@@ -64,7 +64,82 @@ final class EntrainmentEngineTests: XCTestCase {
             lightSource: .screen
         )
         
-        // Alpha mode should use sine waveform
+        // Alpha mode should use square waveform for better visual patterns (Phosphene)
+        XCTAssertEqual(script.events.first?.waveform, .square)
+    }
+    
+    func testGenerateLightScript_ThetaMode_SquareWaveform() {
+        let track = AudioTrack(
+            title: "Test",
+            duration: 5.0,
+            bpm: 120.0,
+            beatTimestamps: [0.0, 0.5, 1.0]
+        )
+        
+        let script = engine.generateLightScript(
+            from: track,
+            mode: .theta,
+            lightSource: .screen
+        )
+        
+        // Theta mode should use square waveform for better visual patterns (Phosphene)
+        XCTAssertEqual(script.events.first?.waveform, .square)
+    }
+    
+    func testGenerateLightScript_Fallback_AlphaMode_SquareWaveform() {
+        let track = AudioTrack(
+            title: "Test",
+            duration: 5.0,
+            bpm: 120.0,
+            beatTimestamps: [] // No beats - triggers fallback
+        )
+        
+        let script = engine.generateLightScript(
+            from: track,
+            mode: .alpha,
+            lightSource: .screen
+        )
+        
+        // Fallback events for alpha mode should also use square waveform
+        XCTAssertGreaterThan(script.events.count, 0)
+        XCTAssertEqual(script.events.first?.waveform, .square)
+    }
+    
+    func testGenerateLightScript_Fallback_ThetaMode_SquareWaveform() {
+        let track = AudioTrack(
+            title: "Test",
+            duration: 5.0,
+            bpm: 120.0,
+            beatTimestamps: [] // No beats - triggers fallback
+        )
+        
+        let script = engine.generateLightScript(
+            from: track,
+            mode: .theta,
+            lightSource: .screen
+        )
+        
+        // Fallback events for theta mode should also use square waveform
+        XCTAssertGreaterThan(script.events.count, 0)
+        XCTAssertEqual(script.events.first?.waveform, .square)
+    }
+    
+    func testGenerateLightScript_Fallback_CinematicMode_SineWaveform() {
+        let track = AudioTrack(
+            title: "Test",
+            duration: 5.0,
+            bpm: 120.0,
+            beatTimestamps: [] // No beats - triggers fallback
+        )
+        
+        let script = engine.generateLightScript(
+            from: track,
+            mode: .cinematic,
+            lightSource: .screen
+        )
+        
+        // Fallback events for cinematic mode should use sine waveform
+        XCTAssertGreaterThan(script.events.count, 0)
         XCTAssertEqual(script.events.first?.waveform, .sine)
     }
     
