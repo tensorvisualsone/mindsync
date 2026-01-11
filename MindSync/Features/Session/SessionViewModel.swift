@@ -668,25 +668,23 @@ final class SessionViewModel: ObservableObject {
 
             // Start playback and light (this sets the startTime)
             logger.info("Starting playback and light")
-            let startTime = Date()
-            sessionStartTime = startTime
+            // Start audio playback and light (startTime is created AFTER audio starts for proper sync)
+            let actualStartTime = try await startPlaybackAndLight(url: assetURL, script: script, startTime: Date())
+            sessionStartTime = actualStartTime
             updateCurrentFrequency()
             startFrequencyUpdates()
-
-            // Start audio playback and light
-            try await startPlaybackAndLight(url: assetURL, script: script, startTime: startTime)
             logger.info("Playback and light started successfully")
 
             // Start playback progress updates AFTER audio has started
             startPlaybackProgressUpdates(for: track.duration)
 
-            // Start vibration if enabled (using same startTime for synchronization)
+            // Start vibration if enabled (using same actualStartTime for synchronization)
             if cachedPreferences.vibrationEnabled, let vibrationController = vibrationController, let vibrationScript = currentVibrationScript {
                 vibrationController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
                 vibrationController.audioPlayback = audioPlayback
 
                 try await vibrationController.start()
-                vibrationController.execute(script: vibrationScript, syncedTo: startTime)
+                vibrationController.execute(script: vibrationScript, syncedTo: actualStartTime)
             }
 
             // Start Bluetooth latency monitoring for dynamic synchronization
@@ -824,19 +822,17 @@ final class SessionViewModel: ObservableObject {
             }
             
             // Start playback and light (this sets the startTime)
-            let startTime = Date()
-            sessionStartTime = startTime
+            // Start audio playback and light (startTime is created AFTER audio starts for proper sync)
+            let actualStartTime = try await startPlaybackAndLight(url: audioFileURL, script: script, startTime: Date())
+            sessionStartTime = actualStartTime
             // Update frequency now that sessionStartTime is set (timer will continue updating)
             updateCurrentFrequency()
             startFrequencyUpdates()
             
-            // Start audio playback and light
-            try await startPlaybackAndLight(url: audioFileURL, script: script, startTime: startTime)
-            
             // Start playback progress updates AFTER audio has started
             startPlaybackProgressUpdates(for: track.duration)
             
-            // Start vibration if enabled (using same startTime for synchronization)
+            // Start vibration if enabled (using same actualStartTime for synchronization)
             if cachedPreferences.vibrationEnabled, let vibrationController = vibrationController, let vibrationScript = currentVibrationScript {
                 // Apply audio latency offset for Bluetooth compensation
                 vibrationController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
@@ -844,7 +840,7 @@ final class SessionViewModel: ObservableObject {
                 vibrationController.audioPlayback = audioPlayback
                 
                 try await vibrationController.start()
-                vibrationController.execute(script: vibrationScript, syncedTo: startTime)
+                vibrationController.execute(script: vibrationScript, syncedTo: actualStartTime)
             }
             
             // Start Bluetooth latency monitoring for dynamic synchronization
@@ -1091,13 +1087,12 @@ final class SessionViewModel: ObservableObject {
             
             // Start playback and light (synchronized)
             logger.info("Starting light controller and audio playback")
-            let startTime = Date()
-            sessionStartTime = startTime
+            // Start audio playback and light synchronization
+            // startTime is created AFTER audio has started for proper synchronization
+            let actualStartTime = try await startPlaybackAndLight(url: masterAudioURL, script: script, startTime: Date())
+            sessionStartTime = actualStartTime
             updateCurrentFrequency()
             startFrequencyUpdates()
-            
-            // Start audio playback and light synchronization
-            try await startPlaybackAndLight(url: masterAudioURL, script: script, startTime: startTime)
             
             // Start playback progress updates for script duration
             // Use actual audio duration if available, otherwise use script duration
@@ -1111,47 +1106,29 @@ final class SessionViewModel: ObservableObject {
             setupBluetoothLatencyMonitoring()
             
             // Generate VibrationScript if vibration is enabled in preferences
-            // IMPORTANT: Generate asynchronously to avoid blocking the main thread
-            // The vibration script for DMN-Shutdown can contain thousands of events
+            // Generate synchronously for DMN-Shutdown to ensure proper timing synchronization
             if cachedPreferences.vibrationEnabled {
-                logger.info("Generating DMN-Shutdown vibration script (async)")
-                // Extract values before async Task to avoid capture issues
-                let vibrationIntensity = cachedPreferences.vibrationIntensity
-                let audioLatencyOffset = cachedPreferences.audioLatencyOffset
-                
-                Task { @MainActor in
-                    do {
-                        // Generate on background thread to avoid blocking UI
-                        // Note: Method is marked as nonisolated, so it can be called from detached task
-                        let vibrationScript = try await Task.detached(priority: .userInitiated) {
-                            return try EntrainmentEngine.generateDMNShutdownVibrationScript(
-                                intensity: vibrationIntensity
-                            )
-                        }.value
-                        
-                        // Only start vibration if session is still running
-                        guard self.state == .running else {
-                            logger.info("Session stopped before vibration script generated")
-                            return
-                        }
-                        
-                        self.currentVibrationScript = vibrationScript
-                        self.vibrationController = self.services.vibrationController
-                        logger.info("DMN-Shutdown vibration script generated (\(vibrationScript.events.count) events)")
-                        
-                        // Start vibration with same startTime for synchronization
-                        self.vibrationController?.audioLatencyOffset = audioLatencyOffset
-                        self.vibrationController?.audioPlayback = self.audioPlayback
-                        try await self.vibrationController?.start()
-                        self.vibrationController?.execute(script: vibrationScript, syncedTo: startTime)
-                        logger.info("Vibration controller started for DMN-Shutdown")
-                    } catch {
-                        logger.error("Failed to generate/start vibration script: \(error.localizedDescription, privacy: .public)")
-                        // Degrade gracefully: continue without vibration instead of blocking session start
-                        self.vibrationController = nil
-                        self.currentVibrationScript = nil
-                        self.statusMessage = NSLocalizedString("status.vibration.unavailable", comment: "")
-                    }
+                logger.info("Generating DMN-Shutdown vibration script (synchronous)")
+                do {
+                    let vibrationScript = try EntrainmentEngine.generateDMNShutdownVibrationScript(
+                        intensity: cachedPreferences.vibrationIntensity
+                    )
+                    currentVibrationScript = vibrationScript
+                    vibrationController = services.vibrationController
+                    logger.info("DMN-Shutdown vibration script generated (\(vibrationScript.events.count) events)")
+                    
+                    // Start vibration with same actualStartTime for synchronization
+                    vibrationController?.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+                    vibrationController?.audioPlayback = audioPlayback
+                    try await vibrationController?.start()
+                    vibrationController?.execute(script: vibrationScript, syncedTo: actualStartTime)
+                    logger.info("Vibration controller started for DMN-Shutdown (synchronized)")
+                } catch {
+                    logger.error("Failed to generate/start vibration script: \(error.localizedDescription, privacy: .public)")
+                    // Degrade gracefully: continue without vibration instead of blocking session start
+                    vibrationController = nil
+                    currentVibrationScript = nil
+                    statusMessage = NSLocalizedString("status.vibration.unavailable", comment: "")
                 }
             } else {
                 vibrationController = nil
@@ -1372,7 +1349,8 @@ final class SessionViewModel: ObservableObject {
     }
     
     /// Starts audio playback and light synchronization
-    private func startPlaybackAndLight(url: URL, script: LightScript, startTime: Date) async throws {
+    /// - Returns: The actual start time (after audio has started)
+    private func startPlaybackAndLight(url: URL, script: LightScript, startTime: Date) async throws -> Date {
         let modeString = self.currentSession?.mode.rawValue ?? "unknown"
         logger.info("startPlaybackAndLight: starting with URL=\(url.lastPathComponent), mode=\(modeString)")
 
@@ -1386,6 +1364,9 @@ final class SessionViewModel: ObservableObject {
 
         // Small delay to ensure audio engine is fully started before starting light
         try await Task.sleep(nanoseconds: Self.audioEngineStartupDelay)
+        
+        // Create actual start time AFTER audio has started (for proper synchronization)
+        let actualStartTime = Date()
 
         // If cinematic mode, attach isochronic audio to the playback engine for perfect sync
         if currentSession?.mode == .cinematic, let engine = audioPlayback.getAudioEngine() {
@@ -1426,12 +1407,15 @@ final class SessionViewModel: ObservableObject {
         }
 
         if lightControllerStarted {
-            // Start LightScript execution synchronized with audio
-            lightController.execute(script: script, syncedTo: startTime)
+            // Start LightScript execution synchronized with audio (use actualStartTime)
+            lightController.execute(script: script, syncedTo: actualStartTime)
             logger.info("startPlaybackAndLight: light script execution started successfully")
         } else {
             logger.info("startPlaybackAndLight: continuing in audio-only mode")
         }
+        
+        // Return actual start time for vibration synchronization
+        return actualStartTime
     }
 
     /// Typed timeout error for better type safety
