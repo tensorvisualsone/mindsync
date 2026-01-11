@@ -171,6 +171,8 @@
 "mode.cinematic.description" = "Flow state sync – audio-reactive immersion";
 "mode.dmnShutdown.displayName" = "DMN-Shutdown (4.5-40 Hz)";
 "mode.dmnShutdown.description" = "Ego-dissolution: Deep theta relaxation followed by gamma synchronization for transcendent states";
+"mode.beliefRewiring.displayName" = "Belief-Rewiring (5-40 Hz)";
+"mode.beliefRewiring.description" = "Reprogram beliefs: Theta-open for subconscious access, gamma-sync for neural reprogramming";
 
 // MARK: - Safety Banner
 "safety.thermalReduced" = "Intensity reduced due to device heat";
