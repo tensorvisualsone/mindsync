@@ -51,6 +51,9 @@ final class FlashlightController: BaseLightController, LightControlling {
     private var lastBeatIntensity: Float = 0.0
     private let pulseDecayDuration: TimeInterval = 0.08 // 80ms pulse duration for better visibility (increased from 50ms)
     
+    // Intensity comparison epsilon for floating point precision
+    private let intensityComparisonEpsilon: Float = 0.001
+    
     // Debug logging timestamp tracking
     private var lastAudioLogTime: TimeInterval = -1.0  // Last time we logged audio energy
     private var noEventLogCount: Int = 0  // Counter for no-event debug logs
@@ -265,20 +268,16 @@ final class FlashlightController: BaseLightController, LightControlling {
 
     func setIntensity(_ intensity: Float) {
         // Prevent redundant calls with same intensity (especially 0.0 which causes spam in logs)
-        // Use epsilon comparison (0.001) to account for floating point precision
-        if abs(currentIntensity - intensity) < 0.001 {
+        // Use epsilon comparison to account for floating point precision
+        if abs(currentIntensity - intensity) < intensityComparisonEpsilon {
             // Same intensity - skip to avoid redundant torch operations
             return
         }
         
-        // Only log setIntensity calls in DEBUG builds, and skip logging 0.0 to reduce log spam
-        #if DEBUG
-        if intensity > 0.001 {
+        // Skip logging very small values to reduce log spam
+        if intensity > intensityComparisonEpsilon {
             logger.debug("setIntensity called with \(intensity)")
         }
-        #else
-        logger.debug("setIntensity called with \(intensity)")
-        #endif
         
         guard let device = device, isLocked else {
             logger.warning("setIntensity failed: device=\(self.device != nil), isLocked=\(self.isLocked)")

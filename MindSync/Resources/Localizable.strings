@@ -174,8 +174,10 @@
 "mode.gamma.description" = "Höchste Konzentration, Gedächtnis, kognitive Einsicht";
 "mode.cinematic.displayName" = "Cinematic (6,5 Hz)";
 "mode.cinematic.description" = "Flow State Sync – Audio-reaktive Immersion";
-"mode.dmnShutdown.displayName" = "DMN-Shutdown (4,5-40 Hz)";
+"mode.dmnShutdown.displayName" = "DMN-Shutdown (4.5-40 Hz)";
 "mode.dmnShutdown.description" = "Ego-Dissolution: Tiefe Theta-Entspannung gefolgt von Gamma-Synchronisation für transzendente Zustände";
+"mode.beliefRewiring.displayName" = "Belief Rewiring";
+"mode.beliefRewiring.description" = "Reprogram beliefs: Theta-open for subconscious access, gamma-sync for neural reprogramming";
 
 // MARK: - Safety Banner
 "safety.thermalReduced" = "Intensität reduziert wegen Gerätewärme";

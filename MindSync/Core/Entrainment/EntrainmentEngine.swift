@@ -897,52 +897,28 @@ extension EntrainmentEngine {
         }
         
         // --- PHASE 2: THE ABYSS (12 Min) ---
-        // Deep theta oscillation at 4.5 Hz.
-        // Here we switch the DMN "offline". We use square waves for maximum contrast
+        // Deep theta oscillation at 4.5 Hz with smoother sine modulation.
+        // Here we switch the DMN "offline". We use sine waves for gentler transitions
         // and a fluctuating intensity cycle to prevent habituation (adaptation).
         let phase2Duration: TimeInterval = 720 // 12 minutes
         let p2Frequency = 4.5
         
-        // 2-second events with alternating intensity (0.35/0.0) for hard contrast
-        // Square waves ensure the light is completely off (0.0) between pulses
+        // 2-second events with alternating intensity (0.35/0.25) to prevent habituation
+        // We deliberately avoid complete darkness (0.0) to maintain continuous entrainment
         // IMPORTANT: duration: 2.0 (full 2 seconds), not period/2.0
         for i in 0..<Int(phase2Duration / 2) {
-            // We alternate between 0.35 and 0.0 (complete darkness) for maximum contrast
-            let intensity: Float = (i % 2 == 0) ? 0.35 : 0.0
+            // We alternate between 0.35 and 0.25 to vary intensity without breaking visibility
+            let intensity: Float = (i % 2 == 0) ? 0.35 : 0.25
             
             events.append(LightEvent(
                 timestamp: currentTime,
                 intensity: intensity,
                 duration: 2.0, // Full 2 seconds - NOT period/2.0!
-                waveform: .square, // Square waves for hard contrast and visual clarity
+                waveform: .sine, // Sine waves for smoother, more relaxing transitions
                 color: .purple,
                 frequencyOverride: p2Frequency
             ))
             currentTime += 2.0
-        }
-        
-        // --- TRANSITION RAMP (60 Sek) ---
-        // We smoothly ramp the brain from 4.5 Hz (Theta) to 40 Hz (Gamma)
-        // This prevents the abrupt frequency jump that can cause nausea or discomfort
-        let transitionDuration: TimeInterval = 60 // 60 seconds
-        let startFreq = 4.5
-        let endFreq = 40.0
-        
-        for i in 0..<Int(transitionDuration) {
-            let progress = Double(i) / transitionDuration
-            // Smoothstep interpolation for organic transition
-            let smoothProgress = MathHelpers.smoothstep(progress)
-            let currentFreq = startFreq + (endFreq - startFreq) * smoothProgress
-            
-            events.append(LightEvent(
-                timestamp: currentTime,
-                intensity: 0.4, // Gentle intensity during the transition
-                duration: 1.0,
-                waveform: .square,
-                color: .white,
-                frequencyOverride: currentFreq
-            ))
-            currentTime += 1.0
         }
         
         // --- PHASE 3: THE VOID / PEAK (8 Min) ---
@@ -1141,12 +1117,12 @@ extension EntrainmentEngine {
         let phase2Duration: TimeInterval = 600 // 10 minutes
         let p2Frequency = 5.0
         
-        // 2-second events with alternating intensity (0.35/0.0) for hard contrast
-        // Square waves ensure the light is completely off (0.0) between pulses
+        // 2-second events with alternating intensity (0.35/0.25) to prevent habituation
+        // We deliberately avoid complete darkness (0.0) to maintain continuous entrainment
         // IMPORTANT: duration: 2.0 (full 2 seconds), not period/2.0
         for i in 0..<Int(phase2Duration / 2) {
-            // We alternate between 0.35 and 0.0 (complete darkness) for maximum contrast
-            let intensity: Float = (i % 2 == 0) ? 0.35 : 0.0
+            // We alternate between 0.35 and 0.25 to vary intensity without breaking visibility
+            let intensity: Float = (i % 2 == 0) ? 0.35 : 0.25
             
             events.append(LightEvent(
                 timestamp: currentTime,
@@ -1157,30 +1133,6 @@ extension EntrainmentEngine {
                 frequencyOverride: p2Frequency
             ))
             currentTime += 2.0
-        }
-        
-        // --- TRANSITION RAMP (60 Sek) ---
-        // We smoothly ramp the brain from 5 Hz (Theta) to 40 Hz (Gamma)
-        // This prevents the abrupt frequency jump that can cause discomfort
-        let transitionDuration: TimeInterval = 60 // 60 seconds
-        let startFreq = 5.0
-        let endFreq = 40.0
-        
-        for i in 0..<Int(transitionDuration) {
-            let progress = Double(i) / transitionDuration
-            // Smoothstep interpolation for organic transition
-            let smoothProgress = MathHelpers.smoothstep(progress)
-            let currentFreq = startFreq + (endFreq - startFreq) * smoothProgress
-            
-            events.append(LightEvent(
-                timestamp: currentTime,
-                intensity: 0.4, // Gentle intensity during the transition
-                duration: 1.0,
-                waveform: .square,
-                color: .white,
-                frequencyOverride: currentFreq
-            ))
-            currentTime += 1.0
         }
         
         // --- PHASE 3: THE REWIRE-BURST (8 Min) ---
