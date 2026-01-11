@@ -125,6 +125,16 @@ final class EntrainmentEngine {
         mode: EntrainmentMode,
         lightSource: LightSource
     ) -> LightScript {
+        // SPECIAL CASE: DMN-Shutdown mode uses fixed script without audio analysis
+        if mode == .dmnShutdown {
+            return EntrainmentEngine.generateDMNShutdownScript()
+        }
+        
+        // SPECIAL CASE: Belief-Rewiring mode uses fixed script without audio analysis
+        if mode == .beliefRewiring {
+            return EntrainmentEngine.generateBeliefRewiringScript()
+        }
+        
         // SPECIAL CASE: Cinematic mode uses fixed target frequency for photo diving
         // instead of BPM-derived frequency
         let targetFrequency: Double
@@ -328,6 +338,21 @@ final class EntrainmentEngine {
         trackDuration: TimeInterval,
         lightSource: LightSource
     ) -> [LightEvent] {
+        // SPECIAL CASE: DMN-Shutdown mode uses fixed script without audio analysis
+        // This should never be called for dmnShutdown (handled in generateLightScript)
+        // But we add it here as a safety check
+        if mode == .dmnShutdown {
+            // Return empty events - script is generated directly in generateLightScript()
+            return []
+        }
+        
+        // SPECIAL CASE: Belief-Rewiring mode uses fixed script without audio analysis
+        // This should never be called for beliefRewiring (handled in generateLightScript)
+        if mode == .beliefRewiring {
+            // Return empty events - script is generated directly in generateLightScript()
+            return []
+        }
+        
         // SPECIAL CASE: Cinematic mode uses purely audio-reactive approach without discrete events
         // The FlashlightController modulates light intensity directly from audio energy in real-time
         // We generate a single long event for script validation, but the controller doesn't use it
@@ -368,6 +393,8 @@ final class EntrainmentEngine {
             case .theta: return .square   // Changed from .sine for visual patterns (Phosphene)
             case .gamma: return .square   // Hard for focus
             case .cinematic: return .sine // Keep sine for cinematic (dynamically modulated at runtime)
+            case .dmnShutdown: return .square // Default (overridden by script)
+            case .beliefRewiring: return .square // Default (overridden by script)
             }
         }
         
@@ -378,6 +405,8 @@ final class EntrainmentEngine {
             case .theta: return 0.3  // Very soft for trip
             case .gamma: return 0.7  // More intense for focus
             case .cinematic: return 0.5  // Base intensity (dynamically adjusted at runtime)
+            case .dmnShutdown: return 0.5  // Default (overridden by script)
+            case .beliefRewiring: return 0.5  // Default (overridden by script)
             }
         }
         
@@ -446,6 +475,8 @@ final class EntrainmentEngine {
             case .alpha, .theta: return .square  // Changed from .sine for visual patterns
             case .gamma: return .square
             case .cinematic: return .sine
+            case .dmnShutdown: return .square // Default (overridden by script)
+            case .beliefRewiring: return .square // Default (overridden by script)
             }
         }
         
@@ -456,6 +487,8 @@ final class EntrainmentEngine {
             case .theta: return 0.3
             case .gamma: return 0.7
             case .cinematic: return 0.5
+            case .dmnShutdown: return 0.5 // Default (overridden by script)
+            case .beliefRewiring: return 0.5 // Default (overridden by script)
             }
         }
         
@@ -558,6 +591,8 @@ final class EntrainmentEngine {
             case .theta: return .sine     // Smooth for trip
             case .gamma: return .square   // Hard for focus
             case .cinematic: return .sine // Smooth for cinematic
+            case .dmnShutdown: return .sine // Smooth for DMN-Shutdown (optional)
+            case .beliefRewiring: return .sine // Smooth for Belief-Rewiring (optional)
             }
         }
         
@@ -648,7 +683,7 @@ final class EntrainmentEngine {
         // Waveform selector for fallback based on mode
         let waveformSelector: (EntrainmentMode) -> VibrationEvent.Waveform = { mode in
             switch mode {
-            case .alpha, .theta, .cinematic: return .sine
+            case .alpha, .theta, .cinematic, .dmnShutdown, .beliefRewiring: return .sine
             case .gamma: return .square
             }
         }
@@ -816,6 +851,375 @@ extension EntrainmentEngine {
         return LightScript(
             trackId: UUID(),
             mode: .gamma, // Technisch gesehen ein Mix, aber Gamma passt als "High Energy" Container
+            targetFrequency: 40.0,
+            multiplier: 1,
+            events: events
+        )
+    }
+    
+    /// Generates the special "DMN-Shutdown" script for ego-dissolution.
+    /// This ignores audio beats and creates a fixed 30-minute sequence
+    /// to specifically deactivate the Default Mode Network (DMN).
+    /// 
+    /// Phases:
+    /// - Phase 1: DISCONNECT (4 Min) - 10Hz → 5Hz Ramp (Alpha to Theta)
+    /// - Phase 2: THE ABYSS (12 Min) - 4.5Hz Theta with varying intensity
+    /// - Transition: RAMP (60 Sek) - Smooth transition from 4.5Hz to 40Hz
+    /// - Phase 3: THE VOID / PEAK (7 Min) - 40Hz Gamma-Burst
+    /// - Phase 4: REINTEGRATION (6 Min) - 7.83Hz Schumann Resonance
+    /// Total duration: 30 minutes (1800 seconds)
+    static func generateDMNShutdownScript() -> LightScript {
+        var events: [LightEvent] = []
+        var currentTime: TimeInterval = 0.0
+        
+        // --- PHASE 1: DISCONNECT (4 Min) ---
+        // We start at 10Hz (Alpha) and quickly pull consciousness down to 5Hz (Theta).
+        // This breaks the everyday focus.
+        // Square waves for "harder" entrainment (higher SSVEP success rate: 90.8% vs 75%)
+        let phase1Duration: TimeInterval = 240 // 4 minutes
+        let p1StartFreq = 10.0
+        let p1EndFreq = 5.0
+        
+        // IMPORTANT: Each event has duration: 1.0 (full second), not period/2.0
+        // The square wave shape is controlled by duty cycle, not by event duration
+        for i in 0..<Int(phase1Duration) {
+            let progress = Double(i) / phase1Duration
+            let smoothProgress = MathHelpers.smoothstep(progress)
+            let currentFreq = p1StartFreq + (p1EndFreq - p1StartFreq) * smoothProgress
+            
+            events.append(LightEvent(
+                timestamp: currentTime,
+                intensity: 0.4,
+                duration: 1.0, // Full second - NOT period/2.0!
+                waveform: .square, // Square waves for maximum cortical excitation
+                color: .blue,
+                frequencyOverride: currentFreq
+            ))
+            currentTime += 1.0
+        }
+        
+        // --- PHASE 2: THE ABYSS (12 Min) ---
+        // Deep theta oscillation at 4.5 Hz.
+        // Here we switch the DMN "offline". We use square waves for maximum contrast
+        // and a fluctuating intensity cycle to prevent habituation (adaptation).
+        let phase2Duration: TimeInterval = 720 // 12 minutes
+        let p2Frequency = 4.5
+        
+        // 2-second events with alternating intensity (0.35/0.0) for hard contrast
+        // Square waves ensure the light is completely off (0.0) between pulses
+        // IMPORTANT: duration: 2.0 (full 2 seconds), not period/2.0
+        for i in 0..<Int(phase2Duration / 2) {
+            // We alternate between 0.35 and 0.0 (complete darkness) for maximum contrast
+            let intensity: Float = (i % 2 == 0) ? 0.35 : 0.0
+            
+            events.append(LightEvent(
+                timestamp: currentTime,
+                intensity: intensity,
+                duration: 2.0, // Full 2 seconds - NOT period/2.0!
+                waveform: .square, // Square waves for hard contrast and visual clarity
+                color: .purple,
+                frequencyOverride: p2Frequency
+            ))
+            currentTime += 2.0
+        }
+        
+        // --- TRANSITION RAMP (60 Sek) ---
+        // We smoothly ramp the brain from 4.5 Hz (Theta) to 40 Hz (Gamma)
+        // This prevents the abrupt frequency jump that can cause nausea or discomfort
+        let transitionDuration: TimeInterval = 60 // 60 seconds
+        let startFreq = 4.5
+        let endFreq = 40.0
+        
+        for i in 0..<Int(transitionDuration) {
+            let progress = Double(i) / transitionDuration
+            // Smoothstep interpolation for organic transition
+            let smoothProgress = MathHelpers.smoothstep(progress)
+            let currentFreq = startFreq + (endFreq - startFreq) * smoothProgress
+            
+            events.append(LightEvent(
+                timestamp: currentTime,
+                intensity: 0.4, // Gentle intensity during the transition
+                duration: 1.0,
+                waveform: .square,
+                color: .white,
+                frequencyOverride: currentFreq
+            ))
+            currentTime += 1.0
+        }
+        
+        // --- PHASE 3: THE VOID / PEAK (7 Min) ---
+        // The "nothingness" state. We blast in with 40Hz gamma synchronization.
+        // This is the "Aha-moment" or spiritual high.
+        // Duration reduced to 7 minutes to compensate for 60-second transition ramp
+        // Total duration: 4 Min (P1) + 12 Min (P2) + 1 Min (Ramp) + 7 Min (P3) + 6 Min (P4) = 30 Min
+        let phase3Duration: TimeInterval = 420 // 7 minutes (reduced from 480 to compensate for transition ramp)
+        events.append(LightEvent(
+            timestamp: currentTime,
+            intensity: 0.75, // High intensity for maximum effect
+            duration: phase3Duration, // Full duration - NOT period/2.0!
+            waveform: .square, // Square wave is gold standard for gamma sync
+            color: .white,
+            frequencyOverride: 40.0
+        ))
+        currentTime += phase3Duration
+        
+        // --- PHASE 4: REINTEGRATION (6 Min) ---
+        // Schumann Resonance (7.83Hz) for peaceful "afterglow" and grounding.
+        let phase4Duration: TimeInterval = 360 // 6 minutes
+        events.append(LightEvent(
+            timestamp: currentTime,
+            intensity: 0.4,
+            duration: phase4Duration, // Full duration - NOT period/2.0!
+            waveform: .sine, // Sine for gentle grounding
+            color: .green,
+            frequencyOverride: 7.83
+        ))
+        
+        // Dummy Audio Track ID (since we don't analyze music here, but provide frequencies)
+        return LightScript(
+            trackId: UUID(),
+            mode: .dmnShutdown, // Uses the new DMN-Shutdown mode
+            targetFrequency: 40.0,
+            multiplier: 1,
+            events: events
+        )
+    }
+    
+    /// Generates a VibrationScript for DMN-Shutdown mode
+    /// This follows the same 4-phase structure as the light script:
+    /// - Phase 1: DISCONNECT (4 Min) - 10Hz → 5Hz ramp
+    /// - Phase 2: THE ABYSS (12 Min) - 4.5Hz Theta
+    /// - Phase 3: THE VOID / PEAK (7 Min) - 40Hz Gamma (reduced from 8 Min to match light script)
+    /// - Phase 4: REINTEGRATION (6 Min) - 7.83Hz Schumann
+    /// - Parameters:
+    ///   - intensity: User preference for vibration intensity (0.1 - 1.0)
+    /// - Returns: A VibrationScript synchronized with the light script
+    /// - Throws: VibrationScriptError if validation fails
+    nonisolated static func generateDMNShutdownVibrationScript(intensity: Float) throws -> VibrationScript {
+        var events: [VibrationEvent] = []
+        var currentTime: TimeInterval = 0.0
+        
+        // Ensure minimum intensity for vibration to be noticeable
+        let baseIntensity = max(Self.minVibrationIntensity, intensity)
+        
+        // --- PHASE 1: DISCONNECT (4 Min) ---
+        // Ramp from 10Hz → 5Hz (Square waves for "harder" entrainment)
+        // The vibration frequency is ramped by varying event duration (period) linearly from 10Hz to 5Hz
+        let phase1Duration: TimeInterval = 240 // 4 minutes
+        let p1StartFreq = 10.0
+        let p1EndFreq = 5.0
+        
+        var phase1Time: TimeInterval = 0
+        
+        while phase1Time < phase1Duration {
+            // Linear ramp of frequency from 10Hz → 5Hz based on elapsed phase time
+            let progress = phase1Time / phase1Duration
+            let currentFreq = p1StartFreq + (p1EndFreq - p1StartFreq) * progress
+            let period = 1.0 / currentFreq
+            
+            events.append(try VibrationEvent(
+                timestamp: currentTime + phase1Time,
+                intensity: baseIntensity,
+                duration: period,
+                waveform: .square
+            ))
+            phase1Time += period
+        }
+        currentTime += phase1Duration
+        
+        // --- PHASE 2: THE ABYSS (12 Min) ---
+        // Deep theta oscillation at 4.5 Hz (Sine waves for gentle floating)
+        let phase2Duration: TimeInterval = 720 // 12 Minuten
+        
+        // 2-second events with alternating intensity to prevent habituation
+        let phase2EventCount = Int(phase2Duration / 2.0)
+        for i in 0..<phase2EventCount {
+            // Vary intensity slightly (0.85x - 1.0x baseIntensity)
+            let intensityVariation: Float = (i % 2 == 0) ? baseIntensity : baseIntensity * 0.85
+            
+            events.append(try VibrationEvent(
+                timestamp: currentTime,
+                intensity: max(Self.minVibrationIntensity, intensityVariation),
+                duration: 2.0, // 2-second events
+                waveform: .sine // Sine for gentle floating
+            ))
+            currentTime += 2.0
+        }
+        
+        // --- PHASE 3: THE VOID / PEAK (7 Min) ---
+        // 40Hz Gamma-Burst (Square waves for maximum cortical excitation)
+        // Duration reduced to 7 minutes to match light script (compensates for 60-second transition ramp)
+        // OPTIMIZATION: Create longer events (0.1s) instead of individual periods (0.0125s)
+        // to reduce event count from 38,400 to ~4,800 events and prevent main thread blocking
+        let phase3Duration: TimeInterval = 420 // 7 minutes (reduced from 480 to match light script)
+        // Note: p3Frequency (40.0 Hz) is implied by the event timing, no explicit calculation needed
+        
+        // High intensity for Phase 3 (1.2x baseIntensity, clamped to 1.0)
+        let phase3Intensity = min(1.0, baseIntensity * 1.2)
+        
+        // Use 0.1s events instead of period/2 (0.0125s) to reduce event count by 8x
+        let phase3EventDuration: TimeInterval = 0.1 // 100ms events for Phase 3
+        var phase3Time: TimeInterval = 0
+        while phase3Time < phase3Duration {
+            events.append(try VibrationEvent(
+                timestamp: currentTime + phase3Time,
+                intensity: phase3Intensity,
+                duration: phase3EventDuration,
+                waveform: .square // Square wave for gamma sync
+            ))
+            phase3Time += phase3EventDuration
+        }
+        currentTime += phase3Duration
+        
+        // --- PHASE 4: REINTEGRATION (6 Min) ---
+        // Schumann Resonance (7.83Hz) for peaceful grounding (Sine waves)
+        // OPTIMIZATION: Use longer events (0.2s) to reduce event count
+        let phase4Duration: TimeInterval = 360 // 6 minutes
+        // Note: p4Frequency (7.83 Hz) is implied by the event timing, no explicit calculation needed
+        
+        // Use 0.2s events instead of full period (~0.128s) to reduce event count
+        let phase4EventDuration: TimeInterval = 0.2 // 200ms events for Phase 4
+        var phase4Time: TimeInterval = 0
+        while phase4Time < phase4Duration {
+            events.append(try VibrationEvent(
+                timestamp: currentTime + phase4Time,
+                intensity: baseIntensity,
+                duration: phase4EventDuration,
+                waveform: .sine // Sine for gentle grounding
+            ))
+            phase4Time += phase4EventDuration
+        }
+        
+        // Create VibrationScript
+        return try VibrationScript(
+            trackId: UUID(),
+            mode: .dmnShutdown,
+            targetFrequency: 40.0, // Peak frequency (Gamma)
+            multiplier: 1,
+            events: events
+        )
+    }
+    
+    /// Generates the special "Belief-Rewiring" script for subconscious reprogramming.
+    /// This ignores audio beats and creates a fixed 30-minute sequence
+    /// to identify limiting beliefs and rewire them with new neural pathways.
+    /// 
+    /// Phases:
+    /// - Phase 1: THE SOFT-OPEN (4 Min) - 12Hz → 8Hz Ramp (Alpha to Theta)
+    /// - Phase 2: ROOT-IDENTIFICATION (10 Min) - 5Hz Theta for accessing subconscious
+    /// - Phase 3: THE REWIRE-BURST (8 Min) - 40Hz Gamma-Burst with affirmations
+    /// - Phase 4: INTEGRATION (8 Min) - 7.83Hz Schumann Resonance for grounding
+    static func generateBeliefRewiringScript() -> LightScript {
+        var events: [LightEvent] = []
+        var currentTime: TimeInterval = 0.0
+        
+        // --- PHASE 1: THE SOFT-OPEN (4 Min) ---
+        // We start at 12Hz (Alpha) and gently pull consciousness down to 8Hz (Alpha/Theta border).
+        // This softens the critical mind and prepares for subconscious access.
+        // Sine waves for gentle, organic transition.
+        let phase1Duration: TimeInterval = 240 // 4 minutes
+        let p1StartFreq = 12.0
+        let p1EndFreq = 8.0
+        
+        // IMPORTANT: Each event has duration: 1.0 (full second), not period/2.0
+        // The sine wave shape is controlled by duty cycle, not by event duration
+        for i in 0..<Int(phase1Duration) {
+            let progress = Double(i) / phase1Duration
+            let smoothProgress = MathHelpers.smoothstep(progress)
+            let currentFreq = p1StartFreq + (p1EndFreq - p1StartFreq) * smoothProgress
+            
+            events.append(LightEvent(
+                timestamp: currentTime,
+                intensity: 0.4, // Gentle intensity for soft opening
+                duration: 1.0, // Full second - NOT period/2.0!
+                waveform: .sine, // Sine waves for gentle, organic transition
+                color: .blue,
+                frequencyOverride: currentFreq
+            ))
+            currentTime += 1.0
+        }
+        
+        // --- PHASE 2: ROOT-IDENTIFICATION (10 Min) ---
+        // Deep theta oscillation at 5 Hz.
+        // Here we open the gate to the subconscious to identify the limiting belief.
+        // Square waves for visual clarity and maximum contrast.
+        let phase2Duration: TimeInterval = 600 // 10 minutes
+        let p2Frequency = 5.0
+        
+        // 2-second events with alternating intensity (0.35/0.0) for hard contrast
+        // Square waves ensure the light is completely off (0.0) between pulses
+        // IMPORTANT: duration: 2.0 (full 2 seconds), not period/2.0
+        for i in 0..<Int(phase2Duration / 2) {
+            // We alternate between 0.35 and 0.0 (complete darkness) for maximum contrast
+            let intensity: Float = (i % 2 == 0) ? 0.35 : 0.0
+            
+            events.append(LightEvent(
+                timestamp: currentTime,
+                intensity: intensity,
+                duration: 2.0, // Full 2 seconds - NOT period/2.0!
+                waveform: .square, // Square waves for visual clarity during introspection
+                color: .purple,
+                frequencyOverride: p2Frequency
+            ))
+            currentTime += 2.0
+        }
+        
+        // --- TRANSITION RAMP (60 Sek) ---
+        // We smoothly ramp the brain from 5 Hz (Theta) to 40 Hz (Gamma)
+        // This prevents the abrupt frequency jump that can cause discomfort
+        let transitionDuration: TimeInterval = 60 // 60 seconds
+        let startFreq = 5.0
+        let endFreq = 40.0
+        
+        for i in 0..<Int(transitionDuration) {
+            let progress = Double(i) / transitionDuration
+            // Smoothstep interpolation for organic transition
+            let smoothProgress = MathHelpers.smoothstep(progress)
+            let currentFreq = startFreq + (endFreq - startFreq) * smoothProgress
+            
+            events.append(LightEvent(
+                timestamp: currentTime,
+                intensity: 0.4, // Gentle intensity during the transition
+                duration: 1.0,
+                waveform: .square,
+                color: .white,
+                frequencyOverride: currentFreq
+            ))
+            currentTime += 1.0
+        }
+        
+        // --- PHASE 3: THE REWIRE-BURST (8 Min) ---
+        // 40Hz Gamma-Burst for burning in the new neural pathway.
+        // This is where we imprint the new belief with maximum synchronization.
+        // Square waves are the gold standard for gamma synchronization.
+        let phase3Duration: TimeInterval = 480 // 8 minutes
+        events.append(LightEvent(
+            timestamp: currentTime,
+            intensity: 0.7, // High intensity (70%) for maximum effect, but not overwhelming
+            duration: phase3Duration, // Full duration - NOT period/2.0!
+            waveform: .square, // Square wave is gold standard for gamma sync
+            color: .white,
+            frequencyOverride: 40.0
+        ))
+        currentTime += phase3Duration
+        
+        // --- PHASE 4: INTEGRATION (8 Min) ---
+        // Schumann Resonance (7.83Hz) for peaceful grounding and integration.
+        // This allows the new neural pathway to settle and integrate.
+        let phase4Duration: TimeInterval = 480 // 8 minutes
+        events.append(LightEvent(
+            timestamp: currentTime,
+            intensity: 0.4,
+            duration: phase4Duration, // Full duration - NOT period/2.0!
+            waveform: .sine, // Sine for gentle grounding and integration
+            color: .green,
+            frequencyOverride: 7.83
+        ))
+        
+        // Dummy Audio Track ID (since we don't analyze music here, but provide frequencies)
+        return LightScript(
+            trackId: UUID(),
+            mode: .beliefRewiring, // Uses the new Belief-Rewiring mode
             targetFrequency: 40.0,
             multiplier: 1,
             events: events

@@ -20,6 +20,7 @@ final class FlashlightController: BaseLightController, LightControlling {
     private let thermalManager: ThermalManager
     private let logger = Logger(subsystem: "com.mindsync", category: "FlashlightController")
     private var torchFailureNotified = false
+    private var currentIntensity: Float = -1.0 // Track current intensity to prevent redundant setIntensity calls
     
     // Cinematic mode pulse state tracking - hard flash decay
     /// Pulse decay duration for cinematic mode peak-based flashes.
@@ -48,23 +49,24 @@ final class FlashlightController: BaseLightController, LightControlling {
     ///   consider making this value configurable or revisiting with additional user testing.
     private var lastBeatTime: TimeInterval = 0
     private var lastBeatIntensity: Float = 0.0
-    private let pulseDecayDuration: TimeInterval = 0.05 // 50ms pulse duration for hard, sharp flashes
+    private let pulseDecayDuration: TimeInterval = 0.08 // 80ms pulse duration for better visibility (increased from 50ms)
     
     // Debug logging timestamp tracking
     private var lastAudioLogTime: TimeInterval = -1.0  // Last time we logged audio energy
     private var noEventLogCount: Int = 0  // Counter for no-event debug logs
+    private var lastNonCinematicLogTime: TimeInterval = -1.0  // Last time we logged NON-CINEMATIC debug info
     
     // Peak detection for cinematic mode - tuned for hard, contrast-rich flashes
     private var recentFluxValues: [Float] = []  // Ring buffer for last N flux values (for local average)
     private var fluxHistory: [Float] = []  // Longer history for adaptive threshold calculation
     private var lastPeakTime: TimeInterval = 0
     private let peakCooldownDuration: TimeInterval = 0.08  // 80ms minimum between peaks (prevents double-triggers)
-    private let peakRiseThreshold: Float = 0.08  // Minimum 8% rise above local average for peak (higher = harder, more selective)
+    private let peakRiseThreshold: Float = 0.04  // Minimum 4% rise above local average for peak (reduced from 0.08 for better sensitivity)
     private let maxFluxHistorySize = 10  // Keep last 10 flux values for local average calculation
     private let maxAdaptiveHistorySize = 200  // Keep last 200 flux values for adaptive threshold (~20 seconds at 10 Hz)
-    private let absoluteMinimumThreshold: Float = 0.1  // Absolute minimum flux value to consider (higher = more selective)
-    private let fixedThreshold: Float = 0.15  // Fallback threshold when not enough history (higher = more selective)
-    private let adaptiveThresholdMultiplier: Float = 0.4  // Use mean + 0.4 * stdDev (higher = more selective, harder flashes)
+    private let absoluteMinimumThreshold: Float = 0.05  // Absolute minimum flux value to consider (reduced from 0.1 for better sensitivity)
+    private let fixedThreshold: Float = 0.08  // Fallback threshold when not enough history (reduced from 0.15 for better sensitivity)
+    private let adaptiveThresholdMultiplier: Float = 0.25  // Use mean + 0.25 * stdDev (reduced from 0.4 for more sensitive peak detection)
     
     /// Precision timer interval shared across light controllers
     /// OPTIMIZED FOR LAMBDA: 1ms (1000 Hz) resolution needed for stable 100 Hz output.
@@ -216,6 +218,7 @@ final class FlashlightController: BaseLightController, LightControlling {
         torchFailureNotified = false
         
         // Reset state
+        currentIntensity = -1.0 // Reset tracked intensity
         setIntensity(0.0)
         resetScriptExecution()
         lastBeatTime = 0
@@ -261,11 +264,29 @@ final class FlashlightController: BaseLightController, LightControlling {
     }
 
     func setIntensity(_ intensity: Float) {
+        // Prevent redundant calls with same intensity (especially 0.0 which causes spam in logs)
+        // Use epsilon comparison (0.001) to account for floating point precision
+        if abs(currentIntensity - intensity) < 0.001 {
+            // Same intensity - skip to avoid redundant torch operations
+            return
+        }
+        
+        // Only log setIntensity calls in DEBUG builds, and skip logging 0.0 to reduce log spam
+        #if DEBUG
+        if intensity > 0.001 {
+            logger.debug("setIntensity called with \(intensity)")
+        }
+        #else
         logger.debug("setIntensity called with \(intensity)")
+        #endif
+        
         guard let device = device, isLocked else {
             logger.warning("setIntensity failed: device=\(self.device != nil), isLocked=\(self.isLocked)")
             return
         }
+        
+        // Update tracked intensity
+        currentIntensity = intensity
 
         if thermalManager.maxFlashlightIntensity <= 0 {
             logger.warning("Thermal manager blocking flashlight: maxIntensity=\(self.thermalManager.maxFlashlightIntensity)")
@@ -451,27 +472,53 @@ final class FlashlightController: BaseLightController, LightControlling {
                     }
                     
                     // Peak detection: Check if current energy is significantly above local average
-                    // and above adaptive threshold, with cooldown period to prevent double-triggers
+                    // OR above adaptive threshold (relaxed condition for better beat detection)
+                    // with cooldown period to prevent double-triggers and ensure proper beat spacing
                     let timeSinceLastPeak = elapsed - lastPeakTime
                     let isAboveLocalAverage = rawEnergy > (localAverage + peakRiseThreshold)
                     let isAboveThreshold = rawEnergy > adaptiveThreshold
                     let isAfterCooldown = timeSinceLastPeak >= peakCooldownDuration
                     
-                    if isAboveLocalAverage && isAboveThreshold && isAfterCooldown {
-                        // PEAK DETECTED: Create hard flash
+                    // Relaxed condition: accept peak if EITHER condition is met (OR, not AND)
+                    // This ensures beats are detected even when local average is elevated after
+                    // a previous peak. The adaptive threshold still provides filtering for clear beats.
+                    // The cooldown period ensures beats are properly spaced and synchronized to music.
+                    if (isAboveLocalAverage || isAboveThreshold) && isAfterCooldown {
+                        // PEAK DETECTED: Create hard flash synchronized to audio
                         lastPeakTime = elapsed
                         lastBeatTime = elapsed  // Track for decay phase
                         
-                        // Map peak strength to flash intensity with aggressive contrast
-                        // Strong peaks → maximum intensity (1.0)
-                        // Moderate peaks → high intensity (0.8-1.0) for harder, more contrast-rich flashes
-                        let peakStrength = min(1.0, max(0.0, (rawEnergy - adaptiveThreshold) / max(0.001, 1.0 - adaptiveThreshold)))
-                        lastBeatIntensity = 0.8 + (peakStrength * 0.2)  // 0.8 to 1.0 range for hard, contrast-rich flashes
-                        finalIntensity = lastBeatIntensity
+                        // Map raw audio energy directly to flash intensity for audio-reactive behavior
+                        // Normalize raw energy relative to typical peak values (0.0-0.3 range for spectral flux)
+                        // This ensures the flashlight intensity directly reflects the audio beat strength
+                        let energyMax: Float = 0.3  // Typical maximum spectral flux value
+                        let normalizedEnergy = min(1.0, max(0.0, rawEnergy / energyMax))
+                        
+                        // Apply aggressive boost to ensure visible flashes synchronized to beats
+                        // Strong beats (normalizedEnergy > 0.8) → maximum intensity (1.0)
+                        // Moderate beats (0.5-0.8) → high intensity (0.8-1.0)
+                        // Weak beats (0.3-0.5) → medium intensity (0.6-0.8)
+                        // Very weak beats (0.0-0.3) → minimum visible (0.5-0.6)
+                        let boostedEnergy: Float
+                        if normalizedEnergy > 0.8 {
+                            // Strong beats: map to 0.85-1.0 range
+                            boostedEnergy = 0.85 + ((normalizedEnergy - 0.8) / 0.2) * 0.15
+                        } else if normalizedEnergy > 0.5 {
+                            // Moderate beats: map to 0.75-0.85 range
+                            boostedEnergy = 0.75 + ((normalizedEnergy - 0.5) / 0.3) * 0.10
+                        } else if normalizedEnergy > 0.3 {
+                            // Weak beats: map to 0.65-0.75 range
+                            boostedEnergy = 0.65 + ((normalizedEnergy - 0.3) / 0.2) * 0.10
+                        } else {
+                            // Very weak beats: map to 0.5-0.65 range (still visible)
+                            boostedEnergy = 0.5 + (normalizedEnergy / 0.3) * 0.15
+                        }
+                        lastBeatIntensity = boostedEnergy
+                        finalIntensity = boostedEnergy
                         
 #if DEBUG
                         if elapsed - lastAudioLogTime >= 0.5 {
-                            logger.debug("[CINEMATIC PEAK] t=\(String(format: "%.3f", elapsed))s raw=\(String(format: "%.3f", rawEnergy)) localAvg=\(String(format: "%.3f", localAverage)) threshold=\(String(format: "%.3f", adaptiveThreshold)) strength=\(String(format: "%.2f", peakStrength)) intensity=\(String(format: "%.2f", finalIntensity))")
+                            logger.debug("[CINEMATIC PEAK] t=\(String(format: "%.3f", elapsed))s raw=\(String(format: "%.3f", rawEnergy)) localAvg=\(String(format: "%.3f", localAverage)) threshold=\(String(format: "%.3f", adaptiveThreshold)) strength=\(String(format: "%.2f", normalizedEnergy)) intensity=\(String(format: "%.2f", finalIntensity))")
                             lastAudioLogTime = elapsed
                         }
 #endif
@@ -491,6 +538,14 @@ final class FlashlightController: BaseLightController, LightControlling {
                                 lastBeatTime = 0
                                 lastBeatIntensity = 0.0
                             }
+                            
+#if DEBUG
+                            // Log diagnostic info when no peak detected (throttled to avoid spam)
+                            if elapsed - lastAudioLogTime >= 2.0 {
+                                logger.debug("[CINEMATIC NO-PEAK] t=\(String(format: "%.3f", elapsed))s raw=\(String(format: "%.3f", rawEnergy)) localAvg=\(String(format: "%.3f", localAverage)) threshold=\(String(format: "%.3f", adaptiveThreshold)) aboveLocalAvg=\(isAboveLocalAverage) aboveThreshold=\(isAboveThreshold) cooldown=\(isAfterCooldown)")
+                                lastAudioLogTime = elapsed
+                            }
+#endif
                         }
                     }
                 } else {
@@ -615,10 +670,12 @@ final class FlashlightController: BaseLightController, LightControlling {
                     finalIntensity = min(1.0, baseIntensity + (baseIntensity * audioBoost * 0.7))  // Add up to 70% boost
                     
 #if DEBUG
-                    // Debug logging for troubleshooting
-                    if Int(result.elapsed * 1000) % 500 == 0 {  // Every 500ms
+                    // Debug logging for troubleshooting - throttle to once per 500ms
+                    let logInterval: TimeInterval = 0.5
+                    if result.elapsed - lastNonCinematicLogTime >= logInterval || lastNonCinematicLogTime < 0 {
                         let historySizeForLog = self.fluxHistory.count
                         logger.debug("[NON-CINEMATIC] t=\(String(format: "%.3f", result.elapsed))s baseInt=\(String(format: "%.3f", baseIntensity)) eventInt=\(String(format: "%.3f", event.intensity)) rawEnergy=\(String(format: "%.3f", energy)) smoothed=\(String(format: "%.3f", smoothedEnergy)) historySize=\(historySizeForLog) historyMin=\(String(format: "%.3f", historyMin)) historyMax=\(String(format: "%.3f", historyMax)) range=\(String(format: "%.3f", historyRange)) normalized=\(String(format: "%.3f", normalizedEnergy)) curved=\(String(format: "%.3f", curved)) rawMod=\(String(format: "%.3f", rawModulation)) boosted=\(String(format: "%.3f", boostedModulation)) audioMod=\(String(format: "%.3f", audioModulation)) boost=\(String(format: "%.3f", audioBoost)) final=\(String(format: "%.3f", finalIntensity))")
+                        lastNonCinematicLogTime = result.elapsed
                     }
 #endif
                 } else {
@@ -626,9 +683,11 @@ final class FlashlightController: BaseLightController, LightControlling {
                     finalIntensity = baseIntensity
                     
 #if DEBUG
-                    // Debug logging for troubleshooting
-                    if Int(result.elapsed * 1000) % 500 == 0 {  // Every 500ms
+                    // Debug logging for troubleshooting - throttle to once per 500ms
+                    let logInterval: TimeInterval = 0.5
+                    if result.elapsed - lastNonCinematicLogTime >= logInterval || lastNonCinematicLogTime < 0 {
                         logger.debug("[NON-CINEMATIC NO-AUDIO] t=\(String(format: "%.3f", result.elapsed))s baseInt=\(String(format: "%.3f", baseIntensity)) eventInt=\(String(format: "%.3f", event.intensity)) final=\(String(format: "%.3f", finalIntensity))")
+                        lastNonCinematicLogTime = result.elapsed
                     }
 #endif
                 }

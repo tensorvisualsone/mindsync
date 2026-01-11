@@ -158,13 +158,13 @@ class BaseLightController: NSObject {
         let adjustedElapsed = currentTime - audioLatencyOffset
         
         // Safety: Don't go negative (at start of track before latency compensation kicks in)
-        guard adjustedElapsed >= 0 else {
-            return CurrentEventResult(event: nil, elapsed: 0, isComplete: false)
-        }
+        // IMPORTANT: Use 0.0 instead of returning nil, so events starting at timestamp=0.0 are found
+        // The audioLatencyOffset is typically small (15-20ms), so clamping to 0.0 is safe
+        let clampedElapsed = max(0.0, adjustedElapsed)
         
-        // Check if script is finished (use adjusted time)
-        if adjustedElapsed >= script.duration {
-            return CurrentEventResult(event: nil, elapsed: adjustedElapsed, isComplete: true)
+        // Check if script is finished (use clamped time)
+        if clampedElapsed >= script.duration {
+            return CurrentEventResult(event: nil, elapsed: clampedElapsed, isComplete: true)
         }
         
         // Skip past events to find current event using index tracking
@@ -173,14 +173,14 @@ class BaseLightController: NSObject {
             let event = script.events[foundEventIndex]
             let eventEnd = event.timestamp + event.duration
             
-            if adjustedElapsed < eventEnd {
-                if adjustedElapsed >= event.timestamp {
+            if clampedElapsed < eventEnd {
+                if clampedElapsed >= event.timestamp {
                     // Current event is active
                     currentEventIndex = foundEventIndex
-                    return CurrentEventResult(event: event, elapsed: adjustedElapsed, isComplete: false)
+                    return CurrentEventResult(event: event, elapsed: clampedElapsed, isComplete: false)
                 } else {
                     // Between events
-                    return CurrentEventResult(event: nil, elapsed: adjustedElapsed, isComplete: false)
+                    return CurrentEventResult(event: nil, elapsed: clampedElapsed, isComplete: false)
                 }
             } else {
                 // Move to next event
@@ -189,6 +189,6 @@ class BaseLightController: NSObject {
         }
         
         // Passed all events
-        return CurrentEventResult(event: nil, elapsed: adjustedElapsed, isComplete: true)
+        return CurrentEventResult(event: nil, elapsed: clampedElapsed, isComplete: true)
     }
 }

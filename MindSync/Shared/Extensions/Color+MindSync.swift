@@ -96,6 +96,12 @@ extension Color {
     /// Cinematic mode color (flow state - orange/amber)
     static let mindSyncCinematic = Color.orange
     
+    /// DMN-Shutdown mode color (transcendence - indigo/purple-blue)
+    static let mindSyncDMNShutdown = Color.indigo
+    
+    /// Belief-Rewiring mode color (mind programming - teal/cyan-green)
+    static let mindSyncBeliefRewiring = Color.teal
+    
     // MARK: - Session Colors
     
     /// Color for active/running sessions
@@ -134,6 +140,10 @@ extension EntrainmentMode {
             return .mindSyncGamma
         case .cinematic:
             return .mindSyncCinematic
+        case .dmnShutdown:
+            return .mindSyncDMNShutdown
+        case .beliefRewiring:
+            return .mindSyncBeliefRewiring
         }
     }
 }

@@ -359,5 +359,196 @@ final class EntrainmentEngineTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(intensity2, 0.0)
         XCTAssertLessThanOrEqual(intensity2, 1.0)
     }
+    
+    // MARK: - DMN-Shutdown Mode Tests
+    
+    func testGenerateDMNShutdownScript_StructureAndDuration() {
+        let script = EntrainmentEngine.generateDMNShutdownScript()
+        
+        // Verify script properties
+        XCTAssertEqual(script.mode, .dmnShutdown)
+        XCTAssertEqual(script.targetFrequency, 40.0) // Peak frequency (Gamma)
+        XCTAssertEqual(script.multiplier, 1)
+        
+        // Verify total duration is 30 minutes (1800 seconds)
+        XCTAssertEqual(script.duration, 1800.0, accuracy: 1.0)
+        
+        // Verify events exist
+        XCTAssertGreaterThan(script.events.count, 0)
+    }
+    
+    func testGenerateDMNShutdownScript_Phase1Structure() {
+        let script = EntrainmentEngine.generateDMNShutdownScript()
+        
+        // Phase 1: DISCONNECT (0-240 seconds)
+        // 240 events at 1-second intervals with frequency ramp from 10Hz to 5Hz
+        let phase1Events = script.events.filter { $0.timestamp < 240 }
+        
+        XCTAssertEqual(phase1Events.count, 240)
+        
+        // Verify first event
+        if let firstEvent = phase1Events.first {
+            XCTAssertEqual(firstEvent.timestamp, 0.0)
+            XCTAssertEqual(firstEvent.waveform, .square)
+            XCTAssertEqual(firstEvent.intensity, 0.4, accuracy: 0.01)
+            XCTAssertEqual(firstEvent.duration, 1.0)
+            XCTAssertEqual(firstEvent.color, .blue)
+            // Frequency should be around 10Hz at start
+            XCTAssertNotNil(firstEvent.frequencyOverride)
+            XCTAssertEqual(firstEvent.frequencyOverride ?? 0, 10.0, accuracy: 0.5)
+        }
+        
+        // Verify last event of phase 1
+        if let lastEvent = phase1Events.last {
+            XCTAssertEqual(lastEvent.waveform, .square)
+            // Frequency should be around 5Hz at end
+            XCTAssertNotNil(lastEvent.frequencyOverride)
+            XCTAssertEqual(lastEvent.frequencyOverride ?? 0, 5.0, accuracy: 0.5)
+        }
+    }
+    
+    func testGenerateDMNShutdownScript_Phase2Structure() {
+        let script = EntrainmentEngine.generateDMNShutdownScript()
+        
+        // Phase 2: THE ABYSS (240-960 seconds = 12 minutes)
+        // 360 events at 2-second intervals at 4.5Hz
+        let phase2Events = script.events.filter { $0.timestamp >= 240 && $0.timestamp < 960 }
+        
+        XCTAssertEqual(phase2Events.count, 360)
+        
+        // Verify phase 2 events
+        if let firstEvent = phase2Events.first {
+            XCTAssertEqual(firstEvent.waveform, .square) // Square waves for hard contrast
+            XCTAssertEqual(firstEvent.duration, 2.0)
+            XCTAssertEqual(firstEvent.color, .purple)
+            XCTAssertNotNil(firstEvent.frequencyOverride)
+            XCTAssertEqual(firstEvent.frequencyOverride ?? 0, 4.5, accuracy: 0.01)
+        }
+        
+        // Verify alternating intensity (0.35/0.0 for complete darkness between pulses)
+        if phase2Events.count >= 2 {
+            let firstIntensity = phase2Events[0].intensity
+            let secondIntensity = phase2Events[1].intensity
+            XCTAssertNotEqual(firstIntensity, secondIntensity)
+            XCTAssertTrue([0.35, 0.0].contains { abs($0 - firstIntensity) < 0.01 })
+            XCTAssertTrue([0.35, 0.0].contains { abs($0 - secondIntensity) < 0.01 })
+        }
+    }
+    
+    func testGenerateDMNShutdownScript_Phase3Structure() {
+        let script = EntrainmentEngine.generateDMNShutdownScript()
+        
+        // Phase 3: THE VOID / PEAK (1020-1440 seconds = 7 minutes)
+        // After Phase 2 (960s) + Transition Ramp (60s) = 1020s
+        // Single long event at 40Hz
+        let phase3Events = script.events.filter { $0.timestamp >= 1020 && $0.timestamp < 1440 }
+        
+        XCTAssertEqual(phase3Events.count, 1)
+        
+        if let event = phase3Events.first {
+            XCTAssertEqual(event.timestamp, 1020.0, accuracy: 0.1) // After Phase 2 (960s) + Ramp (60s)
+            XCTAssertEqual(event.waveform, .square)
+            XCTAssertEqual(event.intensity, 0.75, accuracy: 0.01)
+            XCTAssertEqual(event.duration, 420.0, accuracy: 1.0) // 7 minutes (reduced from 480 to compensate for ramp)
+            XCTAssertEqual(event.color, .white)
+            XCTAssertNotNil(event.frequencyOverride)
+            XCTAssertEqual(event.frequencyOverride ?? 0, 40.0, accuracy: 0.01)
+        }
+    }
+    
+    func testGenerateDMNShutdownScript_Phase4Structure() {
+        let script = EntrainmentEngine.generateDMNShutdownScript()
+        
+        // Phase 4: REINTEGRATION (1440-1800 seconds = 6 minutes)
+        // Single long event at 7.83Hz (Schumann Resonance)
+        let phase4Events = script.events.filter { $0.timestamp >= 1440 }
+        
+        XCTAssertEqual(phase4Events.count, 1)
+        
+        if let event = phase4Events.first {
+            XCTAssertEqual(event.timestamp, 1440.0)
+            XCTAssertEqual(event.waveform, .sine)
+            XCTAssertEqual(event.intensity, 0.4, accuracy: 0.01)
+            XCTAssertEqual(event.duration, 360.0) // 6 minutes
+            XCTAssertEqual(event.color, .green)
+            XCTAssertNotNil(event.frequencyOverride)
+            XCTAssertEqual(event.frequencyOverride ?? 0, 7.83, accuracy: 0.01)
+        }
+    }
+    
+    func testGenerateDMNShutdownScript_AllEventsHaveFrequencyOverride() {
+        let script = EntrainmentEngine.generateDMNShutdownScript()
+        
+        // All events should have frequencyOverride set (not relying on audio BPM)
+        for event in script.events {
+            XCTAssertNotNil(event.frequencyOverride, "Event at \(event.timestamp) missing frequency override")
+        }
+    }
+    
+    func testGenerateDMNShutdownScript_EventTimestampsContinuous() {
+        let script = EntrainmentEngine.generateDMNShutdownScript()
+        
+        // Events should have continuous timestamps (no gaps)
+        for i in 0..<script.events.count - 1 {
+            let currentEvent = script.events[i]
+            let nextEvent = script.events[i + 1]
+            
+            let expectedNextTimestamp = currentEvent.timestamp + currentEvent.duration
+            let gap = nextEvent.timestamp - expectedNextTimestamp
+            
+            // Allow small floating point error (< 0.01 seconds)
+            XCTAssertLessThanOrEqual(abs(gap), 0.01, "Gap detected between event \(i) and \(i+1)")
+        }
+    }
+    
+    func testGenerateDMNShutdownVibrationScript_StructureAndDuration() throws {
+        let script = try EntrainmentEngine.generateDMNShutdownVibrationScript(intensity: 0.7)
+        
+        // Verify script properties
+        XCTAssertEqual(script.mode, .dmnShutdown)
+        XCTAssertEqual(script.targetFrequency, 40.0) // Peak frequency
+        
+        // Verify total duration is approximately 30 minutes
+        if let lastEvent = script.events.last {
+            let totalDuration = lastEvent.timestamp + lastEvent.duration
+            XCTAssertEqual(totalDuration, 1800.0, accuracy: 5.0)
+        }
+        
+        // Verify events exist
+        XCTAssertGreaterThan(script.events.count, 0)
+    }
+    
+    func testGenerateDMNShutdownVibrationScript_Phase1FrequencyRamp() throws {
+        let script = try EntrainmentEngine.generateDMNShutdownVibrationScript(intensity: 0.7)
+        
+        // Phase 1: Should ramp from 10Hz to 5Hz
+        // Events should have varying durations to create frequency ramp
+        let phase1Events = script.events.filter { $0.timestamp < 240 }
+        
+        XCTAssertGreaterThan(phase1Events.count, 0)
+        
+        // First few events should have shorter duration (higher frequency ~10Hz)
+        if let firstEvent = phase1Events.first {
+            let firstPeriod = firstEvent.duration
+            XCTAssertLessThan(firstPeriod, 0.15) // Should be close to 1/10 = 0.1s
+        }
+        
+        // Last few events should have longer duration (lower frequency ~5Hz)
+        if let lastEvent = phase1Events.last {
+            let lastPeriod = lastEvent.duration
+            XCTAssertGreaterThan(lastPeriod, 0.15) // Should be close to 1/5 = 0.2s
+        }
+    }
+    
+    func testGenerateDMNShutdownVibrationScript_IntensityRespected() throws {
+        let lowIntensityScript = try EntrainmentEngine.generateDMNShutdownVibrationScript(intensity: 0.3)
+        let highIntensityScript = try EntrainmentEngine.generateDMNShutdownVibrationScript(intensity: 0.9)
+        
+        // Events should respect the intensity parameter (within reasonable bounds)
+        if let lowEvent = lowIntensityScript.events.first,
+           let highEvent = highIntensityScript.events.first {
+            XCTAssertLessThan(lowEvent.intensity, highEvent.intensity)
+        }
+    }
 }
 
