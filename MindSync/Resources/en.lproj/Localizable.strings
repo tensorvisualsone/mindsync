@@ -121,6 +121,10 @@
 "settings.duration.5min" = "5 min";
 "settings.duration.10min" = "10 min";
 "settings.duration.15min" = "15 min";
+"settings.audio" = "Audio Synchronization";
+"settings.audioDescription" = "Calibrate audio latency for perfect synchronization between sound and light, especially important with Bluetooth headphones.";
+"settings.latencyCalibration" = "Latency Calibration";
+"settings.latencyCalibration.current" = "Current: %d ms";
 "settings.history" = "Session History";
 "settings.invalidAudioFile" = "The selected file is not a valid or playable audio file";
 "settings.importError" = "Import error";
