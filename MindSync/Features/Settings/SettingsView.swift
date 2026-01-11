@@ -84,174 +84,207 @@ struct SettingsView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    Picker(NSLocalizedString("settings.mode", comment: ""), selection: Binding(
-                        get: { preferences.preferredMode },
-                        set: { newValue in
-                            preferences.preferredMode = newValue
-                            preferences.save()
-                            // Haptic feedback for mode change
-                            if preferences.hapticFeedbackEnabled {
-                                HapticFeedback.light()
+            ScrollView {
+                VStack(spacing: AppConstants.Spacing.lg) {
+                    // Entrainment Mode
+                    SettingsCard(
+                        icon: preferences.preferredMode.iconName,
+                        iconColor: preferences.preferredMode.themeColor,
+                        title: NSLocalizedString("settings.entrainmentMode", comment: ""),
+                        footer: NSLocalizedString("settings.entrainmentModeDescription", comment: "")
+                    ) {
+                        Picker(NSLocalizedString("settings.mode", comment: ""), selection: Binding(
+                            get: { preferences.preferredMode },
+                            set: { newValue in
+                                preferences.preferredMode = newValue
+                                preferences.save()
+                                if preferences.hapticFeedbackEnabled {
+                                    HapticFeedback.light()
+                                }
+                            }
+                        )) {
+                            ForEach(EntrainmentMode.allCases) { mode in
+                                HStack {
+                                    Image(systemName: mode.iconName)
+                                    Text(mode.displayName)
+                                }
+                                .tag(mode)
                             }
                         }
-                    )) {
-                        ForEach(EntrainmentMode.allCases) { mode in
-                            HStack {
-                                Image(systemName: mode.iconName)
-                                Text(mode.displayName)
-                            }
-                            .tag(mode)
-                        }
+                        .pickerStyle(.menu)
+                        .accessibilityIdentifier("settings.modePicker")
                     }
-                    .accessibilityIdentifier("settings.modePicker")
-                } header: {
-                    Text(NSLocalizedString("settings.entrainmentMode", comment: ""))
-                } footer: {
-                    Text(NSLocalizedString("settings.entrainmentModeDescription", comment: ""))
-                }
-                
-                Section {
-                    Toggle(NSLocalizedString("settings.fallDetection", comment: ""), isOn: Binding(
-                        get: { preferences.fallDetectionEnabled },
-                        set: { newValue in
-                            preferences.fallDetectionEnabled = newValue
-                            preferences.save()
-                        }
-                    ))
-                    .accessibilityIdentifier("settings.fallDetectionToggle")
+                    .padding(.horizontal, AppConstants.Spacing.md)
                     
-                    Toggle(NSLocalizedString("settings.thermalProtection", comment: ""), isOn: Binding(
-                        get: { preferences.thermalProtectionEnabled },
-                        set: { newValue in
-                            preferences.thermalProtectionEnabled = newValue
-                            preferences.save()
-                        }
-                    ))
-                    .accessibilityIdentifier("settings.thermalProtectionToggle")
-                    
-                    Toggle(NSLocalizedString("settings.hapticFeedback", comment: ""), isOn: Binding(
-                        get: { preferences.hapticFeedbackEnabled },
-                        set: { newValue in
-                            preferences.hapticFeedbackEnabled = newValue
-                            preferences.save()
-                        }
-                    ))
-                    .accessibilityIdentifier("settings.hapticFeedbackToggle")
-                } header: {
-                    Text(NSLocalizedString("settings.safetyAndFeedback", comment: ""))
-                }
-                
-                Section {
-                    Toggle(NSLocalizedString("settings.vibrationEnabled", comment: ""), isOn: Binding(
-                        get: { preferences.vibrationEnabled },
-                        set: { newValue in
-                            preferences.vibrationEnabled = newValue
-                            preferences.save()
-                        }
-                    ))
-                    .accessibilityIdentifier("settings.vibrationEnabledToggle")
-                    
-                    if preferences.vibrationEnabled {
-                        HStack {
-                            Text(NSLocalizedString("settings.vibrationIntensity", comment: ""))
-                                .font(AppConstants.Typography.body)
-                            Spacer()
-                            Text("\(Int(preferences.vibrationIntensity * 100))%")
-                                .font(AppConstants.Typography.body)
-                                .foregroundColor(.mindSyncSecondaryText)
-                        }
-                        
-                        Slider(
-                            value: Binding(
-                                get: { preferences.vibrationIntensity },
+                    // Safety & Feedback
+                    SettingsCard(
+                        icon: "shield.fill",
+                        iconColor: .mindSyncWarning,
+                        title: NSLocalizedString("settings.safetyAndFeedback", comment: "")
+                    ) {
+                        VStack(spacing: AppConstants.Spacing.md) {
+                            Toggle(NSLocalizedString("settings.fallDetection", comment: ""), isOn: Binding(
+                                get: { preferences.fallDetectionEnabled },
                                 set: { newValue in
-                                    preferences.vibrationIntensity = newValue
+                                    preferences.fallDetectionEnabled = newValue
                                     preferences.save()
                                 }
-                            ),
-                            in: 0.1...1.0,
-                            step: 0.1
-                        )
-                        .accessibilityIdentifier("settings.vibrationIntensitySlider")
+                            ))
+                            .accessibilityIdentifier("settings.fallDetectionToggle")
+                            
+                            Toggle(NSLocalizedString("settings.thermalProtection", comment: ""), isOn: Binding(
+                                get: { preferences.thermalProtectionEnabled },
+                                set: { newValue in
+                                    preferences.thermalProtectionEnabled = newValue
+                                    preferences.save()
+                                }
+                            ))
+                            .accessibilityIdentifier("settings.thermalProtectionToggle")
+                            
+                            Toggle(NSLocalizedString("settings.hapticFeedback", comment: ""), isOn: Binding(
+                                get: { preferences.hapticFeedbackEnabled },
+                                set: { newValue in
+                                    preferences.hapticFeedbackEnabled = newValue
+                                    preferences.save()
+                                }
+                            ))
+                            .accessibilityIdentifier("settings.hapticFeedbackToggle")
+                        }
                     }
-                } header: {
-                    Text(NSLocalizedString("settings.vibration", comment: ""))
-                } footer: {
-                    Text(NSLocalizedString("settings.vibrationDescription", comment: ""))
-                }
-                
-                Section {
-                    if let url = preferences.selectedAffirmationURL {
-                        Text(url.lastPathComponent)
-                            .font(AppConstants.Typography.body)
-                            .foregroundColor(.mindSyncPrimaryText)
-                    } else {
-                        Text(NSLocalizedString("settings.affirmationNone", comment: ""))
-                            .font(AppConstants.Typography.caption)
-                            .foregroundColor(.mindSyncSecondaryText)
-                    }
+                    .padding(.horizontal, AppConstants.Spacing.md)
                     
-                    Button(NSLocalizedString("settings.affirmationSelect", comment: "")) {
-                        showingAffirmationImporter = true
-                    }
-                    
-                    if preferences.selectedAffirmationURL != nil {
-                        Button(NSLocalizedString("settings.affirmationRemove", comment: ""), role: .destructive) {
-                            // Remove the file from documents directory
-                            if let url = preferences.selectedAffirmationURL {
-                                try? FileManager.default.removeItem(at: url)
+                    // Vibration
+                    SettingsCard(
+                        icon: "iphone.radiowaves.left.and.right",
+                        iconColor: .mindSyncInfo,
+                        title: NSLocalizedString("settings.vibration", comment: ""),
+                        footer: NSLocalizedString("settings.vibrationDescription", comment: "")
+                    ) {
+                        VStack(spacing: AppConstants.Spacing.md) {
+                            Toggle(NSLocalizedString("settings.vibrationEnabled", comment: ""), isOn: Binding(
+                                get: { preferences.vibrationEnabled },
+                                set: { newValue in
+                                    preferences.vibrationEnabled = newValue
+                                    preferences.save()
+                                }
+                            ))
+                            .accessibilityIdentifier("settings.vibrationEnabledToggle")
+                            
+                            if preferences.vibrationEnabled {
+                                HStack {
+                                    Text(NSLocalizedString("settings.vibrationIntensity", comment: ""))
+                                        .font(AppConstants.Typography.body)
+                                    Spacer()
+                                    Text("\(Int(preferences.vibrationIntensity * 100))%")
+                                        .font(AppConstants.Typography.body)
+                                        .foregroundColor(.mindSyncSecondaryText)
+                                }
+                                
+                                Slider(
+                                    value: Binding(
+                                        get: { preferences.vibrationIntensity },
+                                        set: { newValue in
+                                            preferences.vibrationIntensity = newValue
+                                            preferences.save()
+                                        }
+                                    ),
+                                    in: 0.1...1.0,
+                                    step: 0.1
+                                )
+                                .accessibilityIdentifier("settings.vibrationIntensitySlider")
                             }
-                            preferences.selectedAffirmationURL = nil
-                            preferences.save()
                         }
                     }
-                } header: {
-                    Text(NSLocalizedString("settings.affirmations", comment: ""))
-                } footer: {
-                    Text(NSLocalizedString("settings.affirmationsDescription", comment: ""))
-                }
-                
-                Section {
-                    Toggle(NSLocalizedString("settings.quickAnalysis", comment: ""), isOn: Binding(
-                        get: { preferences.quickAnalysisEnabled },
-                        set: { newValue in
-                            preferences.quickAnalysisEnabled = newValue
-                            preferences.save()
-                        }
-                    ))
-                    .accessibilityIdentifier("settings.quickAnalysisToggle")
+                    .padding(.horizontal, AppConstants.Spacing.md)
                     
-                    Picker(NSLocalizedString("settings.maxDuration", comment: ""), selection: Binding(
-                        get: { preferences.maxSessionDuration },
-                        set: { newValue in
-                            preferences.maxSessionDuration = newValue
-                            preferences.save()
+                    // Affirmations
+                    SettingsCard(
+                        icon: "waveform.and.mic",
+                        iconColor: .mindSyncAccent,
+                        title: NSLocalizedString("settings.affirmations", comment: ""),
+                        footer: NSLocalizedString("settings.affirmationsDescription", comment: "")
+                    ) {
+                        VStack(spacing: AppConstants.Spacing.md) {
+                            if let url = preferences.selectedAffirmationURL {
+                                Text(url.lastPathComponent)
+                                    .font(AppConstants.Typography.body)
+                                    .foregroundColor(.mindSyncPrimaryText)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            } else {
+                                Text(NSLocalizedString("settings.affirmationNone", comment: ""))
+                                    .font(AppConstants.Typography.caption)
+                                    .foregroundColor(.mindSyncSecondaryText)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            
+                            Button(NSLocalizedString("settings.affirmationSelect", comment: "")) {
+                                showingAffirmationImporter = true
+                            }
+                            .frame(maxWidth: .infinity)
+                            
+                            if preferences.selectedAffirmationURL != nil {
+                                Button(NSLocalizedString("settings.affirmationRemove", comment: ""), role: .destructive) {
+                                    if let url = preferences.selectedAffirmationURL {
+                                        try? FileManager.default.removeItem(at: url)
+                                    }
+                                    preferences.selectedAffirmationURL = nil
+                                    preferences.save()
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
                         }
-                    )) {
-                        Text(NSLocalizedString("settings.duration.unlimited", comment: ""))
-                            .tag(TimeInterval?.none)
-                        Text(NSLocalizedString("settings.duration.5min", comment: ""))
-                            .tag(TimeInterval?(300))
-                        Text(NSLocalizedString("settings.duration.10min", comment: ""))
-                            .tag(TimeInterval?(600))
-                        Text(NSLocalizedString("settings.duration.15min", comment: ""))
-                            .tag(TimeInterval?(900))
                     }
-                    .pickerStyle(.menu)
-                } header: {
-                    Text(NSLocalizedString("settings.session", comment: ""))
-                } footer: {
-                    Text(NSLocalizedString("settings.sessionDescription", comment: ""))
-                }
-                
-                Section {
-                    NavigationLink {
-                        LatencyCalibrationView()
-                    } label: {
-                        HStack {
-                            Label {
+                    .padding(.horizontal, AppConstants.Spacing.md)
+                    
+                    // Session Settings
+                    SettingsCard(
+                        icon: "clock.fill",
+                        iconColor: .mindSyncInfo,
+                        title: NSLocalizedString("settings.session", comment: ""),
+                        footer: NSLocalizedString("settings.sessionDescription", comment: "")
+                    ) {
+                        VStack(spacing: AppConstants.Spacing.md) {
+                            Toggle(NSLocalizedString("settings.quickAnalysis", comment: ""), isOn: Binding(
+                                get: { preferences.quickAnalysisEnabled },
+                                set: { newValue in
+                                    preferences.quickAnalysisEnabled = newValue
+                                    preferences.save()
+                                }
+                            ))
+                            .accessibilityIdentifier("settings.quickAnalysisToggle")
+                            
+                            Picker(NSLocalizedString("settings.maxDuration", comment: ""), selection: Binding(
+                                get: { preferences.maxSessionDuration },
+                                set: { newValue in
+                                    preferences.maxSessionDuration = newValue
+                                    preferences.save()
+                                }
+                            )) {
+                                Text(NSLocalizedString("settings.duration.unlimited", comment: ""))
+                                    .tag(TimeInterval?.none)
+                                Text(NSLocalizedString("settings.duration.5min", comment: ""))
+                                    .tag(TimeInterval?(300))
+                                Text(NSLocalizedString("settings.duration.10min", comment: ""))
+                                    .tag(TimeInterval?(600))
+                                Text(NSLocalizedString("settings.duration.15min", comment: ""))
+                                    .tag(TimeInterval?(900))
+                            }
+                            .pickerStyle(.menu)
+                        }
+                    }
+                    .padding(.horizontal, AppConstants.Spacing.md)
+                    
+                    // Audio Settings
+                    SettingsCard(
+                        icon: "waveform.circle",
+                        iconColor: .mindSyncAccent,
+                        title: NSLocalizedString("settings.audio", comment: ""),
+                        footer: NSLocalizedString("settings.audioDescription", comment: "")
+                    ) {
+                        NavigationLink {
+                            LatencyCalibrationView()
+                        } label: {
+                            HStack {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(NSLocalizedString("settings.latencyCalibration", comment: ""))
                                         .font(AppConstants.Typography.body)
@@ -260,54 +293,72 @@ struct SettingsView: View {
                                         .font(.caption)
                                         .foregroundColor(.mindSyncSecondaryText)
                                 }
-                            } icon: {
-                                Image(systemName: "waveform.circle")
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: AppConstants.IconSize.small))
+                                    .foregroundColor(.mindSyncSecondaryText)
                             }
-                            
-                            Spacer()
                         }
                     }
-                } header: {
-                    Text(NSLocalizedString("settings.audio", comment: ""))
-                } footer: {
-                    Text(NSLocalizedString("settings.audioDescription", comment: ""))
-                }
-                
-                Section {
-                    Button {
-                        showingHistory = true
-                    } label: {
-                        Label(NSLocalizedString("settings.history", comment: ""), systemImage: "clock.arrow.circlepath")
-                    }
-                }
-                
-                Section {
-                    HStack {
-                        Text(NSLocalizedString("settings.defaultIntensity", comment: ""))
-                            .font(AppConstants.Typography.body)
-                        Spacer()
-                        Text("\(Int(preferences.defaultIntensity * 100))%")
-                            .font(AppConstants.Typography.body)
-                            .foregroundColor(.mindSyncSecondaryText)
-                    }
+                    .padding(.horizontal, AppConstants.Spacing.md)
                     
-                    Slider(
-                        value: Binding(
-                            get: { preferences.defaultIntensity },
-                            set: { newValue in
-                                preferences.defaultIntensity = newValue
-                                preferences.save()
+                    // History
+                    SettingsCard(
+                        icon: "clock.arrow.circlepath",
+                        iconColor: .mindSyncInfo,
+                        title: NSLocalizedString("settings.history", comment: "")
+                    ) {
+                        Button {
+                            showingHistory = true
+                        } label: {
+                            HStack {
+                                Text(NSLocalizedString("settings.history", comment: ""))
+                                    .font(AppConstants.Typography.body)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: AppConstants.IconSize.small))
+                                    .foregroundColor(.mindSyncSecondaryText)
                             }
-                        ),
-                        in: 0.1...1.0,
-                        step: 0.1
-                    )
-                    .accessibilityIdentifier("settings.intensitySlider")
-                } header: {
-                    Text(NSLocalizedString("settings.intensity", comment: ""))
-                } footer: {
-                    Text(NSLocalizedString("settings.intensityDescription", comment: ""))
+                        }
+                    }
+                    .padding(.horizontal, AppConstants.Spacing.md)
+                    
+                    // Intensity
+                    SettingsCard(
+                        icon: "slider.horizontal.3",
+                        iconColor: .mindSyncAccent,
+                        title: NSLocalizedString("settings.intensity", comment: ""),
+                        footer: NSLocalizedString("settings.intensityDescription", comment: "")
+                    ) {
+                        VStack(spacing: AppConstants.Spacing.md) {
+                            HStack {
+                                Text(NSLocalizedString("settings.defaultIntensity", comment: ""))
+                                    .font(AppConstants.Typography.body)
+                                Spacer()
+                                Text("\(Int(preferences.defaultIntensity * 100))%")
+                                    .font(AppConstants.Typography.body)
+                                    .foregroundColor(.mindSyncSecondaryText)
+                            }
+                            
+                            Slider(
+                                value: Binding(
+                                    get: { preferences.defaultIntensity },
+                                    set: { newValue in
+                                        preferences.defaultIntensity = newValue
+                                        preferences.save()
+                                    }
+                                ),
+                                in: 0.1...1.0,
+                                step: 0.1
+                            )
+                            .accessibilityIdentifier("settings.intensitySlider")
+                        }
+                    }
+                    .padding(.horizontal, AppConstants.Spacing.md)
                 }
+                .padding(.vertical, AppConstants.Spacing.lg)
             }
             .navigationTitle(NSLocalizedString("settings.title", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
@@ -400,6 +451,61 @@ struct SettingsView: View {
             Text(NSLocalizedString("settings.importError", comment: "") + ": " + error.localizedDescription)
         }
         .mindSyncBackground()
+    }
+}
+
+// MARK: - Settings Card Component
+
+private struct SettingsCard<Content: View>: View {
+    let icon: String?
+    let iconColor: Color?
+    let title: String?
+    let footer: String?
+    @ViewBuilder let content: () -> Content
+    
+    init(
+        icon: String? = nil,
+        iconColor: Color? = nil,
+        title: String? = nil,
+        footer: String? = nil,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
+        self.icon = icon
+        self.iconColor = iconColor
+        self.title = title
+        self.footer = footer
+        self.content = content
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppConstants.Spacing.md) {
+            // Header
+            if let title = title {
+                HStack(spacing: AppConstants.Spacing.sm) {
+                    if let icon = icon, let iconColor = iconColor {
+                        Image(systemName: icon)
+                            .font(.system(size: AppConstants.IconSize.small, weight: .semibold))
+                            .foregroundColor(iconColor)
+                    }
+                    Text(title)
+                        .font(AppConstants.Typography.headline)
+                        .foregroundColor(.mindSyncPrimaryText)
+                }
+            }
+            
+            // Content
+            content()
+            
+            // Footer
+            if let footer = footer {
+                Text(footer)
+                    .font(AppConstants.Typography.caption)
+                    .foregroundColor(.mindSyncSecondaryText)
+                    .padding(.top, AppConstants.Spacing.xs)
+            }
+        }
+        .padding(AppConstants.Spacing.lg)
+        .mindSyncCardStyle()
     }
 }
 

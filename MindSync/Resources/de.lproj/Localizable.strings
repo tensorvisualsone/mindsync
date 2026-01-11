@@ -36,6 +36,8 @@
 
 // MARK: - Source Selection
 "sourceSelection.title" = "Audioquelle auswählen";
+"sourceSelection.subtitle" = "Wähle deine Audioquelle";
+"sourceSelection.recommended" = "Empfohlen";
 "sourceSelection.musicLibrary" = "Musikbibliothek";
 "sourceSelection.musicLibraryDescription" = "Wähle einen Song aus deiner lokalen Musikbibliothek";
 "sourceSelection.musicLibraryButton" = "Musikbibliothek auswählen";
@@ -240,7 +242,7 @@
 "common.close" = "Schließen";
 "common.dismiss" = "Schließen";
 "common.back" = "Zurück";
-"common.home" = "Home";
+"common.home" = "Startseite";
 "common.open" = "Öffnen";
 "common.error" = "Fehler";
 
