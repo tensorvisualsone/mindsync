@@ -518,7 +518,7 @@ final class FlashlightController: BaseLightController, LightControlling {
                         
 #if DEBUG
                         if elapsed - lastAudioLogTime >= 0.5 {
-                            logger.debug("[CINEMATIC PEAK] t=\(String(format: "%.3f", elapsed))s raw=\(String(format: "%.3f", rawEnergy)) localAvg=\(String(format: "%.3f", localAverage)) threshold=\(String(format: "%.3f", adaptiveThreshold)) strength=\(String(format: "%.2f", peakStrength)) intensity=\(String(format: "%.2f", finalIntensity))")
+                            logger.debug("[CINEMATIC PEAK] t=\(String(format: "%.3f", elapsed))s raw=\(String(format: "%.3f", rawEnergy)) localAvg=\(String(format: "%.3f", localAverage)) threshold=\(String(format: "%.3f", adaptiveThreshold)) strength=\(String(format: "%.2f", normalizedEnergy)) intensity=\(String(format: "%.2f", finalIntensity))")
                             lastAudioLogTime = elapsed
                         }
 #endif
