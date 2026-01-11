@@ -34,6 +34,8 @@
 
 // MARK: - Source Selection
 "sourceSelection.title" = "Choose Audio Source";
+"sourceSelection.subtitle" = "Select your audio source";
+"sourceSelection.recommended" = "Recommended";
 "sourceSelection.musicLibrary" = "Music Library";
 "sourceSelection.musicLibraryDescription" = "Pick a song from your local library";
 "sourceSelection.musicLibraryButton" = "Select Music Library";
