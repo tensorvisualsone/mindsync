@@ -864,8 +864,10 @@ extension EntrainmentEngine {
     /// Phases:
     /// - Phase 1: DISCONNECT (4 Min) - 10Hz → 5Hz Ramp (Alpha to Theta)
     /// - Phase 2: THE ABYSS (12 Min) - 4.5Hz Theta with varying intensity
-    /// - Phase 3: THE VOID / PEAK (8 Min) - 40Hz Gamma-Burst
+    /// - Transition: RAMP (60 Sek) - Smooth transition from 4.5Hz to 40Hz
+    /// - Phase 3: THE VOID / PEAK (7 Min) - 40Hz Gamma-Burst
     /// - Phase 4: REINTEGRATION (6 Min) - 7.83Hz Schumann Resonance
+    /// Total duration: 30 minutes (1800 seconds)
     static func generateDMNShutdownScript() -> LightScript {
         var events: [LightEvent] = []
         var currentTime: TimeInterval = 0.0
@@ -945,10 +947,12 @@ extension EntrainmentEngine {
             currentTime += 1.0
         }
         
-        // --- PHASE 3: THE VOID / PEAK (8 Min) ---
+        // --- PHASE 3: THE VOID / PEAK (7 Min) ---
         // The "nothingness" state. We blast in with 40Hz gamma synchronization.
         // This is the "Aha-moment" or spiritual high.
-        let phase3Duration: TimeInterval = 480 // 8 minutes
+        // Duration reduced to 7 minutes to compensate for 60-second transition ramp
+        // Total duration: 4 Min (P1) + 12 Min (P2) + 1 Min (Ramp) + 7 Min (P3) + 6 Min (P4) = 30 Min
+        let phase3Duration: TimeInterval = 420 // 7 minutes (reduced from 480 to compensate for transition ramp)
         events.append(LightEvent(
             timestamp: currentTime,
             intensity: 0.75, // High intensity for maximum effect
@@ -985,7 +989,7 @@ extension EntrainmentEngine {
     /// This follows the same 4-phase structure as the light script:
     /// - Phase 1: DISCONNECT (4 Min) - 10Hz → 5Hz ramp
     /// - Phase 2: THE ABYSS (12 Min) - 4.5Hz Theta
-    /// - Phase 3: THE VOID / PEAK (8 Min) - 40Hz Gamma
+    /// - Phase 3: THE VOID / PEAK (7 Min) - 40Hz Gamma (reduced from 8 Min to match light script)
     /// - Phase 4: REINTEGRATION (6 Min) - 7.83Hz Schumann
     /// - Parameters:
     ///   - intensity: User preference for vibration intensity (0.1 - 1.0)
@@ -1042,11 +1046,12 @@ extension EntrainmentEngine {
             currentTime += 2.0
         }
         
-        // --- PHASE 3: THE VOID / PEAK (8 Min) ---
+        // --- PHASE 3: THE VOID / PEAK (7 Min) ---
         // 40Hz Gamma-Burst (Square waves for maximum cortical excitation)
+        // Duration reduced to 7 minutes to match light script (compensates for 60-second transition ramp)
         // OPTIMIZATION: Create longer events (0.1s) instead of individual periods (0.0125s)
         // to reduce event count from 38,400 to ~4,800 events and prevent main thread blocking
-        let phase3Duration: TimeInterval = 480 // 8 minutes
+        let phase3Duration: TimeInterval = 420 // 7 minutes (reduced from 480 to match light script)
         // Note: p3Frequency (40.0 Hz) is implied by the event timing, no explicit calculation needed
         
         // High intensity for Phase 3 (1.2x baseIntensity, clamped to 1.0)

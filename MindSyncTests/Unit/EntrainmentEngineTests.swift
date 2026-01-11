@@ -418,37 +418,38 @@ final class EntrainmentEngineTests: XCTestCase {
         
         // Verify phase 2 events
         if let firstEvent = phase2Events.first {
-            XCTAssertEqual(firstEvent.waveform, .sine)
+            XCTAssertEqual(firstEvent.waveform, .square) // Square waves for hard contrast
             XCTAssertEqual(firstEvent.duration, 2.0)
             XCTAssertEqual(firstEvent.color, .purple)
             XCTAssertNotNil(firstEvent.frequencyOverride)
             XCTAssertEqual(firstEvent.frequencyOverride ?? 0, 4.5, accuracy: 0.01)
         }
         
-        // Verify alternating intensity (0.35/0.25 to prevent habituation)
+        // Verify alternating intensity (0.35/0.0 for complete darkness between pulses)
         if phase2Events.count >= 2 {
             let firstIntensity = phase2Events[0].intensity
             let secondIntensity = phase2Events[1].intensity
             XCTAssertNotEqual(firstIntensity, secondIntensity)
-            XCTAssertTrue([0.35, 0.25].contains { abs($0 - firstIntensity) < 0.01 })
-            XCTAssertTrue([0.35, 0.25].contains { abs($0 - secondIntensity) < 0.01 })
+            XCTAssertTrue([0.35, 0.0].contains { abs($0 - firstIntensity) < 0.01 })
+            XCTAssertTrue([0.35, 0.0].contains { abs($0 - secondIntensity) < 0.01 })
         }
     }
     
     func testGenerateDMNShutdownScript_Phase3Structure() {
         let script = EntrainmentEngine.generateDMNShutdownScript()
         
-        // Phase 3: THE VOID / PEAK (960-1440 seconds = 8 minutes)
+        // Phase 3: THE VOID / PEAK (1020-1440 seconds = 7 minutes)
+        // After Phase 2 (960s) + Transition Ramp (60s) = 1020s
         // Single long event at 40Hz
-        let phase3Events = script.events.filter { $0.timestamp >= 960 && $0.timestamp < 1440 }
+        let phase3Events = script.events.filter { $0.timestamp >= 1020 && $0.timestamp < 1440 }
         
         XCTAssertEqual(phase3Events.count, 1)
         
         if let event = phase3Events.first {
-            XCTAssertEqual(event.timestamp, 960.0)
+            XCTAssertEqual(event.timestamp, 1020.0, accuracy: 0.1) // After Phase 2 (960s) + Ramp (60s)
             XCTAssertEqual(event.waveform, .square)
             XCTAssertEqual(event.intensity, 0.75, accuracy: 0.01)
-            XCTAssertEqual(event.duration, 480.0) // 8 minutes
+            XCTAssertEqual(event.duration, 420.0, accuracy: 1.0) // 7 minutes (reduced from 480 to compensate for ramp)
             XCTAssertEqual(event.color, .white)
             XCTAssertNotNil(event.frequencyOverride)
             XCTAssertEqual(event.frequencyOverride ?? 0, 40.0, accuracy: 0.01)
