@@ -1362,31 +1362,20 @@ final class SessionViewModel: ObservableObject {
         // Start audio playback first
         try audioPlayback.play(url: url)
 
-        // CRITICAL: Wait for audio to actually start playing
+        // CRITICAL: Wait for audio to actually start playing (not just engine started)
         // This ensures perfect synchronization - light waits for audio to really begin
         // Audio can take 4-5 seconds to start with Bluetooth devices
-        // We wait until preciseAudioTime is greater than a small threshold (0.01s = 10ms)
-        // to ensure audio is really playing (not just fallback currentTime)
-        var waitAttempts = 0
-        let maxWaitAttempts = 150 // 150 * 50ms = 7.5 seconds max wait (handles Bluetooth delays)
-        let audioStartThreshold: TimeInterval = 0.01 // 10ms threshold to distinguish real playback from fallback
+        // We use a more reliable approach: Wait for a fixed delay that accounts for Bluetooth latency
+        // The 50ms delay is too short - Bluetooth can take 4-5 seconds to start
+        // We wait 5 seconds to ensure audio is really playing before starting light
+        try await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds - handles Bluetooth delays
         
-        while waitAttempts < maxWaitAttempts {
-            let preciseTime = audioPlayback.preciseAudioTime
-            if preciseTime >= audioStartThreshold {
-                // Audio is really playing (preciseAudioTime >= threshold)
-                logger.info("Audio playback confirmed active (preciseAudioTime: \(preciseTime, privacy: .public)s, waited \(waitAttempts * 50)ms)")
-                break
-            }
-            try await Task.sleep(nanoseconds: 50_000_000) // 50ms polling interval
-            waitAttempts += 1
-        }
-        
-        if audioPlayback.preciseAudioTime < audioStartThreshold {
-            logger.warning("Audio playback did not start within timeout (7.5s), proceeding anyway")
-        }
+        // Now verify that audio is actually playing
+        let preciseTime = audioPlayback.preciseAudioTime
+        logger.info("Audio playback check after 5s delay (preciseAudioTime: \(preciseTime, privacy: .public)s, isPlaying: \(audioPlayback.isPlaying, privacy: .public))")
         
         // Create actual start time AFTER audio has actually started (for proper synchronization)
+        // We've waited 5 seconds, so audio should be playing now
         let actualStartTime = Date()
 
         // If cinematic mode, attach isochronic audio to the playback engine for perfect sync
@@ -1395,9 +1384,9 @@ final class SessionViewModel: ObservableObject {
             IsochronicAudioService.shared.start(mode: currentSession!.mode, attachToEngine: engine)
         }
         
-        // If cinematic mode, start audio energy tracking AFTER audio engine is running
-        // This ensures the mixer node exists when we attach the tracker
-        if let mode = currentSession?.mode {
+        // Enable audio energy tracking for audio-reactive modes (NOT for fixed script modes)
+        // dmnShutdown and beliefRewiring use fixed scripts with frequencyOverride, so they don't need audio reactivity
+        if let mode = currentSession?.mode, mode != .dmnShutdown && mode != .beliefRewiring {
             enableSpectralFluxForCinematicMode(mode)
         }
 
