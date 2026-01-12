@@ -1050,7 +1050,7 @@ extension EntrainmentEngine {
         // --- PHASE 4: THE VOID / UNIVERSE (20.5-29 Min) ---
         // 40 Hz Gamma Burst - maximum brightness (with safety limit)
         // "Body sleeps, mind is awake" - total stillness in the body, only light in the mind
-        let phase4Duration: TimeInterval = 510 // 8.5 minutes (reduced from 9.5 to allow for cooldown)
+        let phase4Duration: TimeInterval = 510 // 8.5 minutes (starts at 20.5 min, ends at 29 min)
         events.append(LightEvent(
             timestamp: currentTime,
             intensity: 0.9, // Maximum brightness (with safety limit)
@@ -1219,7 +1219,7 @@ extension EntrainmentEngine {
         // frequency creates a subtle "heartbeat" that maintains body awareness and prevents
         // disorientation while keeping the focus on visual entrainment. This design has been
         // validated for user comfort during extended high-intensity visual sessions.
-        let phase4Duration: TimeInterval = 510 // 8.5 minutes (20-29 Min, reduced to allow for cooldown)
+        let phase4Duration: TimeInterval = 510 // 8.5 minutes (starts at 20.5 min, ends at 29 min)
         let phase4Frequency: Double = 0.5      // Very low frequency (0.5 Hz) for subtle perception
         let phase4Period = 1.0 / phase4Frequency
         

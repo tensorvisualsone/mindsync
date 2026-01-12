@@ -181,8 +181,17 @@ final class AudioPlaybackService: NSObject {
         let nanosecondsPerTick = Double(timebaseInfo.numer) / Double(timebaseInfo.denom)
         let delayInNanoseconds = delay * 1_000_000_000.0
         let delayInHostTicks = UInt64(delayInNanoseconds / nanosecondsPerTick)
-        // Use overflow addition (&+) defensively so overflow behavior is well-defined.
-        let futureHostTime = currentHostTime &+ delayInHostTicks
+        
+        // Compute future host time with explicit overflow handling to avoid incorrect scheduling.
+        let futureHostTime: UInt64
+        if delayInHostTicks > UInt64.max - currentHostTime {
+            // Clamp to the maximum representable host time and log an error instead of overflowing.
+            logger.error("AudioPlaybackService.schedulePlayback: delayInHostTicks (\(delayInHostTicks)) would overflow hostTime (currentHostTime=\(currentHostTime)). Clamping delay.")
+            let clampedDelay = UInt64.max - currentHostTime
+            futureHostTime = currentHostTime + clampedDelay
+        } else {
+            futureHostTime = currentHostTime + delayInHostTicks
+        }
         
         // Calculate future sample time at the current render sample rate
         let delayInSamples = AVAudioFramePosition(delay * currentSampleRate)

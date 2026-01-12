@@ -539,6 +539,9 @@ final class FlashlightController: BaseLightController, LightControlling {
                                     fixedThreshold = 0.05  // Reduced from 0.08
                                     logger.info("Cinematic calibration: Low dynamics detected (range=\(dynamicRange)), using lower thresholds")
                                 }
+                                
+                                isCalibrated = true
+                                logger.info("Cinematic calibration complete: mean=\(mean), stdDev=\(stdDev), range=\(dynamicRange), threshold=\(self.peakRiseThreshold)")
                             } else {
                                 // Calibration window elapsed but no flux values were collected.
                                 // Mark calibration as completed with safe default thresholds to avoid
@@ -549,9 +552,6 @@ final class FlashlightController: BaseLightController, LightControlling {
                                 calibrationStartTime = -1.0
                                 logger.warning("Cinematic calibration: No flux values collected during calibration window, using default thresholds (peakRiseThreshold=\(peakRiseThreshold), fixedThreshold=\(fixedThreshold))")
                             }
-                            
-                            isCalibrated = true
-                            logger.info("Cinematic calibration complete: mean=\(mean), stdDev=\(stdDev), range=\(dynamicRange), threshold=\(self.peakRiseThreshold)")
                         }
                     }
                     
