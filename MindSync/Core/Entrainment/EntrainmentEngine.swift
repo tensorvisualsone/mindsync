@@ -974,7 +974,6 @@ extension EntrainmentEngine {
             ))
             currentTime += 1.0
         }
-        currentTime += transitionDuration - Double(Int(transitionDuration)) // Adjust for rounding
         
         // --- PHASE 4: THE VOID / UNIVERSE (20.5-30 Min) ---
         // 40 Hz Gamma Burst - maximale Helligkeit (mit Safety-Limit)
