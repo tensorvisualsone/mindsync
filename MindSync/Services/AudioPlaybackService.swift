@@ -191,9 +191,9 @@ final class AudioPlaybackService: NSObject {
         // Create AVAudioTime with both sampleTime and hostTime for reliable scheduling
         // This maintains host-time context which makes node.play(at:) reliable
         let futureAudioTime = AVAudioTime(
+            hostTime: futureHostTime,
             sampleTime: futureSampleTime,
-            atRate: currentSampleRate,
-            hostTime: futureHostTime
+            atRate: currentSampleRate
         )
         
         // Start playback at the scheduled time

@@ -514,7 +514,7 @@ final class FlashlightController: BaseLightController, LightControlling {
                             }
                             
                             isCalibrated = true
-                            logger.info("Cinematic calibration complete: mean=\(mean), stdDev=\(stdDev), range=\(dynamicRange), threshold=\(peakRiseThreshold)")
+                            logger.info("Cinematic calibration complete: mean=\(mean), stdDev=\(stdDev), range=\(dynamicRange), threshold=\(self.peakRiseThreshold)")
                         }
                     }
                     
