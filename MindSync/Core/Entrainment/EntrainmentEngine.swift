@@ -1148,6 +1148,11 @@ extension EntrainmentEngine {
         }
         currentTime += phase3Duration
         
+        // --- SYNC FIX: 30 Sekunden Transition-Lücke berücksichtigen ---
+        // Das Licht-Script hat hier eine 30s Transition. Wir wollen, dass die Vibration
+        // währenddessen schweigt (oder ausklingt), damit Phase 4 (Void) wieder EXAKT synchron startet.
+        currentTime += 30.0
+        
         // --- PHASE 4: THE VOID / UNIVERSE (20-29 Min) ---
         // Very subtle background vibration at low frequency to maintain user comfort
         // Goal: Maintain "body sleeps, mind awake" feeling while avoiding complete
