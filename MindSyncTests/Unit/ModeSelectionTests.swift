@@ -8,9 +8,9 @@ final class ModeSelectionTests: XCTestCase {
     func testEntrainmentMode_AllCasesContainsAllModes() {
         // Verify that all expected modes are in allCases
         let allCases = EntrainmentMode.allCases
-        let expectedModes: [EntrainmentMode] = [.alpha, .theta, .gamma, .cinematic]
+        let expectedModes: [EntrainmentMode] = [.alpha, .theta, .gamma, .cinematic, .dmnShutdown, .beliefRewiring]
         
-        XCTAssertEqual(allCases.count, 4, "Should have exactly 4 modes")
+        XCTAssertEqual(allCases.count, 6, "Should have exactly 6 modes")
         
         for expectedMode in expectedModes {
             XCTAssertTrue(allCases.contains(expectedMode), "\(expectedMode) should be in allCases")

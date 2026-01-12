@@ -213,7 +213,7 @@
 "error.audio.unsupportedFormat" = "Audioformat wird nicht unterstützt.";
 "error.audio.analysisFailure" = "Analyse fehlgeschlagen: %@";
 "error.audio.cancelled" = "Analyse abgebrochen.";
-"error.dmnShutdown.audioFileNotFound" = "Master-Audio-File 'void_master.mp3' nicht im Bundle gefunden. Bitte sicherstellen, dass die Datei zum App-Bundle hinzugefügt wurde.";
+"error.dmnShutdown.audioFileNotFound" = "Audiodatei nicht gefunden. Bitte App neu installieren.";
 "status.audio.cancelled" = "Analyse wurde abgebrochen.";
 "status.vibration.unavailable" = "Vibration ist nicht verfügbar. Session wird ohne Vibration fortgesetzt.";
 "status.light.failed" = "Lichtsynchronisation fehlgeschlagen. Session wird nur mit Audio fortgesetzt.";

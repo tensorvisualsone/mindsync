@@ -34,6 +34,9 @@ struct OnboardingView: View {
                                 )
                             )
                     }
+                    .accessibilityElement()
+                    .accessibilityLabel(Text(NSLocalizedString("onboarding.warningIcon.accessibilityLabel", comment: "Accessibility label for epilepsy warning icon")))
+                    .accessibilityAddTraits(.isImage)
                     .padding(.top, AppConstants.Spacing.xl)
                     
                     // Title and Description Section

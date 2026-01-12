@@ -23,6 +23,61 @@ final class EntrainmentEngine {
         seed = seed &* 1103515245 &+ 12345
     }
     
+    /// Pre-generates a shared sequence of random (frequency, intensity) pairs for Phase 3.
+    /// This ensures light and vibration scripts stay synchronized by using the same random
+    /// values at the same time points, regardless of their different iteration rates.
+    /// - Parameters:
+    ///   - seed: Initial PRNG seed (must match between light and vibration scripts)
+    ///   - duration: Total duration of Phase 3 in seconds
+    ///   - interval: Fixed time interval between random value samples (e.g., 0.1 seconds)
+    /// - Returns: Array of (frequency: Double, intensity: Float) pairs indexed by time step
+    private static func generatePhase3RandomValues(
+        seed: UInt64,
+        duration: TimeInterval,
+        interval: TimeInterval
+    ) -> [(frequency: Double, intensity: Float)] {
+        let stepCount = Int(ceil(duration / interval))
+        var values: [(frequency: Double, intensity: Float)] = []
+        var currentSeed = seed
+        
+        for _ in 0..<stepCount {
+            // Generate frequency (3.5-6.0 Hz)
+            advanceRandomSeed(&currentSeed)
+            let randomValue = Double(currentSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
+            let frequency = 3.5 + (randomValue * 2.5) // 3.5-6.0 Hz
+            
+            // Generate intensity (0.15-0.4 for vibration, 0.2-0.5 for light)
+            // We'll use the wider range and let each script clamp as needed
+            advanceRandomSeed(&currentSeed)
+            let randomValue2 = Double(currentSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
+            let intensity = Float(0.15 + (randomValue2 * 0.35)) // 0.15-0.5 (covers both ranges)
+            
+            values.append((frequency: frequency, intensity: intensity))
+        }
+        
+        return values
+    }
+    
+    /// Generates a deterministic duration value for Phase 3 light events.
+    /// Uses a separate PRNG seed sequence (offset from main seed) to generate duration
+    /// independently from frequency/intensity, ensuring reproducibility.
+    /// - Parameters:
+    ///   - seed: Initial PRNG seed (same as used for frequency/intensity)
+    ///   - index: Time step index for deterministic generation
+    /// - Returns: Duration value in range 1.5-3.0 seconds
+    private static func generatePhase3Duration(seed: UInt64, index: Int) -> TimeInterval {
+        // Use a separate seed offset to generate duration independently
+        // This ensures duration is deterministic but doesn't interfere with frequency/intensity sync
+        var durationSeed = seed &+ 99999 // Offset seed for duration generation
+        // Advance seed by index to get deterministic value for this time step
+        for _ in 0..<index {
+            advanceRandomSeed(&durationSeed)
+        }
+        advanceRandomSeed(&durationSeed)
+        let randomValue = Double(durationSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
+        return 1.5 + (randomValue * 1.5) // 1.5-3.0 seconds
+    }
+    
     /// Calculates cinematic intensity with audio-reactive beat detection
     /// - Parameters:
     ///   - baseFrequency: Base frequency in Hz (typically 6.5 for cinematic mode)
@@ -933,27 +988,30 @@ extension EntrainmentEngine {
         // This breaks expectations and leads to dissociation
         let phase3Duration: TimeInterval = 480 // 8 minutes (12-20 Min)
         
-        // Generate varying intervals with random frequency (3.5-6.0 Hz, Theta range) and varying intensity
-        // This makes the pattern unpredictable and breaks expectations
-        // Fixed seed ensures consistent therapeutic experience across sessions
+        // Pre-generate shared sequence of random (frequency, intensity) pairs for synchronization
+        // with vibration script. Both scripts index into this sequence by fixed time-step.
+        let phase3Interval: TimeInterval = 0.1 // Fixed 100ms interval for indexing
+        let phase3RandomValues = generatePhase3RandomValues(
+            seed: 12345, // Fixed seed for reproducible "randomness" across sessions
+            duration: phase3Duration,
+            interval: phase3Interval
+        )
+        
         var phase3Time: TimeInterval = 0
-        var randomSeed: UInt64 = 12345 // Fixed seed for reproducible "randomness" across sessions
         
         while phase3Time < phase3Duration {
-            // Pseudo-random number for frequency variation (3.5-6.0 Hz)
-            advanceRandomSeed(&randomSeed)
-            let randomValue = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
-            let variedFrequency = 3.5 + (randomValue * 2.5) // 3.5-6.0 Hz
+            // Index into pre-generated sequence using fixed time-step
+            let index = Int(floor(phase3Time / phase3Interval))
+            let clampedIndex = min(index, phase3RandomValues.count - 1)
+            let randomPair = phase3RandomValues[clampedIndex]
             
-            // Pseudo-random number for intensity variation (0.2-0.5)
-            advanceRandomSeed(&randomSeed)
-            let randomValue2 = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
-            let variedIntensity: Float = 0.2 + Float(randomValue2 * 0.3) // 0.2-0.5
+            // Use frequency and intensity from shared sequence
+            let variedFrequency = randomPair.frequency // 3.5-6.0 Hz
+            let variedIntensity = max(0.2, min(0.5, randomPair.intensity)) // Clamp to 0.2-0.5 for light
             
             // Varying event duration (1.5-3.0 seconds) for additional unpredictability
-            advanceRandomSeed(&randomSeed)
-            let randomValue3 = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
-            let variedDuration = 1.5 + (randomValue3 * 1.5) // 1.5-3.0 seconds
+            // Generated deterministically based on index to maintain reproducibility
+            let variedDuration = generatePhase3Duration(seed: 12345, index: clampedIndex)
             
             events.append(LightEvent(
                 timestamp: currentTime + phase3Time,
@@ -1043,13 +1101,12 @@ extension EntrainmentEngine {
     /// - Phase 2: THE ABYSS (3-12 Min) - 4.5Hz Theta, Continuous Haptics (swelling)
     /// - Phase 3: DISSOLUTION (12-20 Min) - Varying frequencies
     /// - Phase 4: THE VOID (20-29 Min) - Very subtle background vibration (0.5 Hz) for user comfort
-    /// - Phase 5: REINTEGRATION (29-29.5 Min) - Gradual return to gentle heartbeat rhythm
-    /// Total duration: 29.5 minutes (1770 seconds)
+    /// - Phase 5: REINTEGRATION (29-30 Min) - Gradual return to gentle heartbeat rhythm
+    /// Total duration: 30 minutes (1800 seconds)
     /// 
-    /// Note: Vibration script total is 1770s (180+540+480+510+60), 30 seconds shorter than
-    /// the light script (1800s). The vibration script does not include the 30-second transition
-    /// ramp between Phase 3 and Phase 4 that exists in the light script, as vibration changes
-    /// are less jarring and don't require gradual frequency ramping.
+    /// Note: Vibration script total is 1800s (180+540+480+30+510+60), matching the light script.
+    /// The vibration script includes a 30-second sync gap between Phase 3 and Phase 4 to maintain
+    /// synchronization with the light script's transition ramp, ensuring both scripts remain aligned.
     /// - Parameters:
     ///   - intensity: User preference for vibration intensity (0.1 - 1.0)
     /// - Returns: A VibrationScript synchronized with the light script
@@ -1112,31 +1169,29 @@ extension EntrainmentEngine {
         // Synchronized with the light script for consistent dissociation
         let phase3Duration: TimeInterval = 480 // 8 minutes (12-20 Min)
         
+        // Pre-generate shared sequence of random (frequency, intensity) pairs for synchronization
+        // with light script. Both scripts index into this sequence by fixed time-step.
+        let phase3Interval: TimeInterval = 0.1 // Fixed 100ms interval for indexing (matches light script)
+        let phase3RandomValues = generatePhase3RandomValues(
+            seed: 12345, // Same seed as in light script for synchronization
+            duration: phase3Duration,
+            interval: phase3Interval
+        )
+        
         var phase3Time: TimeInterval = 0
-        var randomSeed: UInt64 = 12345 // Same seed as in light script for synchronization
         
         while phase3Time < phase3Duration {
-            // Pseudo-random number for frequency variation (3.5-6.0 Hz) - synchronized with light
-            advanceRandomSeed(&randomSeed)
-            let randomValue = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
-            let variedFrequency = 3.5 + (randomValue * 2.5) // 3.5-6.0 Hz
+            // Index into pre-generated sequence using fixed time-step
+            let index = Int(floor(phase3Time / phase3Interval))
+            let clampedIndex = min(index, phase3RandomValues.count - 1)
+            let randomPair = phase3RandomValues[clampedIndex]
+            
+            // Use frequency and intensity from shared sequence
+            let variedFrequency = randomPair.frequency // 3.5-6.0 Hz
             let period = 1.0 / variedFrequency
             
-            // Pseudo-random number for intensity variation (0.15-0.4)
-            advanceRandomSeed(&randomSeed)
-            let randomValue2 = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
-            let variedIntensity: Float = 0.15 + Float(randomValue2 * 0.25) // 0.15-0.4
-            
-            // Advance seed for synchronization with Light-Script (which uses this for Duration)
-            // We use period (calculated from frequency) as duration, so we don't need the random value.
-            // 
-            // NOTE: This synchronization is fragile - the light and vibration scripts must consume
-            // random values in the same order. The light script uses 3 random values per event
-            // (frequency, intensity, duration), while vibration uses 2 (frequency, intensity) and
-            // advances once more without using the value. If the light script logic changes and uses
-            // random values in a different order, synchronization will break silently. Consider using
-            // a shared random state or explicit synchronization markers for more robust coupling.
-            advanceRandomSeed(&randomSeed)
+            // Clamp intensity to vibration range (0.15-0.4)
+            let variedIntensity: Float = max(0.15, min(0.4, randomPair.intensity))
             
             events.append(try VibrationEvent(
                 timestamp: currentTime + phase3Time,
@@ -1190,8 +1245,10 @@ extension EntrainmentEngine {
         var phase5Time: TimeInterval = 0
         while phase5Time < phase5Duration {
             // Gradually increase intensity from minimal to gentle
+            // Ensure target never drops below minimum intensity
+            let target = max(Self.minVibrationIntensity, baseIntensity * 0.5)
             let progress = phase5Time / phase5Duration
-            let cooldownIntensity = Self.minVibrationIntensity + (baseIntensity * 0.5 - Self.minVibrationIntensity) * Float(progress)
+            let cooldownIntensity = Self.minVibrationIntensity + (target - Self.minVibrationIntensity) * Float(progress)
             
             events.append(try VibrationEvent(
                 timestamp: currentTime + phase5Time,

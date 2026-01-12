@@ -45,6 +45,7 @@ Die aktuelle UI ist funktional, aber sehr entwicklerorientiert mit folgenden Hau
 ## Verbesserungsansatz
 
 Die Überarbeitung fokussiert auf:
+
 - **Visuelle Hierarchie**: Klarere Struktur, bessere Spacing, Fokus auf Hauptaktionen
 - **Moderne UI-Patterns**: Card-basierte Layouts, verbesserte Buttons, bessere Typografie
 - **Onboarding-Erfahrung**: Visueller, weniger bedrohlich, mehr Führung
@@ -57,11 +58,13 @@ Die Überarbeitung fokussiert auf:
 ### 1. HomeView-Verbesserung ([MindSync/Features/Home/HomeView.swift](MindSync/Features/Home/HomeView.swift))
 
 **Aktuelle Probleme:**
+
 - Sehr minimalistisch: Nur Titel, ein Button, Grid mit Status
 - Fehlende visuelle Elemente
 - Status-Grid könnte klarer strukturiert sein
 
 **Verbesserungen:**
+
 - **Hero-Section**: Größerer, visuellerer Titel-Bereich mit subtilen Grafikelementen
 - **Verbessertes Status-Grid**: Cards mit Icons und klarerer Hierarchie
 - **Quick-Actions**: Visuellere Darstellung häufig genutzter Aktionen
@@ -69,17 +72,20 @@ Die Überarbeitung fokussiert auf:
 - **Card-Design**: Einheitlichere Card-Styles mit besserer visueller Hierarchie
 
 **Dateien:**
+
 - `MindSync/Features/Home/HomeView.swift` - Haupt-View überarbeiten
 - Optional: Neue Komponente `HomeStatusCard.swift` für bessere Status-Darstellung
 
 ### 2. OnboardingView-Verbesserung ([MindSync/Features/Onboarding/OnboardingView.swift](MindSync/Features/Onboarding/OnboardingView.swift))
 
 **Aktuelle Probleme:**
+
 - Sehr textlastig, Warnung dominiert
 - Fehlende visuelle Elemente außer Warn-Icon
 - Wirkt zu technisch/medizinisch
 
 **Verbesserungen:**
+
 - **Visuelleres Layout**: Größeres Icon, bessere Typografie-Hierarchie
 - **Bessere Textstrukturierung**: Klarere Abschnitte, bessere Lesbarkeit
 - **Visuelle Elemente**: Subtile Hintergrund-Elemente oder Patterns
@@ -87,17 +93,20 @@ Die Überarbeitung fokussiert auf:
 - **Progress-Indicator**: Wenn mehrstufiges Onboarding (optional)
 
 **Dateien:**
+
 - `MindSync/Features/Onboarding/OnboardingView.swift` - Layout überarbeiten
 - `MindSync/Features/Onboarding/EpilepsyWarningView.swift` - Prüfen und ggf. verbessern
 
 ### 3. SourceSelectionView-Verbesserung ([MindSync/Features/Home/SourceSelectionView.swift](MindSync/Features/Home/SourceSelectionView.swift))
 
 **Aktuelle Probleme:**
+
 - Zwei große Buttons, wenig visuell unterscheidbar
 - Technische Sprache (DRM-Warnung)
 - Fehlende visuelle Führung
 
 **Verbesserungen:**
+
 - **Card-basiertes Layout**: Visuellere Cards mit besseren Icons
 - **Bessere Beschreibungen**: Weniger technisch, mehr nutzerorientiert
 - **Visuelle Hierarchie**: Eine Option visuell hervorheben (z.B. File-Picker)
@@ -105,16 +114,19 @@ Die Überarbeitung fokussiert auf:
 - **Bessere Warnings**: Weniger technisch, mehr nutzerfreundlich
 
 **Dateien:**
+
 - `MindSync/Features/Home/SourceSelectionView.swift` - Card-Layout implementieren
 
 ### 4. SettingsView-Verbesserung ([MindSync/Features/Settings/SettingsView.swift](MindSync/Features/Settings/SettingsView.swift))
 
 **Aktuelle Probleme:**
+
 - Standard iOS Form-Layout
 - Viele Sections, wirkt überladen
 - Fehlende visuelle Gruppierung
 
 **Verbesserungen:**
+
 - **Card-basierte Sections**: Statt Standard Form-Sections
 - **Bessere Gruppierung**: Visuell klarere Kategorien
 - **Icons in Sections**: Visuellere Headers
@@ -122,60 +134,71 @@ Die Überarbeitung fokussiert auf:
 - **Spacing**: Mehr Atemraum zwischen Sections
 
 **Dateien:**
+
 - `MindSync/Features/Settings/SettingsView.swift` - Form zu Card-Layout ändern
 - Optional: Neue Komponenten für Settings-Cards
 
 ### 5. SessionView-Verbesserung ([MindSync/Features/Session/SessionView.swift](MindSync/Features/Session/SessionView.swift))
 
 **Aktuelle Probleme:**
+
 - Relativ gut, aber könnte visueller sein
 - Track-Info könnte prominenter sein
 - Controls könnten visueller sein
 
 **Verbesserungen:**
+
 - **Track-Info Card**: Größere, visuellere Card für Track-Informationen
 - **Verbesserte Controls**: Visuellere Darstellung der Session-Controls
 - **Bessere Progress-Anzeige**: Visuellere Progress-Indikatoren
 - **Status-Banner**: Verbesserte Darstellung
 
 **Dateien:**
+
 - `MindSync/Features/Session/SessionView.swift` - Track-Info und Controls verbessern
 
 ### 6. ModeSelectionView-Verbesserung ([MindSync/Features/Home/ModeSelectionView.swift](MindSync/Features/Home/ModeSelectionView.swift))
 
 **Aktuelle Probleme:**
+
 - Relativ gut, aber Cards könnten visueller sein
 - Fehlende visuelle Elemente
 
 **Verbesserungen:**
+
 - **Größere Cards**: Mehr Platz für Informationen
 - **Bessere Icon-Darstellung**: Größere, visuellere Icons
 - **Subtile Animationen**: Bei Selektion
 - **Bessere Beschreibungen**: Visuellere Typografie
 
 **Dateien:**
+
 - `MindSync/Features/Home/ModeSelectionView.swift` - Card-Design verbessern
 
 ### 7. Neue wiederverwendbare Komponenten
 
 **Zu erstellende Komponenten:**
+
 - **SettingsCard**: Card-Komponente für Settings-Sections
 - **InfoCard**: Standardisierte Info-Card für verschiedene Use-Cases
 - **SectionHeader**: Verbesserter Section-Header mit Icons
 
 **Dateien:**
+
 - `MindSync/Shared/Components/SettingsCard.swift` - Neue Komponente
 - `MindSync/Shared/Components/InfoCard.swift` - Neue Komponente (optional)
 
 ### 8. Design-System-Verbesserungen
 
 **Zu verbessern:**
+
 - **Card-Styles**: Einheitlichere Card-Definitionen
 - **Spacing**: Konsistentere Spacing-Verwendung
 - **Typography**: Verbesserte Typografie-Hierarchie
 - **Colors**: Ggf. feinere Abstufungen für bessere Kontraste
 
 **Dateien:**
+
 - `MindSync/Shared/Extensions/View+Gestures.swift` - Card-Style-Modifier verbessern
 - `MindSync/Shared/Constants.swift` - Ggf. zusätzliche Spacing-Werte
 
@@ -204,15 +227,18 @@ Die Überarbeitung fokussiert auf:
 ## Priorisierung
 
 **Phase 1 (Höchste Priorität):**
+
 1. HomeView-Verbesserung
 2. OnboardingView-Verbesserung
 3. SourceSelectionView-Verbesserung
 
 **Phase 2:**
+
 4. SettingsView-Verbesserung
 5. ModeSelectionView-Verbesserung
 
 **Phase 3:**
+
 6. SessionView-Feinabstimmungen
 7. Neue wiederverwendbare Komponenten
 

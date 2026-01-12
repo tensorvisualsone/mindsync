@@ -314,7 +314,10 @@ final class AudioPlaybackService: NSObject {
         }
         
         node.play()
-        startPlaybackTimer()
+        // IMPORTANT: Do NOT call startPlaybackTimer() here, as it would reset
+        // playbackStartTime and segmentStartTime, corrupting timing after resume.
+        // We only update segmentStartTime from pausedPosition above and keep
+        // the original playbackStartTime to preserve absolute timing.
         playbackState = .playing
         logger.info("Audio playback resumed from position: \(pausedPosition, privacy: .public) seconds")
     }

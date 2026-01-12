@@ -67,13 +67,11 @@ final class FlashlightController: BaseLightController, LightControlling {
     private let adaptiveThresholdMultiplier: Float = 0.25  // Use mean + 0.25 * stdDev (reduced from 0.4 for more sensitive peak detection)
     
     // Rolling Average Calibrator: Learns the dynamics of the song in the first 10 seconds
-    // Thread Safety: These calibration properties (including peakRiseThreshold and fixedThreshold)
-    // are only accessed from the precision timer thread, which runs on a serial dispatch queue.
-    // No additional synchronization is needed as long as all access remains on the same queue.
-    // ⚠️ WARNING: Do not access these properties from other threads without proper locking.
-    // This includes logging statements that read these values - all such logging must occur
-    // within the precision timer queue to avoid race conditions and undefined behavior.
-    // All calibration state must be read/written exclusively from the precision timer queue.
+    // Thread Safety: These calibration properties are accessed from the Main Actor (via precision timer handler).
+    // The precision timer dispatches updateLight() to the Main Actor, ensuring all access is serialized.
+    // A stopping flag prevents race conditions when stop()/cancelExecution() reset calibration state
+    // while updateLight() may still be executing.
+    private var isStopping: Bool = false  // Flag to prevent race conditions during stop/cancel
     private var calibrationStartTime: TimeInterval = -1.0  // -1 means: not yet started
     private let calibrationDuration: TimeInterval = 10.0  // 10 seconds calibration duration
     private var calibrationFluxValues: [Float] = []  // Flux values collected during calibration
@@ -218,7 +216,11 @@ final class FlashlightController: BaseLightController, LightControlling {
     }
 
     func stop() {
-        // CRITICAL: Stop timer FIRST to prevent race conditions and hanging
+        // CRITICAL: Set stopping flag FIRST to prevent updateLight() from accessing calibration state
+        // This ensures thread safety even if updateLight() is still executing
+        isStopping = true
+        
+        // CRITICAL: Stop timer SECOND to prevent new updateLight() calls
         // This ensures no more updateLight() calls happen during cleanup
         invalidatePrecisionTimer()
         
@@ -252,6 +254,9 @@ final class FlashlightController: BaseLightController, LightControlling {
         // Reset debug logging timestamp
         lastAudioLogTime = -1.0
         noEventLogCount = 0
+        
+        // Reset stopping flag after cleanup is complete
+        isStopping = false
     }
     
     /// Performs a brief torch activation to warm up the hardware and reduce cold-start latency.
@@ -380,6 +385,9 @@ final class FlashlightController: BaseLightController, LightControlling {
     }
 
     func execute(script: LightScript, syncedTo startTime: Date) {
+        // Reset stopping flag to allow new execution
+        isStopping = false
+        
         initializeScriptExecution(script: script, startTime: startTime)
         
         // Start calibration for cinematic mode
@@ -396,6 +404,11 @@ final class FlashlightController: BaseLightController, LightControlling {
     }
 
     func cancelExecution() {
+        // CRITICAL: Set stopping flag FIRST to prevent updateLight() from accessing calibration state
+        // This ensures thread safety even if updateLight() is still executing
+        isStopping = true
+        
+        // CRITICAL: Stop timer SECOND to prevent new updateLight() calls
         invalidatePrecisionTimer()
         resetScriptExecution()
         setIntensity(0.0)
@@ -416,6 +429,9 @@ final class FlashlightController: BaseLightController, LightControlling {
         // Reset debug logging timestamp
         lastAudioLogTime = -1.0
         noEventLogCount = 0
+        
+        // Reset stopping flag after cleanup is complete
+        isStopping = false
     }
     
     func pauseExecution() {
@@ -433,6 +449,11 @@ final class FlashlightController: BaseLightController, LightControlling {
     }
 
     fileprivate func updateLight() {
+        // Early return if stopping to prevent race conditions with calibration state
+        guard !isStopping else {
+            return
+        }
+        
         let result = findCurrentEvent()
         
         if result.isComplete {
@@ -483,6 +504,11 @@ final class FlashlightController: BaseLightController, LightControlling {
                     // ROLLING AVERAGE CALIBRATOR: Learn the dynamics of the song in the first 10 seconds
                     // This calibration helps cinematic mode adapt to different music genres automatically.
                     // Recalibration occurs on each session restart to adapt to playlist changes.
+                    // Thread safety: Check isStopping flag before accessing calibration state
+                    guard !isStopping else {
+                        return
+                    }
+                    
                     let currentUptime = ProcessInfo.processInfo.systemUptime
                     if calibrationStartTime >= 0 && !isCalibrated {
                         let calibrationElapsed = currentUptime - calibrationStartTime
@@ -490,27 +516,38 @@ final class FlashlightController: BaseLightController, LightControlling {
                         if calibrationElapsed < calibrationDuration {
                             // Collect flux values during calibration
                             calibrationFluxValues.append(rawEnergy)
-                        } else if calibrationFluxValues.count > 0 {
-                            // Calibration complete: Calculate optimal thresholds
-                            let mean = calibrationFluxValues.reduce(0, +) / Float(calibrationFluxValues.count)
-                            let variance = calibrationFluxValues.map { pow($0 - mean, 2) }.reduce(0, +) / Float(calibrationFluxValues.count)
-                            let stdDev = sqrt(variance)
-                            let maxFlux = calibrationFluxValues.max() ?? 0.0
-                            let minFlux = calibrationFluxValues.min() ?? 0.0
-                            let dynamicRange = maxFlux - minFlux
-                            
-                            // High dynamics (beats): Set threshold higher (only kicks trigger light)
-                            // Low dynamics (drone/ambient): Set threshold lower and use soft transitions
-                            if dynamicRange > 0.15 {
-                                // High dynamics (techno, EDM, rock): Higher threshold for clear beat detection
-                                peakRiseThreshold = 0.06  // Increased from 0.04
-                                fixedThreshold = 0.12  // Increased from 0.08
-                                logger.info("Cinematic calibration: High dynamics detected (range=\(dynamicRange)), using higher thresholds")
+                        } else {
+                            if calibrationFluxValues.count > 0 {
+                                // Calibration complete: Calculate optimal thresholds
+                                let mean = calibrationFluxValues.reduce(0, +) / Float(calibrationFluxValues.count)
+                                let variance = calibrationFluxValues.map { pow($0 - mean, 2) }.reduce(0, +) / Float(calibrationFluxValues.count)
+                                let stdDev = sqrt(variance)
+                                let maxFlux = calibrationFluxValues.max() ?? 0.0
+                                let minFlux = calibrationFluxValues.min() ?? 0.0
+                                let dynamicRange = maxFlux - minFlux
+                                
+                                // High dynamics (beats): Set threshold higher (only kicks trigger light)
+                                // Low dynamics (drone/ambient): Set threshold lower and use soft transitions
+                                if dynamicRange > 0.15 {
+                                    // High dynamics (techno, EDM, rock): Higher threshold for clear beat detection
+                                    peakRiseThreshold = 0.06  // Increased from 0.04
+                                    fixedThreshold = 0.12  // Increased from 0.08
+                                    logger.info("Cinematic calibration: High dynamics detected (range=\(dynamicRange)), using higher thresholds")
+                                } else {
+                                    // Low dynamics (ambient, drone): Lower threshold for more subtle reaction
+                                    peakRiseThreshold = 0.02  // Reduced from 0.04
+                                    fixedThreshold = 0.05  // Reduced from 0.08
+                                    logger.info("Cinematic calibration: Low dynamics detected (range=\(dynamicRange)), using lower thresholds")
+                                }
                             } else {
-                                // Low dynamics (ambient, drone): Lower threshold for more subtle reaction
-                                peakRiseThreshold = 0.02  // Reduced from 0.04
-                                fixedThreshold = 0.05  // Reduced from 0.08
-                                logger.info("Cinematic calibration: Low dynamics detected (range=\(dynamicRange)), using lower thresholds")
+                                // Calibration window elapsed but no flux values were collected.
+                                // Mark calibration as completed with safe default thresholds to avoid
+                                // an infinite pending state and use conservative values.
+                                isCalibrated = true
+                                peakRiseThreshold = 0.04  // Default conservative threshold
+                                fixedThreshold = 0.08     // Default conservative threshold
+                                calibrationStartTime = -1.0
+                                logger.warning("Cinematic calibration: No flux values collected during calibration window, using default thresholds (peakRiseThreshold=\(peakRiseThreshold), fixedThreshold=\(fixedThreshold))")
                             }
                             
                             isCalibrated = true

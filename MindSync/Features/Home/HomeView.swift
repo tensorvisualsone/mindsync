@@ -237,7 +237,6 @@ private struct StatusCard: View {
     
     var body: some View {
         Button(action: {
-            HapticFeedback.light()
             action?()
         }) {
             VStack(alignment: .leading, spacing: AppConstants.Spacing.sm) {
