@@ -586,12 +586,12 @@ final class EntrainmentEngineTests: XCTestCase {
         XCTAssertEqual(script.mode, .dmnShutdown)
         XCTAssertEqual(script.targetFrequency, 40.0) // Peak frequency
         
-        // Note: Phase 4 has NO vibration events, so total event duration only covers Phases 1-3
-        // Phase 1 (180s) + Phase 2 (540s) + Phase 3 (480s) = 1200s (20 minutes)
-        // Phase 4 (570s) has no events
+        // Note: Phase 4 now has minimal background vibration (0.5 Hz) for user comfort
+        // Total duration covers all 5 phases:
+        // Phase 1 (180s) + Phase 2 (540s) + Phase 3 (480s) + Phase 4 (510s) + Phase 5 (60s) = 1770s (~30 minutes)
         if let lastEvent = script.events.last {
             let totalDuration = lastEvent.timestamp + lastEvent.duration
-            XCTAssertEqual(totalDuration, 1200.0, accuracy: 10.0)
+            XCTAssertEqual(totalDuration, 1770.0, accuracy: 10.0)
         }
         
         // Verify events exist

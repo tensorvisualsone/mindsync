@@ -928,9 +928,8 @@ extension EntrainmentEngine {
         // Randomized intervals (variability) - the brain cannot predict the pattern anymore
         // This breaks expectations and leads to dissociation
         let phase3Duration: TimeInterval = 480 // 8 minutes (12-20 Min)
-        let p3BaseFrequency = 4.5 // Start at Theta
         
-        // Generate varying intervals with random frequency (3.5-6.0 Hz) and varying intensity
+        // Generate varying intervals with random frequency (3.5-6.0 Hz, Theta range) and varying intensity
         // This makes the pattern unpredictable and breaks expectations
         // Fixed seed ensures consistent therapeutic experience across sessions
         var phase3Time: TimeInterval = 0

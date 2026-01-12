@@ -100,5 +100,26 @@ final class ModeSelectionTests: XCTestCase {
             XCTAssertNotNil(themeColor, "\(mode) should have a theme color")
         }
     }
+    
+    func testEntrainmentMode_UsesFixedScriptProperty() {
+        // Test that usesFixedScript returns true for fixed-script modes (dmnShutdown, beliefRewiring)
+        // and false for audio-reactive modes (alpha, theta, gamma, cinematic)
+        
+        // Fixed-script modes (should return true)
+        XCTAssertTrue(EntrainmentMode.dmnShutdown.usesFixedScript,
+                     "DMN-Shutdown should use fixed script")
+        XCTAssertTrue(EntrainmentMode.beliefRewiring.usesFixedScript,
+                     "Belief Rewiring should use fixed script")
+        
+        // Audio-reactive modes (should return false)
+        XCTAssertFalse(EntrainmentMode.alpha.usesFixedScript,
+                      "Alpha mode should not use fixed script (audio-reactive)")
+        XCTAssertFalse(EntrainmentMode.theta.usesFixedScript,
+                      "Theta mode should not use fixed script (audio-reactive)")
+        XCTAssertFalse(EntrainmentMode.gamma.usesFixedScript,
+                      "Gamma mode should not use fixed script (audio-reactive)")
+        XCTAssertFalse(EntrainmentMode.cinematic.usesFixedScript,
+                      "Cinematic mode should not use fixed script (audio-reactive)")
+    }
 }
 

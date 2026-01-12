@@ -181,9 +181,10 @@ final class AudioPlaybackService: NSObject {
         let nanosecondsPerTick = Double(timebaseInfo.numer) / Double(timebaseInfo.denom)
         let delayInNanoseconds = delay * 1_000_000_000.0
         let delayInHostTicks = UInt64(delayInNanoseconds / nanosecondsPerTick)
-        // Use overflow addition (&+) defensively in case host time ever wraps at UInt64.max.
-        // This wraparound is extremely unlikely during the app's lifetime, but &+ keeps
-        // the calculation well-defined even in that theoretical edge case.
+        // Use overflow addition (&+) defensively so the addition is well-defined even if
+        // mach_absolute_time() were ever to wrap at UInt64.max. In practice this wraparound
+        // is effectively impossible within any realistic app or device lifetime; this is
+        // purely defensive programming for completeness, not a known system behavior.
         let futureHostTime = currentHostTime &+ delayInHostTicks
         
         // Calculate future sample time at the current render sample rate

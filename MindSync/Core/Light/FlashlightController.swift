@@ -70,7 +70,9 @@ final class FlashlightController: BaseLightController, LightControlling {
     // Thread Safety: These calibration properties (including peakRiseThreshold and fixedThreshold)
     // are only accessed from the precision timer thread, which runs on a serial dispatch queue.
     // No additional synchronization is needed as long as all access remains on the same queue.
-    // Do not access from other threads without proper locking.
+    // ⚠️ WARNING: Do not access these properties from other threads (e.g., main thread, logging,
+    // debugging) without proper locking. Doing so will cause race conditions and undefined behavior.
+    // All calibration state must be read/written exclusively from the precision timer queue.
     private var calibrationStartTime: TimeInterval = -1.0  // -1 means: not yet started
     private let calibrationDuration: TimeInterval = 10.0  // 10 seconds calibration duration
     private var calibrationFluxValues: [Float] = []  // Flux values collected during calibration
