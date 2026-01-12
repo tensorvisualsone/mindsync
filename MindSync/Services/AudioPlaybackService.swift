@@ -162,15 +162,15 @@ final class AudioPlaybackService: NSObject {
         let delayInHostTicks = AVAudioTime.hostTime(forSeconds: delay)
         let futureHostTime = currentHostTime + UInt64(delayInHostTicks)
         
-        // Calculate future sample time at the file's sample rate
-        let delayInSamples = AVAudioFramePosition(delay * sampleRate)
+        // Calculate future sample time at the current render sample rate
+        let delayInSamples = AVAudioFramePosition(delay * currentSampleRate)
         let futureSampleTime = currentSampleTime + delayInSamples
         
         // Create AVAudioTime with both sampleTime and hostTime for reliable scheduling
         // This maintains host-time context which makes node.play(at:) reliable
         let futureAudioTime = AVAudioTime(
             sampleTime: futureSampleTime,
-            atRate: sampleRate,
+            atRate: currentSampleRate,
             hostTime: futureHostTime
         )
         

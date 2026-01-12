@@ -469,16 +469,16 @@ final class FlashlightController: BaseLightController, LightControlling {
                     // Use spectral flux for peak detection (better beat detection)
                     let rawEnergy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
                     
-                    // ROLLING AVERAGE CALIBRATOR: Lerne in den ersten 10 Sekunden die Dynamik des Songs
+                    // ROLLING AVERAGE CALIBRATOR: Learn the dynamics of the song in the first 10 seconds
                     let currentUptime = ProcessInfo.processInfo.systemUptime
                     if calibrationStartTime >= 0 && !isCalibrated {
                         let calibrationElapsed = currentUptime - calibrationStartTime
                         
                         if calibrationElapsed < calibrationDuration {
-                            // Sammle Flux-Werte während der Kalibrierung
+                            // Collect flux values during calibration
                             calibrationFluxValues.append(rawEnergy)
                         } else if calibrationFluxValues.count > 0 {
-                            // Kalibrierung abgeschlossen: Berechne optimale Thresholds
+                            // Calibration complete: Calculate optimal thresholds
                             let mean = calibrationFluxValues.reduce(0, +) / Float(calibrationFluxValues.count)
                             let variance = calibrationFluxValues.map { pow($0 - mean, 2) }.reduce(0, +) / Float(calibrationFluxValues.count)
                             let stdDev = sqrt(variance)
@@ -486,17 +486,17 @@ final class FlashlightController: BaseLightController, LightControlling {
                             let minFlux = calibrationFluxValues.min() ?? 0.0
                             let dynamicRange = maxFlux - minFlux
                             
-                            // Viel Dynamik (Beats): Setze Threshold höher (nur die Kicks triggern Licht)
-                            // Wenig Dynamik (Drone/Ambient): Setze Threshold niedriger und nutze weiche Übergänge
+                            // High dynamics (beats): Set threshold higher (only kicks trigger light)
+                            // Low dynamics (drone/ambient): Set threshold lower and use soft transitions
                             if dynamicRange > 0.15 {
-                                // Viel Dynamik (Techno, EDM, Rock): Höherer Threshold für klare Beat-Detection
-                                peakRiseThreshold = 0.06  // Erhöht von 0.04
-                                fixedThreshold = 0.12  // Erhöht von 0.08
+                                // High dynamics (techno, EDM, rock): Higher threshold for clear beat detection
+                                peakRiseThreshold = 0.06  // Increased from 0.04
+                                fixedThreshold = 0.12  // Increased from 0.08
                                 logger.info("Cinematic calibration: High dynamics detected (range=\(dynamicRange)), using higher thresholds")
                             } else {
-                                // Wenig Dynamik (Ambient, Drone): Niedrigerer Threshold für subtilere Reaktion
-                                peakRiseThreshold = 0.02  // Reduziert von 0.04
-                                fixedThreshold = 0.05  // Reduziert von 0.08
+                                // Low dynamics (ambient, drone): Lower threshold for more subtle reaction
+                                peakRiseThreshold = 0.02  // Reduced from 0.04
+                                fixedThreshold = 0.05  // Reduced from 0.08
                                 logger.info("Cinematic calibration: Low dynamics detected (range=\(dynamicRange)), using lower thresholds")
                             }
                             

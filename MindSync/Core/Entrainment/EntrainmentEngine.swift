@@ -891,23 +891,23 @@ extension EntrainmentEngine {
         }
         
         // --- PHASE 2: THE ABYSS / VAKUUM (3-12 Min) ---
-        // 4.5 Hz Theta - "Unterwasser-Gefühl"
-        // WICHTIG: Keine schwarzen Pausen (0.0), sondern dimme auf 0.1 runter
-        // Das hält den visuellen Cortex aktiv, aber "langweilt" ihn
+        // 4.5 Hz Theta - "underwater feeling"
+        // IMPORTANT: No black pauses (0.0), instead dim down to 0.1
+        // This keeps the visual cortex active, but "bores" it
         let phase2Duration: TimeInterval = 540 // 9 minutes (3-12 Min)
         let p2Frequency = 4.5 // 4.5 Hz Theta
         
-        // 2-second events with alternating intensity (0.35/0.1) - kein komplettes Aus
-        // Das hält den visuellen Cortex aktiv, aber "langweilt" ihn (verhindert Habituation)
+        // 2-second events with alternating intensity (0.35/0.1) - no complete off
+        // This keeps the visual cortex active, but "bores" it (prevents habituation)
         for i in 0..<Int(phase2Duration / 2) {
-            // Wechsel zwischen 0.35 und 0.1 (statt 0.0) - kein komplettes Aus
+            // Alternate between 0.35 and 0.1 (instead of 0.0) - no complete off
             let intensity: Float = (i % 2 == 0) ? 0.35 : 0.1
             
             events.append(LightEvent(
                 timestamp: currentTime,
                 intensity: intensity,
                 duration: 2.0,
-                waveform: .sine, // Weiche Wellen für "Unterwasser-Gefühl"
+                waveform: .sine, // Soft waves for "underwater feeling"
                 color: .purple,
                 frequencyOverride: p2Frequency
             ))
@@ -915,37 +915,37 @@ extension EntrainmentEngine {
         }
         
         // --- PHASE 3: DISSOLUTION (12-20 Min) ---
-        // Randomized Intervalle (Variabilität) - das Gehirn darf das Muster nicht mehr vorhersagen
-        // Das bricht die Erwartungshaltung (Ego) und führt zur Dissoziation
+        // Randomized intervals (variability) - the brain must not be able to predict the pattern anymore
+        // This breaks expectations (ego) and leads to dissociation
         let phase3Duration: TimeInterval = 480 // 8 minutes (12-20 Min)
-        let p3BaseFrequency = 4.5 // Start bei Theta
+        let p3BaseFrequency = 4.5 // Start at Theta
         
-        // Erzeuge variierende Intervalle mit zufälliger Frequenz (3.5-6.0 Hz) und variierender Intensität
-        // Das macht das Muster unvorhersagbar und bricht die Erwartungshaltung
+        // Generate varying intervals with random frequency (3.5-6.0 Hz) and varying intensity
+        // This makes the pattern unpredictable and breaks expectations
         var phase3Time: TimeInterval = 0
-        var randomSeed: UInt64 = 12345 // Seed für reproduzierbare "Zufälligkeit"
+        var randomSeed: UInt64 = 12345 // Seed for reproducible "randomness"
         
         while phase3Time < phase3Duration {
-            // Pseudo-Zufallszahl für Frequenz-Variation (3.5-6.0 Hz)
+            // Pseudo-random number for frequency variation (3.5-6.0 Hz)
             randomSeed = randomSeed &* 1103515245 &+ 12345
             let randomValue = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
             let variedFrequency = 3.5 + (randomValue * 2.5) // 3.5-6.0 Hz
             
-            // Pseudo-Zufallszahl für Intensitäts-Variation (0.2-0.5)
+            // Pseudo-random number for intensity variation (0.2-0.5)
             randomSeed = randomSeed &* 1103515245 &+ 12345
             let randomValue2 = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
             let variedIntensity: Float = 0.2 + Float(randomValue2 * 0.3) // 0.2-0.5
             
-            // Variierende Event-Dauer (1.5-3.0 Sekunden) für zusätzliche Unvorhersagbarkeit
+            // Varying event duration (1.5-3.0 seconds) for additional unpredictability
             randomSeed = randomSeed &* 1103515245 &+ 12345
             let randomValue3 = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
-            let variedDuration = 1.5 + (randomValue3 * 1.5) // 1.5-3.0 Sekunden
+            let variedDuration = 1.5 + (randomValue3 * 1.5) // 1.5-3.0 seconds
             
             events.append(LightEvent(
                 timestamp: currentTime + phase3Time,
                 intensity: variedIntensity,
                 duration: variedDuration,
-                waveform: .sine, // Weiche Wellen für organische Dissoziation
+                waveform: .sine, // Soft waves for organic dissociation
                 color: .purple,
                 frequencyOverride: variedFrequency
             ))
@@ -1017,7 +1017,7 @@ extension EntrainmentEngine {
         let baseIntensity = max(Self.minVibrationIntensity, intensity)
         
         // --- PHASE 1: ENTRY (0-3 Min) ---
-        // Synchron zum Herzschlag (60 BPM ≈ 1 Hz) - beruhigt den Körper sofort
+        // Synchronized with heartbeat (60 BPM ≈ 1 Hz) - calms the body immediately
         let phase1Duration: TimeInterval = 180 // 3 minutes
         let heartRateFrequency = 1.0 // 60 BPM = 1 Hz
         
@@ -1029,7 +1029,7 @@ extension EntrainmentEngine {
                 timestamp: currentTime + phase1Time,
                 intensity: baseIntensity,
                 duration: period,
-                waveform: .sine // Weiche Sinus-Wellen für beruhigenden Herzschlag-Rhythmus
+                waveform: .sine // Soft sine waves for calming heartbeat rhythm
             ))
             phase1Time += period
         }
@@ -1037,61 +1037,61 @@ extension EntrainmentEngine {
         
         // --- PHASE 2: THE ABYSS (3-12 Min) ---
         // Deep theta oscillation at 4.5 Hz
-        // Continuous Haptics: Sinusförmige Modulation parallel zum Licht für "Unterwasser-Gefühl"
-        // Statt stumpfer Events nutzen wir viele kleine Events mit Sine-Wellenform,
-        // die zusammen eine kontinuierliche, schwellende Vibration erzeugen
-        let phase2Duration: TimeInterval = 540 // 9 Minuten (3-12 Min)
+        // Continuous Haptics: Sinusoidal modulation parallel to light for "underwater feeling"
+        // Instead of blunt events, we use many small events with sine waveform,
+        // which together create a continuous, swelling vibration
+        let phase2Duration: TimeInterval = 540 // 9 minutes (3-12 Min)
         let phase2Frequency = 4.5 // 4.5 Hz Theta
         
-        // Erstelle viele kleine Events (0.1s) mit Sine-Wellenform für flüssige Modulation
-        // Die Intensität wird vom VibrationController basierend auf der Sine-Wellenform
-        // automatisch als Sinus-Kurve berechnet, was das "schwellende" Gefühl erzeugt
-        let phase2EventDuration: TimeInterval = 0.1 // 100ms Events für flüssige Modulation
+        // Create many small events (0.1s) with sine waveform for fluid modulation
+        // The intensity is automatically calculated by VibrationController based on sine waveform
+        // as a sine curve, which creates the "swelling" feeling
+        let phase2EventDuration: TimeInterval = 0.1 // 100ms events for fluid modulation
         var phase2Time: TimeInterval = 0
         
         while phase2Time < phase2Duration {
-            // Base intensity wird vom VibrationController mit Sine-Wellenform moduliert
-            // Das erzeugt automatisch eine sinusförmige Intensitätskurve (schwellend)
+            // Base intensity is modulated by VibrationController with sine waveform
+            // This automatically creates a sinusoidal intensity curve (swelling)
             events.append(try VibrationEvent(
                 timestamp: currentTime + phase2Time,
-                intensity: baseIntensity * 0.7, // Leicht reduziert für subtiles "Summen"
+                intensity: baseIntensity * 0.7, // Slightly reduced for subtle "humming"
                 duration: phase2EventDuration,
-                waveform: .sine // Sine-Wellenform erzeugt schwellende, kontinuierliche Vibration
+                waveform: .sine // Sine waveform creates swelling, continuous vibration
             ))
             phase2Time += phase2EventDuration
         }
         currentTime += phase2Duration
         
         // --- PHASE 3: DISSOLUTION (12-20 Min) ---
-        // Variierende Frequenzen (3.5-6.0 Hz) für zusätzliche Unvorhersagbarkeit
-        // Synchronisiert mit dem Licht-Script für konsistente Dissoziation
+        // Varying frequencies (3.5-6.0 Hz) for additional unpredictability
+        // Synchronized with the light script for consistent dissociation
         let phase3Duration: TimeInterval = 480 // 8 minutes (12-20 Min)
         
         var phase3Time: TimeInterval = 0
-        var randomSeed: UInt64 = 12345 // Gleicher Seed wie im Licht-Script für Synchronisation
+        var randomSeed: UInt64 = 12345 // Same seed as in light script for synchronization
         
         while phase3Time < phase3Duration {
-            // Pseudo-Zufallszahl für Frequenz-Variation (3.5-6.0 Hz) - synchron mit Licht
+            // Pseudo-random number for frequency variation (3.5-6.0 Hz) - synchronized with light
             randomSeed = randomSeed &* 1103515245 &+ 12345
             let randomValue = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
             let variedFrequency = 3.5 + (randomValue * 2.5) // 3.5-6.0 Hz
             let period = 1.0 / variedFrequency
             
-            // Pseudo-Zufallszahl für Intensitäts-Variation (0.15-0.4)
+            // Pseudo-random number for intensity variation (0.15-0.4)
             randomSeed = randomSeed &* 1103515245 &+ 12345
             let randomValue2 = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
             let variedIntensity: Float = 0.15 + Float(randomValue2 * 0.25) // 0.15-0.4
             
-            // Dritter Seed-Advance für Synchronisation mit Light-Script (Light-Script verwendet diesen für Duration)
-            // Wir verwenden period (aus Frequenz berechnet) als Duration, aber müssen den Seed trotzdem vorantreiben
+            // Third seed advance for synchronization with Light-Script (Light-Script uses this for Duration)
+            // We use period (calculated from frequency) as duration, but still need to advance the seed
             randomSeed = randomSeed &* 1103515245 &+ 12345
-            // randomValue3 wird nicht verwendet, aber Seed-Advance ist notwendig für PRNG-Synchronisation
+            // randomValue3 is not used, but seed advance is necessary for PRNG synchronization
             
             events.append(try VibrationEvent(
                 timestamp: currentTime + phase3Time,
                 intensity: max(Self.minVibrationIntensity, variedIntensity),
                 duration: period,
-                waveform: .sine // Weiche Wellen für organische Dissoziation
+                waveform: .sine // Soft waves for organic dissociation
             ))
             phase3Time += period
         }
