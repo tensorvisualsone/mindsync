@@ -1361,7 +1361,14 @@ final class SessionViewModel: ObservableObject {
         }
 
         // MASTER CLOCK: Calculate future start time (500ms in the future)
-        // This gives all systems time to prepare and ensures perfect synchronization
+        // This gives all systems time to prepare and ensures perfect synchronization.
+        // 
+        // Rationale for 500ms delay:
+        // - Audio scheduling requires hardware buffer preparation (~100-200ms)
+        // - Light controller needs display link stabilization (~100ms)
+        // - Vibration controller needs haptic engine priming (~50-100ms)
+        // - System scheduling jitter tolerance (~50-100ms)
+        // Total: ~300-500ms minimum. 500ms provides comfortable margin.
         let syncStartDelay: TimeInterval = 0.5 // 500ms delay for synchronization
         let systemUptime = ProcessInfo.processInfo.systemUptime
         let futureStartUptime = systemUptime + syncStartDelay
