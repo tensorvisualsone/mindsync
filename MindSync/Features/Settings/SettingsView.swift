@@ -456,6 +456,9 @@ struct SettingsView: View {
 
 // MARK: - Settings Card Component
 
+/// Private reusable card component for settings sections
+/// Note: This component is private to SettingsView and not exposed externally,
+/// so API changes (like making title non-optional) don't affect external consumers.
 private struct SettingsCard<Content: View>: View {
     let icon: String?
     let iconColor: Color?
