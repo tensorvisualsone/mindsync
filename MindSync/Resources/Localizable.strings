@@ -1,259 +1,266 @@
 /* 
- Localizable.strings (English)
- MindSync
+  Localizable.strings (Base – German / Deutsch, language code: de)
+  MindSync
+  
+  Base localization strings (default user-facing language: German / Deutsch)
 */
 
 // MARK: - Onboarding
-"onboarding.title" = "Important Safety Information";
-"onboarding.learnMore" = "Learn more";
-"onboarding.learnMoreHint" = "Opens detailed safety information";
-"onboarding.accept" = "I understand and accept";
-"onboarding.acceptHint" = "Confirms understanding of the safety warnings and starts the app";
-"onboarding.description" = "This app uses stroboscopic light that can trigger seizures in people with photosensitive epilepsy.";
+"onboarding.title" = "Wichtige Sicherheitshinweise";
+"onboarding.learnMore" = "Mehr erfahren";
+"onboarding.learnMoreHint" = "Öffnet detaillierte Sicherheitsinformationen";
+"onboarding.accept" = "Ich verstehe und akzeptiere";
+"onboarding.acceptHint" = "Bestätigt das Verständnis der Sicherheitshinweise und startet die App";
+"onboarding.description" = "Diese App verwendet stroboskopisches Licht, das bei Menschen mit photosensitiver Epilepsie Anfälle auslösen kann.";
 
 // MARK: - Epilepsy Warning
-"epilepsyWarning.title" = "Epilepsy & Safety Warning";
-"epilepsyWarning.description" = "This app uses intense stroboscopic light that can trigger seizures in people with photosensitive epilepsy (PSE).";
-"epilepsyWarning.doNotUse" = "Do not use MindSync if:";
-"epilepsyWarning.condition1" = "you have ever been diagnosed with seizures";
-"epilepsyWarning.condition2" = "your family has a history of seizures";
-"epilepsyWarning.condition3" = "medical professionals advised you to avoid stroboscopic light";
-"epilepsyWarning.additionalNotes" = "Additional notes";
-"epilepsyWarning.note1" = "Use MindSync only while sitting or lying safely in a dark room.";
-"epilepsyWarning.note2" = "Stay away from hazards (stairs, edges, sharp objects).";
-"epilepsyWarning.note3" = "Stop immediately if you feel unwell, dizzy, or disoriented.";
-"epilepsyWarning.disclaimer" = "MindSync is a wellness and entertainment tool and does not replace medical treatment or advice.";
-"epilepsyWarning.close" = "Close";
+"epilepsyWarning.title" = "Epilepsie- und Sicherheitswarnung";
+"epilepsyWarning.description" = "Diese App verwendet intensives, stroboskopisches Licht, das bei Menschen mit photosensitiver Epilepsie (PSE) Anfälle auslösen kann.";
+"epilepsyWarning.doNotUse" = "Verwenden Sie MindSync nicht, wenn:";
+"epilepsyWarning.condition1" = "bei Ihnen jemals ein epileptischer Anfall diagnostiziert wurde";
+"epilepsyWarning.condition2" = "in Ihrer Familie eine Vorgeschichte mit Krampfanfällen besteht";
+"epilepsyWarning.condition3" = "Ihnen von medizinischem Fachpersonal von stroboskopischem Licht abgeraten wurde";
+"epilepsyWarning.additionalNotes" = "Weitere Hinweise";
+"epilepsyWarning.note1" = "Verwenden Sie MindSync nur in einer sicheren, sitzenden oder liegenden Position in einem dunklen Raum.";
+"epilepsyWarning.note2" = "Entfernen Sie sich von Gefahrenquellen (Treppen, Kanten, spitze Gegenstände).";
+"epilepsyWarning.note3" = "Beenden Sie die Sitzung sofort, wenn Sie sich unwohl, schwindelig oder desorientiert fühlen.";
+"epilepsyWarning.disclaimer" = "MindSync ist ein Wellness- und Unterhaltungs-Tool und ersetzt keine medizinische Behandlung oder Beratung.";
+"epilepsyWarning.close" = "Schließen";
 
 // MARK: - Home
 "home.title" = "MindSync";
-"home.subtitle" = "Audio-synchronized stroboscope for altered states of consciousness.";
-"home.startSession" = "Start Session";
-"home.startSessionHint" = "Opens the audio source selection";
-"home.currentMode" = "Current Mode";
+"home.subtitle" = "Audio-synchronisiertes Stroboskop für veränderte Bewusstseinszustände.";
+"home.startSession" = "Session starten";
+"home.startSessionHint" = "Öffnet die Auswahl der Audioquelle";
+"home.currentMode" = "Aktueller Modus";
 
 // MARK: - Source Selection
-"sourceSelection.title" = "Choose Audio Source";
-"sourceSelection.subtitle" = "Select your audio source";
-"sourceSelection.recommended" = "Recommended";
-"sourceSelection.musicLibrary" = "Music Library";
-"sourceSelection.musicLibraryDescription" = "Pick a song from your local library";
-"sourceSelection.musicLibraryButton" = "Select Music Library";
-"sourceSelection.musicLibraryHint" = "Opens the music library to choose a song";
-"sourceSelection.microphone" = "Microphone";
-"sourceSelection.microphoneDescription" = "Analyze music from external sources";
-"sourceSelection.microphoneButton" = "Select Microphone Mode";
-"sourceSelection.microphoneHint" = "Analyzes external music through the microphone";
-"sourceSelection.microphoneNote" = "Note: Microphone mode is less precise than local analysis (~100 ms latency)";
-"sourceSelection.musicLibraryDenied" = "Access to the music library was denied. Please enable it in Settings.";
-"sourceSelection.microphoneDenied" = "Microphone access was denied. Please enable it in Settings.";
-"sourceSelection.filePicker.title" = "Select File";
-"sourceSelection.filePicker.description" = "Choose MP3/M4A from Files (recommended)";
-"sourceSelection.filePicker.advantage" = "✓ Works with all local audio files";
-"sourceSelection.musicLibrary.drmWarning" = "⚠️ Apple Music songs are DRM-protected";
+"sourceSelection.title" = "Audioquelle auswählen";
+"sourceSelection.subtitle" = "Wähle deine Audioquelle";
+"sourceSelection.recommended" = "Empfohlen";
+"sourceSelection.musicLibrary" = "Musikbibliothek";
+"sourceSelection.musicLibraryDescription" = "Wähle einen Song aus deiner lokalen Musikbibliothek";
+"sourceSelection.musicLibraryButton" = "Musikbibliothek auswählen";
+"sourceSelection.musicLibraryHint" = "Öffnet die Musikbibliothek zum Auswählen eines Songs";
+"sourceSelection.microphone" = "Mikrofon";
+"sourceSelection.microphoneDescription" = "Musik aus externen Quellen analysieren";
+"sourceSelection.microphoneButton" = "Mikrofon-Modus auswählen";
+"sourceSelection.microphoneHint" = "Analysiert Musik aus externen Quellen über das Mikrofon";
+"sourceSelection.microphoneNote" = "Hinweis: Mikrofon-Modus ist weniger präzise als lokale Analyse (~100ms Latenz)";
+"sourceSelection.musicLibraryDenied" = "Zugriff auf Musikbibliothek verweigert. Bitte in den Einstellungen aktivieren.";
+"sourceSelection.microphoneDenied" = "Mikrofon-Zugriff verweigert. Bitte in den Einstellungen aktivieren.";
+"sourceSelection.filePicker.title" = "Datei auswählen";
+"sourceSelection.filePicker.description" = "MP3/M4A aus Dateien wählen (empfohlen)";
+"sourceSelection.filePicker.advantage" = "✓ Funktioniert mit allen lokalen Audiodateien";
+"sourceSelection.musicLibrary.drmWarning" = "⚠️ Apple Music Songs sind DRM-geschützt";
 
 // MARK: - Session
-"session.pause" = "Pause";
-"session.resume" = "Resume";
-"session.stop" = "Stop";
-"session.paused" = "Paused";
-"session.unableToStart" = "Unable to start session";
-"session.noMediaItem" = "No media item selected. Please close and start a new session.";
-"session.dismiss" = "Close";
-"session.back" = "Back";
-"session.fallDetected" = "Fall detected. Session stopped for safety.";
+"session.pause" = "Pausieren";
+"session.resume" = "Fortsetzen";
+"session.stop" = "Stoppen";
+"session.paused" = "Pausiert";
+"session.unableToStart" = "Sitzung konnte nicht gestartet werden";
+"session.noMediaItem" = "Es wurde kein Medium ausgewählt. Bitte schließen und eine neue Sitzung starten.";
+"session.dismiss" = "Schließen";
+"session.back" = "Zurück";
+"session.fallDetected" = "Sturz erkannt. Session wurde aus Sicherheitsgründen beendet.";
 "session.liveAudio" = "Live Audio";
-"session.microphone" = "Microphone";
-"session.controls.hint" = "Double-tap or swipe down to stop immediately. Swipe up for a quick pause.";
-"session.microphone.noSignal" = "No audio detected. Session ended automatically.";
-"session.screenController.error" = "Failed to switch to screen-based light controller";
-"session.affirmation.waiting" = "Affirmation scheduled – will play after 5 minutes in Theta mode.";
-"session.affirmation.playing" = "Affirmation playing – relax and listen.";
-"session.cinematic.liveMode" = "Cinematic mode: Live reaction without latency compensation";
-"session.pauseAccessibility" = "Pause session";
-"session.resumeAccessibility" = "Resume session";
-"session.stopAccessibility" = "Stop session";
+"session.microphone" = "Mikrofon";
+"session.controls.hint" = "Doppeltipp oder Swipe nach unten, um sofort zu stoppen. Swipe nach oben, um kurz zu pausieren.";
+"session.microphone.noSignal" = "Kein Audio erkannt. Session wurde automatisch beendet.";
+"session.screenController.error" = "Fehler beim Wechseln zum bildschirmbasierten Lichtcontroller";
+"session.affirmation.waiting" = "Affirmation wird nach 5 Minuten im Theta-Modus abgespielt.";
+"session.affirmation.playing" = "Affirmation läuft – entspanne dich und lausche.";
+"session.cinematic.liveMode" = "Cinematic Modus: Live-Reaktion ohne Latenz-Kompensation";
+"session.pauseAccessibility" = "Sitzung pausieren";
+"session.resumeAccessibility" = "Sitzung fortsetzen";
+"session.stopAccessibility" = "Sitzung stoppen";
 "session.frequencyBpm" = "%d Hz • %d BPM";
 
 // MARK: - Analysis Progress
-"analysis.loading" = "Loading audio...";
-"analysis.extracting" = "Extracting PCM data...";
-"analysis.analyzing" = "Analyzing frequencies...";
-"analysis.detecting" = "Detecting beats...";
-"analysis.mapping" = "Creating LightScript...";
-"analysis.complete" = "Analysis complete!";
-"analysis.cancel" = "Cancel";
-"analysis.cancelHint" = "Cancels the running analysis";
-"analysis.warning.medium" = "Analysis taking longer than expected. About %d seconds remaining...";
-"analysis.warning.long" = "Analysis needs about %d more seconds. Please wait...";
+"analysis.loading" = "Audio wird geladen...";
+"analysis.extracting" = "PCM-Daten werden extrahiert...";
+"analysis.analyzing" = "Frequenzen werden analysiert...";
+"analysis.detecting" = "Beats werden erkannt...";
+"analysis.mapping" = "LightScript wird erstellt...";
+"analysis.complete" = "Analyse abgeschlossen!";
+"analysis.cancel" = "Abbrechen";
+"analysis.cancelHint" = "Bricht die laufende Analyse ab";
+"analysis.warning.medium" = "Analyse dauert länger als erwartet. Noch ca. %d Sekunden...";
+"analysis.warning.long" = "Analyse benötigt noch ca. %d Sekunden. Bitte warten...";
 
 // MARK: - Settings
-"settings.title" = "Settings";
-"settings.done" = "Done";
-"settings.lightSource" = "Light Source";
-"settings.lightSourceDescription" = "Choose between flashlight (brighter) or screen (with colors).";
-"settings.entrainmentMode" = "Entrainment Mode";
-"settings.entrainmentModeDescription" = "Alpha: relaxed focus, Theta: deep creativity, Gamma: peak concentration, Cinematic: flow state";
-"settings.mode" = "Mode";
-"settings.safetyAndFeedback" = "Safety & Feedback";
-"settings.fallDetection" = "Fall Detection";
-"settings.thermalProtection" = "Thermal Protection";
-"settings.hapticFeedback" = "Haptic Feedback";
-"settings.hapticFeedbackDescription" = "Short haptic feedback for UI interactions (buttons, start/stop)";
-"settings.vibration" = "Session Vibration";
-"settings.vibrationDescription" = "Continuous vibration synchronized with audio and light during sessions";
-"settings.vibrationEnabled" = "Enable Session Vibration";
-"settings.vibrationIntensity" = "Vibration Intensity";
-"settings.intensity" = "Intensity";
-"settings.defaultIntensity" = "Default Intensity";
-"settings.intensityDescription" = "Default brightness for the strobe (flashlight only).";
-"settings.affirmations" = "Affirmations";
-"settings.affirmationsDescription" = "MindSync can play a personal voice memo after 5 minutes in Theta mode.";
-"settings.affirmationSelect" = "Choose affirmation";
-"settings.affirmationRemove" = "Remove affirmation";
-"settings.affirmationNone" = "No affirmation selected.";
-"settings.session" = "Session & Analysis";
-"settings.sessionDescription" = "This setting limits the maximum flashlight session duration to prevent overheating.";
-"settings.quickAnalysis" = "Quick Analysis";
-"settings.quickAnalysisDescription" = "Reduces analysis time for audio tracks with faster beat detection. Tracks over 10 minutes automatically use quick analysis.";
-"settings.maxDuration" = "Maximum duration";
-"settings.duration.unlimited" = "No limit";
-"settings.duration.5min" = "5 min";
-"settings.duration.10min" = "10 min";
-"settings.duration.15min" = "15 min";
-"settings.history" = "Session History";
-"settings.invalidAudioFile" = "The selected file is not a valid or playable audio file";
-"settings.importError" = "Import error";
+"settings.title" = "Einstellungen";
+"settings.done" = "Fertig";
+"settings.lightSource" = "Lichtquelle";
+"settings.lightSourceDescription" = "Wähle zwischen Taschenlampe (heller) oder Bildschirm (mit Farben).";
+"settings.entrainmentMode" = "Entrainment-Modus";
+"settings.entrainmentModeDescription" = "Alpha: entspannter Fokus, Theta: tiefe Kreativität, Gamma: höchste Konzentration, Cinematic: Flow State";
+"settings.mode" = "Modus";
+"settings.safetyAndFeedback" = "Sicherheit & Feedback";
+"settings.fallDetection" = "Sturzerkennung";
+"settings.thermalProtection" = "Thermischer Schutz";
+"settings.hapticFeedback" = "Haptisches Feedback";
+"settings.hapticFeedbackDescription" = "Kurzes haptisches Feedback für UI-Interaktionen (Buttons, Start/Stop)";
+"settings.vibration" = "Sitzungsvibration";
+"settings.vibrationDescription" = "Kontinuierliche Vibration synchron mit Audio und Licht während der Sitzung";
+"settings.vibrationEnabled" = "Sitzungsvibration aktivieren";
+"settings.vibrationIntensity" = "Vibrationsintensität";
+"settings.intensity" = "Intensität";
+"settings.defaultIntensity" = "Standard-Intensität";
+"settings.intensityDescription" = "Standard-Helligkeit für Stroboskoplicht (betrifft nur Taschenlampe).";
+"settings.affirmations" = "Affirmationen";
+"settings.affirmationsDescription" = "MindSync kann nach 5 Minuten Theta-Modus ein persönliches Sprachmemo abspielen.";
+"settings.affirmationSelect" = "Affirmation auswählen";
+"settings.affirmationRemove" = "Affirmation entfernen";
+"settings.affirmationNone" = "Keine Affirmation hinterlegt.";
+"settings.session" = "Sitzung & Analyse";
+"settings.sessionDescription" = "Begrenzt die maximale Dauer von Taschenlampen-Sessions, um Überhitzung zu vermeiden.";
+"settings.quickAnalysis" = "Schnellanalyse";
+"settings.quickAnalysisDescription" = "Reduziert die Analysezeit für Audiotracks durch schnellere Beat-Erkennung. Titel über 10 Minuten verwenden automatisch Schnellanalyse.";
+"settings.maxDuration" = "Maximale Dauer";
+"settings.duration.unlimited" = "Kein Limit";
+"settings.duration.5min" = "5 Min";
+"settings.duration.10min" = "10 Min";
+"settings.duration.15min" = "15 Min";
+"settings.audio" = "Audio-Synchronisation";
+"settings.audioDescription" = "Kalibriere die Audio-Latenz für perfekte Synchronisation zwischen Ton und Licht, besonders wichtig bei Bluetooth-Kopfhörern.";
+"settings.latencyCalibration" = "Latenz-Kalibrierung";
+"settings.latencyCalibration.current" = "Aktuell: %d ms";
+"settings.history" = "Sitzungshistorie";
+"settings.invalidAudioFile" = "Die ausgewählte Datei ist keine gültige oder abspielbare Audiodatei";
+"settings.importError" = "Fehler beim Importieren der Datei";
 
 // MARK: - History
-"history.title" = "History";
-"history.clear" = "Clear";
-"history.empty.title" = "No sessions yet";
-"history.empty.description" = "Your completed sessions will appear here.";
-"history.overview" = "Overview";
-"history.totalSessions" = "Total Sessions";
-"history.totalTime" = "Total Time";
+"history.title" = "Verlauf";
+"history.clear" = "Leeren";
+"history.empty.title" = "Noch keine Sitzungen";
+"history.empty.description" = "Deine abgeschlossenen Sitzungen erscheinen hier.";
+"history.overview" = "Übersicht";
+"history.totalSessions" = "Sitzungen Gesamt";
+"history.totalTime" = "Gesamtzeit";
 "history.filter" = "Filter";
-"history.mode" = "Mode";
-"history.allModes" = "All Modes";
-"history.sessions" = "Sessions";
+"history.mode" = "Modus";
+"history.allModes" = "Alle Modi";
+"history.sessions" = "Sitzungen";
 "history.totalDuration.format" = "%dh %02dm";
 "history.totalDuration.minutesOnlyFormat" = "%dm";
 
 // MARK: - History Detail
-"history.detail.title" = "Session Details";
-"history.detail.sessionInfo" = "Session Info";
-"history.detail.date" = "Date";
-"history.detail.time" = "Time";
-"history.detail.duration" = "Duration";
-"history.detail.mode" = "Mode";
-"history.detail.lightSource" = "Light Source";
+"history.detail.title" = "Sitzungsdetails";
+"history.detail.sessionInfo" = "Sitzungsinfo";
+"history.detail.date" = "Datum";
+"history.detail.time" = "Uhrzeit";
+"history.detail.duration" = "Dauer";
+"history.detail.mode" = "Modus";
+"history.detail.lightSource" = "Lichtquelle";
 "history.detail.audioInfo" = "Audio Info";
-"history.detail.trackTitle" = "Title";
-"history.detail.artist" = "Artist";
+"history.detail.trackTitle" = "Titel";
+"history.detail.artist" = "Künstler";
 "history.detail.bpm" = "BPM";
-"history.detail.source" = "Source";
-"history.detail.localFile" = "Local File";
+"history.detail.source" = "Quelle";
+"history.detail.localFile" = "Lokale Datei";
 "history.detail.status" = "Status";
-"history.detail.endReason" = "End Reason";
-"history.detail.thermalWarning" = "Thermal Warning";
+"history.detail.endReason" = "Beendigungsgrund";
+"history.detail.thermalWarning" = "Thermische Warnung";
+
+// MARK: - Session End Reasons
+"session.endReason.userStopped" = "Vom Benutzer gestoppt";
+"session.endReason.trackEnded" = "Track beendet";
+"session.endReason.thermalShutdown" = "Thermische Abschaltung";
+"session.endReason.fallDetected" = "Sturz erkannt";
+"session.endReason.phoneCall" = "Telefonanruf";
+"session.endReason.appBackgrounded" = "App im Hintergrund";
 
 // MARK: - Mode Selection
-"modeSelection.title" = "Choose Entrainment Mode";
-"modeSelection.description" = "Select a mode based on your desired state of mind.";
+"modeSelection.title" = "Entrainment-Modus wählen";
+"modeSelection.description" = "Wähle einen Modus basierend auf deinem gewünschten Bewusstseinszustand.";
 
 // MARK: - Entrainment Modes
 "mode.alpha.displayName" = "Alpha (8-12 Hz)";
-"mode.alpha.description" = "Relaxed focus, stress relief, calm awareness";
+"mode.alpha.description" = "Entspannter Fokus, Stressabbau, ruhige Achtsamkeit";
 "mode.theta.displayName" = "Theta (4-8 Hz)";
-"mode.theta.description" = "Deep creativity, meditation, introspection";
+"mode.theta.description" = "Tiefe Kreativität, Meditation, Selbstreflexion";
 "mode.gamma.displayName" = "Gamma (40 Hz)";
-"mode.gamma.description" = "Peak concentration, memory, cognitive insight";
-"mode.cinematic.displayName" = "Cinematic (6.5 Hz)";
-"mode.cinematic.description" = "Flow state sync – audio-reactive immersion";
-"mode.dmnShutdown.displayName" = "DMN-Shutdown (4.5-40 Hz)";
-"mode.dmnShutdown.description" = "Deep relaxation journey: Theta waves followed by gamma synchronization for focused awareness";
-"mode.beliefRewiring.displayName" = "Reflection mode (5-40 Hz)";
-"mode.beliefRewiring.description" = "Reflection mode: Theta for deep introspection, gamma for focused clarity";
+"mode.gamma.description" = "Höchste Konzentration, Gedächtnis, kognitive Einsicht";
+"mode.cinematic.displayName" = "Cinematic (6,5 Hz)";
+"mode.cinematic.description" = "Flow State Sync – Audio-reaktive Immersion";
+"mode.dmnShutdown.displayName" = "DMN-Shutdown (4,5-40 Hz)";
+"mode.dmnShutdown.description" = "Tiefe Entspannungsreise: Theta-Wellen gefolgt von Gamma-Synchronisation für fokussierte Achtsamkeit";
+"mode.beliefRewiring.displayName" = "Reflexionsmodus (5-40 Hz)";
+"mode.beliefRewiring.description" = "Reflexionsmodus: Theta für tiefe Selbstreflexion, Gamma für fokussierte Klarheit";
 
 // MARK: - Safety Banner
-"safety.thermalReduced" = "Intensity reduced due to device heat";
-"safety.thermalCritical" = "Flashlight disabled – too hot";
+"safety.thermalReduced" = "Intensität reduziert wegen Gerätewärme";
+"safety.thermalCritical" = "Taschenlampe deaktiviert – zu heiß";
 
 // MARK: - Errors
-"error.drmProtected" = "This song is DRM-protected and cannot be analyzed. Please use microphone mode or pick another song.";
-"error.microphoneUnavailable" = "Microphone analysis is not available";
-"error.microphonePermissionDenied" = "Microphone access was denied. Please enable it in Settings.";
-"error.musicLibraryDenied" = "Access to the music library was denied. Please enable it in Settings.";
-"error.microphone.permissionDenied" = "Microphone permission was denied";
-"error.microphone.unsupportedFormat" = "Audio format is not supported";
-"error.microphone.engineStartFailed" = "Audio engine could not be started";
-"error.light.torchUnavailable" = "This device has no flashlight. Please select the screen as light source.";
-"error.light.configurationFailed" = "Flashlight could not be initialized. Please try again or switch to screen.";
-"error.light.thermalShutdown" = "iOS disabled the flashlight to protect the device. MindSync switches to the screen automatically.";
-"error.media.cloudItem" = "This track is an Apple Music cloud item and cannot be analyzed. Apple Music songs are DRM-protected, even after download. Please use microphone mode or choose an imported/purchased track.";
-"error.media.missingAsset" = "This track cannot be accessed. Please use microphone mode or choose another track.";
-"error.media.unreadable" = "This song is currently unavailable. Please try again later.";
-"error.media.unknown" = "The song could not be validated (%@). Please try again or choose another track.";
-"error.audio.fileNotFound" = "Audio file not found.";
-"error.audio.unsupportedFormat" = "Audio format is not supported.";
-"error.audio.analysisFailure" = "Analysis failed: %@";
-"error.audio.cancelled" = "Analysis cancelled.";
-"error.dmnShutdown.audioFileNotFound" = "Master audio file 'void_master.mp3' not found in bundle. Please ensure the file has been added to the app bundle.";
-"status.audio.cancelled" = "Analysis was cancelled.";
-"status.vibration.unavailable" = "Vibration is unavailable. Session continues without vibration.";
-"status.light.failed" = "Light synchronization failed. Session continues in audio-only mode.";
-"error.audio.fileTooLong" = "Audio file is too long (%d minutes). Maximum supported length is 120 minutes.";
-"error.audio.corruptedData" = "Audio data appears to be corrupted or empty. Please choose another track.";
-"error.audio.timeout" = "Audio analysis took too long and was stopped. Please choose a shorter track or try again.";
-"error.file.copyFailed" = "File could not be copied. Please try again.";
-"error.file.invalidAudio" = "The file is not a valid audio file.";
-"error.file.validationFailed" = "Error validating audio file: %@";
-"error.file.selectionFailed" = "Error selecting file: %@";
-"error.file.saveFailed" = "File could not be saved. Please make sure you have access to the file.";
-"error.vibration.hapticsUnavailable" = "This device does not support vibration. Vibration is not available.";
-"error.vibration.engineCreationFailed" = "Vibration engine could not be initialized. Vibration is not available.";
-"error.vibration.scriptGenerationFailed" = "Failed to generate vibration script. Please try again.";
-"error.vibrationScript.invalidTargetFrequency" = "Invalid target frequency: %f Hz. Frequency must be finite and greater than zero.";
-"error.vibrationScript.invalidMultiplier" = "Invalid multiplier: %d. Multiplier must be greater than zero.";
+"error.drmProtected" = "Dieser Titel ist durch DRM geschützt und kann nicht analysiert werden. Bitte nutze den Mikrofonmodus oder wähle einen anderen Titel.";
+"error.microphoneUnavailable" = "Mikrofon-Analyse ist nicht verfügbar";
+"error.microphonePermissionDenied" = "Mikrofon-Zugriff wurde verweigert. Bitte in den Einstellungen aktivieren.";
+"error.musicLibraryDenied" = "Zugriff auf Musikbibliothek wurde verweigert. Bitte in den Einstellungen aktivieren.";
+"error.microphone.permissionDenied" = "Mikrofon-Berechtigung wurde verweigert";
+"error.microphone.unsupportedFormat" = "Audioformat wird nicht unterstützt";
+"error.microphone.engineStartFailed" = "Audio-Engine konnte nicht gestartet werden";
+"error.light.torchUnavailable" = "Dieses Gerät besitzt keine Taschenlampe. Bitte wähle den Bildschirm als Lichtquelle.";
+"error.light.configurationFailed" = "Die Taschenlampe konnte nicht initialisiert werden. Bitte versuche es erneut oder wechsle zur Bildschirm-Option.";
+"error.light.thermalShutdown" = "iOS hat die Taschenlampe deaktiviert, um das Gerät zu schützen. MindSync wechselt automatisch auf den Bildschirm.";
+"error.media.cloudItem" = "Dieser Titel ist ein Apple Music Cloud-Item und kann nicht analysiert werden. Apple Music Songs sind DRM-geschützt, auch nach dem Download. Bitte nutze den Mikrofonmodus oder wähle einen selbst importierten/gekauften Titel.";
+"error.media.missingAsset" = "Auf diesen Titel kann nicht zugegriffen werden. Bitte nutze den Mikrofonmodus oder wähle einen anderen Titel.";
+"error.media.unreadable" = "Auf diesen Titel kann aktuell nicht zugegriffen werden. Bitte versuche es später erneut.";
+"error.media.unknown" = "Der Titel konnte nicht geprüft werden (%@). Bitte versuche es erneut oder wähle einen anderen Song.";
+"error.audio.fileNotFound" = "Audiodatei wurde nicht gefunden.";
+"error.audio.unsupportedFormat" = "Audioformat wird nicht unterstützt.";
+"error.audio.analysisFailure" = "Analyse fehlgeschlagen: %@";
+"error.audio.cancelled" = "Analyse abgebrochen.";
+"error.dmnShutdown.audioFileNotFound" = "Master-Audio-File 'void_master.mp3' nicht im Bundle gefunden. Bitte sicherstellen, dass die Datei zum App-Bundle hinzugefügt wurde.";
+"status.audio.cancelled" = "Analyse wurde abgebrochen.";
+"status.vibration.unavailable" = "Vibration ist nicht verfügbar. Session wird ohne Vibration fortgesetzt.";
+"status.light.failed" = "Lichtsynchronisation fehlgeschlagen. Session wird nur mit Audio fortgesetzt.";
+"error.audio.fileTooLong" = "Audiodatei ist zu lang (%d Minuten). Die maximal unterstützte Länge beträgt 120 Minuten.";
+"error.audio.corruptedData" = "Die Audiodaten wirken beschädigt oder leer. Bitte wähle einen anderen Titel.";
+"error.audio.timeout" = "Die Audio-Analyse hat ungewöhnlich lange gedauert und wurde abgebrochen. Bitte wähle einen kürzeren Titel oder versuche es erneut.";
+"error.file.copyFailed" = "Datei konnte nicht kopiert werden. Bitte versuche es erneut.";
+"error.file.invalidAudio" = "Die Datei ist keine gültige Audiodatei.";
+"error.file.validationFailed" = "Fehler beim Prüfen der Audiodatei: %@";
+"error.file.selectionFailed" = "Fehler beim Auswählen der Datei: %@";
+"error.file.saveFailed" = "Datei konnte nicht gespeichert werden. Bitte stelle sicher, dass du Zugriff auf die Datei hast.";
+"error.vibration.hapticsUnavailable" = "Dieses Gerät unterstützt keine Haptik. Vibration ist nicht verfügbar.";
+"error.vibration.engineCreationFailed" = "Haptikmodul konnte nicht initialisiert werden. Vibration ist nicht verfügbar.";
+"error.vibration.scriptGenerationFailed" = "Vibrationsskript konnte nicht erstellt werden. Bitte versuche es erneut.";
+"error.vibrationScript.invalidTargetFrequency" = "Ungültige Zielfrequenz: %f Hz. Die Frequenz muss endlich und größer als null sein.";
+"error.vibrationScript.invalidMultiplier" = "Ungültiger Multiplikator: %d. Der Multiplikator muss größer als null sein.";
 
 // MARK: - Frequency Validation
-"frequency.tooLow" = "Frequency too low (minimum: %d Hz)";
-"frequency.tooHigh" = "Frequency too high (maximum: %d Hz)";
-"frequency.pseWarning" = "Frequency lies in the PSE risk area (%d-%d Hz). People with photosensitive epilepsy should be careful.";
+"frequency.tooLow" = "Frequenz zu niedrig (Minimum: %d Hz)";
+"frequency.tooHigh" = "Frequenz zu hoch (Maximum: %d Hz)";
+"frequency.pseWarning" = "Frequenz liegt im PSE-Gefahrenbereich (%d-%d Hz). Personen mit photosensitiver Epilepsie sollten vorsichtig sein.";
 
 // MARK: - Common UI
 "common.ok" = "OK";
-"common.cancel" = "Cancel";
-"common.close" = "Close";
-"common.dismiss" = "Close";
-"common.back" = "Back";
-"common.home" = "Home";
-"common.open" = "Open";
-"common.error" = "Error";
+"common.cancel" = "Abbrechen";
+"common.close" = "Schließen";
+"common.dismiss" = "Schließen";
+"common.back" = "Zurück";
+"common.home" = "Startseite";
+"common.open" = "Öffnen";
+"common.error" = "Fehler";
 
 // MARK: - Light Source Picker
-"lightSource.title" = "Light Source";
-"lightSource.flashlight" = "Flashlight";
-"lightSource.screen" = "Screen";
-"lightSource.screenColor" = "Screen Color";
-"lightSource.screenColorDescription" = "Choose the color for the strobe light";
-"lightSource.customColor" = "Choose custom color";
-"lightSource.selectFlashlight" = "Select flashlight";
-"lightSource.selectScreen" = "Select screen";
-"lightSource.selectColor" = "Select color: %@";
-"lightSource.selectCustomColor" = "Select color: Custom";
-
-// MARK: - Session End Reasons
-"session.endReason.userStopped" = "User Stopped";
-"session.endReason.trackEnded" = "Track Ended";
-"session.endReason.thermalShutdown" = "Thermal Shutdown";
-"session.endReason.fallDetected" = "Fall Detected";
-"session.endReason.phoneCall" = "Phone Call";
-"session.endReason.appBackgrounded" = "App Backgrounded";
+"lightSource.title" = "Lichtquelle";
+"lightSource.flashlight" = "Taschenlampe";
+"lightSource.screen" = "Bildschirm";
+"lightSource.screenColor" = "Bildschirmfarbe";
+"lightSource.screenColorDescription" = "Wähle die Farbe für das Stroboskoplicht";
+"lightSource.customColor" = "Eigene Farbe wählen";
+"lightSource.selectFlashlight" = "Taschenlampe auswählen";
+"lightSource.selectScreen" = "Bildschirm auswählen";
+"lightSource.selectColor" = "Farbe auswählen: %@";
+"lightSource.selectCustomColor" = "Farbe auswählen: Eigene Farbe";
 
 // MARK: - Mode Selection
-"modeSelection.selectedMode" = "Selected mode";
-"modeSelection.selectMode" = "Select mode";
-"modeSelection.changeMode" = "Tap to change mode";
-"modeSelection.currentMode" = "Current mode: %@";
+"modeSelection.selectedMode" = "Ausgewählter Modus";
+"modeSelection.selectMode" = "Modus auswählen";
+"modeSelection.changeMode" = "Tippen, um Modus zu ändern";
+"modeSelection.currentMode" = "Aktueller Modus: %@";
+

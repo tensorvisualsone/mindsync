@@ -1426,9 +1426,9 @@ final class SessionViewModel: ObservableObject {
             try await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
         }
 
-        // FIX: Nutze futureStartTime statt Date(), damit Licht und Audio mathematisch synchron sind,
-        // selbst wenn dieser Thread hier 2ms zu spät aufgewacht ist.
-        // Das Audio wurde hardware-seitig exakt für futureStartTime eingeplant.
+        // Use futureStartTime instead of Date() to keep light and audio mathematically synchronized,
+        // even if this task wakes up a few milliseconds late.
+        // The audio has been scheduled in hardware exactly for futureStartTime.
         let synchronizedStartTime = futureStartTime
         logger.info("Master Clock: Synchronized start time reached (planned time: \(synchronizedStartTime), actual wake-up: \(Date()))")
 
