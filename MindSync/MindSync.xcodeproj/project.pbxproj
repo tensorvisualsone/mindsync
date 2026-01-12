@@ -64,6 +64,7 @@
 		BA0685A32EFB013D0035F5B8 /* LatencyCalibrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0685A12EFB013D0035F5B8 /* LatencyCalibrationView.swift */; };
 		BA0685A42EFB013D0035F5B8 /* LatencyCalibrationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0685A22EFB013D0035F5B8 /* LatencyCalibrationViewModel.swift */; };
 		BA33818E2F12B14E0044A1A3 /* void_master.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = BA33818D2F12B14E0044A1A3 /* void_master.mp3 */; };
+		BA5E70522F156BCA001C58A2 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = BA5E704F2F156BCA001C58A2 /* Localizable.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -141,6 +142,8 @@
 		BA0685A12EFB013D0035F5B8 /* LatencyCalibrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatencyCalibrationView.swift; sourceTree = "<group>"; };
 		BA0685A22EFB013D0035F5B8 /* LatencyCalibrationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatencyCalibrationViewModel.swift; sourceTree = "<group>"; };
 		BA33818D2F12B14E0044A1A3 /* void_master.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = void_master.mp3; sourceTree = "<group>"; };
+		BA5E70502F156BCA001C58A2 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		BA5E70512F156BCA001C58A2 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		BA9787052EFAF5980068BDEA /* MindSync.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MindSync.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA9787122EFAF5990068BDEA /* MindSyncTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MindSyncTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA97871C2EFAF5990068BDEA /* MindSyncUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MindSyncUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -394,6 +397,7 @@
 		BA9786FC2EFAF5980068BDEA = {
 			isa = PBXGroup;
 			children = (
+				BA5E704F2F156BCA001C58A2 /* Localizable.strings */,
 				BA33818D2F12B14E0044A1A3 /* void_master.mp3 */,
 				BA0680D82EFB013D0035F5B8 /* App */,
 				BA0680EC2EFB013D0035F5B8 /* Core */,
@@ -518,6 +522,7 @@
 			knownRegions = (
 				en,
 				Base,
+				de,
 			);
 			mainGroup = BA9786FC2EFAF5980068BDEA;
 			minimizedProjectReferenceProxies = 1;
@@ -538,6 +543,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BA5E70522F156BCA001C58A2 /* Localizable.strings in Resources */,
 				BA33818E2F12B14E0044A1A3 /* void_master.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -650,6 +656,18 @@
 			targetProxy = BA97871D2EFAF5990068BDEA /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		BA5E704F2F156BCA001C58A2 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				BA5E70502F156BCA001C58A2 /* en */,
+				BA5E70512F156BCA001C58A2 /* de */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		BA9787242EFAF5990068BDEA /* Debug */ = {

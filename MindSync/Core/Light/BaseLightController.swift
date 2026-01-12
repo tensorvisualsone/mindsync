@@ -143,11 +143,30 @@ class BaseLightController: NSObject {
         // Use precise audio time if available (audio-thread accurate), otherwise fall back to Date()
         // This eliminates drift between audio and display threads
         let currentTime: TimeInterval
-        if let audioPlayback = audioPlayback, audioPlayback.isPlaying {
-            // Use audio-thread precise timing while audio is actually playing
-            currentTime = audioPlayback.preciseAudioTime
+        if let audioPlayback = audioPlayback {
+            // CRITICAL FIX: Wait for audio to actually start playing before using precise timing
+            // This ensures light and audio start at exactly the same time
+            if audioPlayback.isPlaying {
+                // Use audio-thread precise timing while audio is actually playing
+                currentTime = audioPlayback.preciseAudioTime
+            } else if audioPlayback.isScheduled {
+                // Audio is scheduled but not yet playing - check if preciseAudioTime is available
+                // If preciseAudioTime > 0, audio has started (state transition pending)
+                let preciseTime = audioPlayback.preciseAudioTime
+                if preciseTime > 0 {
+                    // Audio is actually playing (state just transitioned) - use precise timing
+                    currentTime = preciseTime
+                } else {
+                    // Audio is scheduled but hasn't started yet - wait (return 0) to prevent desync
+                    return CurrentEventResult(event: nil, elapsed: 0, isComplete: false)
+                }
+            } else {
+                // Audio not scheduled and not playing - fallback to Date() timing
+                // This handles cases like pause or audio-only modes
+                currentTime = Date().timeIntervalSince(startTime) - totalPauseDuration
+            }
         } else {
-            // Fallback to Date() timing (e.g., during pause or before audio starts)
+            // No audio playback reference - use Date() timing (e.g., Awakening Flow mode)
             currentTime = Date().timeIntervalSince(startTime) - totalPauseDuration
         }
         

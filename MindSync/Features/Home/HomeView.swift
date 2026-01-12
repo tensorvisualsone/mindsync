@@ -29,19 +29,12 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: AppConstants.Spacing.sectionSpacing) {
-                    VStack(spacing: AppConstants.Spacing.sm) {
-                        Text("MindSync")
-                            .font(AppConstants.Typography.largeTitle)
-                            .accessibilityIdentifier("home.title")
-                        
-                        Text(NSLocalizedString("home.subtitle", comment: ""))
-                            .font(AppConstants.Typography.body)
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(.mindSyncSecondaryText)
-                            .padding(.horizontal, AppConstants.Spacing.horizontalPadding)
-                    }
+                VStack(spacing: AppConstants.Spacing.xl) {
+                    // Hero Section
+                    HeroSection()
+                        .padding(.top, AppConstants.Spacing.lg)
                     
+                    // Start Session Button
                     LargeButton(
                         title: NSLocalizedString("home.startSession", comment: ""),
                         subtitle: NSLocalizedString("home.startSessionHint", comment: ""),
@@ -58,6 +51,7 @@ struct HomeView: View {
                     }
                     .accessibilityIdentifier("home.startSessionButton")
                     
+                    // Status Grid
                     HomeStatusGrid(
                         preferences: preferences,
                         modeAction: {
@@ -143,6 +137,54 @@ struct HomeView: View {
     }
 }
 
+// MARK: - Hero Section
+
+private struct HeroSection: View {
+    var body: some View {
+        VStack(spacing: AppConstants.Spacing.md) {
+            // App Icon/Emblem
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.mindSyncAccent.opacity(0.2),
+                                Color.mindSyncAccent.opacity(0.1)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 80, height: 80)
+                
+                Image(systemName: "waveform.path")
+                    .font(.system(size: 40, weight: .semibold))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.mindSyncAccent, Color.mindSyncAccent.opacity(0.7)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+            
+            // Title
+            Text("MindSync")
+                .font(AppConstants.Typography.largeTitle)
+                .accessibilityIdentifier("home.title")
+            
+            // Subtitle
+            Text(NSLocalizedString("home.subtitle", comment: ""))
+                .font(AppConstants.Typography.body)
+                .multilineTextAlignment(.center)
+                .foregroundColor(.mindSyncSecondaryText)
+                .padding(.horizontal, AppConstants.Spacing.md)
+        }
+    }
+}
+
+// MARK: - Status Grid
+
 private struct HomeStatusGrid: View {
     let preferences: UserPreferences
     let modeAction: () -> Void
@@ -150,63 +192,84 @@ private struct HomeStatusGrid: View {
     
     var body: some View {
         VStack(spacing: AppConstants.Spacing.md) {
-            Button(action: modeAction) {
-                VStack(alignment: .leading, spacing: AppConstants.Spacing.sm) {
-                    Text(NSLocalizedString("home.currentMode", comment: ""))
-                        .font(AppConstants.Typography.caption)
-                        .foregroundColor(.mindSyncSecondaryText)
-                    HStack {
-                        Label(preferences.preferredMode.displayName, systemImage: preferences.preferredMode.iconName)
-                            .font(AppConstants.Typography.headline)
-                            .foregroundColor(.white)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.mindSyncSecondaryText)
-                    }
-                }
-                .padding()
-                .mindSyncCardStyle()
-            }
-            .buttonStyle(.plain)
+            // Mode Card
+            StatusCard(
+                icon: preferences.preferredMode.iconName,
+                iconColor: preferences.preferredMode.themeColor,
+                title: NSLocalizedString("home.currentMode", comment: ""),
+                value: preferences.preferredMode.displayName,
+                action: modeAction
+            )
             .accessibilityElement(children: .combine)
             .accessibilityLabel(String(format: NSLocalizedString("modeSelection.currentMode", comment: ""), preferences.preferredMode.displayName))
             .accessibilityHint(NSLocalizedString("modeSelection.changeMode", comment: ""))
             
+            // Light Source and Settings Cards
             HStack(spacing: AppConstants.Spacing.md) {
-                VStack(alignment: .leading, spacing: AppConstants.Spacing.xs) {
-                    Text(NSLocalizedString("settings.lightSource", comment: ""))
-                        .font(AppConstants.Typography.caption)
-                        .foregroundColor(.mindSyncSecondaryText)
-                    Text(preferences.preferredLightSource.displayName)
-                        .font(AppConstants.Typography.headline)
-                        .foregroundColor(.white)
-                }
-                .padding()
-                .mindSyncCardStyle()
+                StatusCard(
+                    icon: "flashlight.on.fill",
+                    iconColor: .mindSyncFlashlight,
+                    title: NSLocalizedString("settings.lightSource", comment: ""),
+                    value: preferences.preferredLightSource.displayName,
+                    action: nil
+                )
                 
-                Button(action: settingsAction) {
-                    VStack(alignment: .leading, spacing: AppConstants.Spacing.xs) {
-                        Text(NSLocalizedString("settings.title", comment: ""))
-                            .font(AppConstants.Typography.caption)
-                            .foregroundColor(.mindSyncSecondaryText)
-                        Text(NSLocalizedString("common.open", comment: ""))
-                            .font(AppConstants.Typography.headline)
-                            .foregroundColor(.white)
-                    }
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: AppConstants.CornerRadius.card, style: .continuous)
-                            .fill(Color(.secondarySystemBackground).opacity(0.7))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: AppConstants.CornerRadius.card, style: .continuous)
-                                    .stroke(Color.white.opacity(0.15), lineWidth: 1)
-                            )
-                            .shadow(color: Color.black.opacity(0.45), radius: 18, x: 0, y: 16)
-                    )
-                }
-                .buttonStyle(.plain)
+                StatusCard(
+                    icon: "gearshape.fill",
+                    iconColor: .mindSyncSecondaryText,
+                    title: NSLocalizedString("settings.title", comment: ""),
+                    value: NSLocalizedString("common.open", comment: ""),
+                    action: settingsAction
+                )
             }
         }
+    }
+}
+
+// MARK: - Status Card Component
+
+private struct StatusCard: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let value: String
+    let action: (() -> Void)?
+    
+    var body: some View {
+        Button(action: {
+            action?()
+        }) {
+            VStack(alignment: .leading, spacing: AppConstants.Spacing.sm) {
+                HStack {
+                    Image(systemName: icon)
+                        .font(.system(size: AppConstants.IconSize.medium, weight: .semibold))
+                        .foregroundColor(iconColor)
+                    
+                    Spacer()
+                    
+                    if action != nil {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: AppConstants.IconSize.small, weight: .semibold))
+                            .foregroundColor(.mindSyncSecondaryText)
+                    }
+                }
+                
+                VStack(alignment: .leading, spacing: AppConstants.Spacing.xs) {
+                    Text(title)
+                        .font(AppConstants.Typography.caption)
+                        .foregroundColor(.mindSyncSecondaryText)
+                    
+                    Text(value)
+                        .font(AppConstants.Typography.headline)
+                        .foregroundColor(.mindSyncPrimaryText)
+                        .lineLimit(2)
+                }
+            }
+            .padding(AppConstants.Spacing.md)
+            .mindSyncCardStyle()
+        }
+        .buttonStyle(.plain)
+        .disabled(action == nil)
     }
 }
 

@@ -271,21 +271,46 @@ private struct SessionTrackInfoView: View {
     }
     
     var body: some View {
-        VStack(spacing: AppConstants.Spacing.sm) {
-            HStack(spacing: AppConstants.Spacing.sm) {
-                Image(systemName: "music.note")
-                    .font(.system(size: AppConstants.IconSize.medium, weight: .semibold))
-                    .foregroundStyle(Color.mindSyncAccent)
+        VStack(spacing: AppConstants.Spacing.lg) {
+            // Track Info
+            HStack(spacing: AppConstants.Spacing.md) {
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.mindSyncAccent.opacity(0.3),
+                                    Color.mindSyncAccent.opacity(0.2)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 56, height: 56)
+                    
+                    Image(systemName: "music.note")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.mindSyncAccent, Color.mindSyncAccent.opacity(0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
                 
+                // Track Details
                 VStack(alignment: .leading, spacing: AppConstants.Spacing.xs) {
                     Text(track?.title ?? "")
-                        .font(AppConstants.Typography.title2)
+                        .font(AppConstants.Typography.title3)
+                        .fontWeight(.semibold)
                         .foregroundStyle(.white)
                         .lineLimit(2)
                     
                     if let artist = track?.artist {
                         Text(artist)
-                            .font(AppConstants.Typography.subheadline)
+                            .font(AppConstants.Typography.body)
                             .foregroundStyle(.white.opacity(AppConstants.Opacity.secondary))
                     }
                 }
@@ -293,6 +318,7 @@ private struct SessionTrackInfoView: View {
                 Spacer()
             }
             
+            // Mode and Frequency Chips
             HStack(spacing: AppConstants.Spacing.sm) {
                 ModeChip(
                     icon: session.mode.iconName,
@@ -305,14 +331,14 @@ private struct SessionTrackInfoView: View {
                     ModeChip(
                         icon: "waveform",
                         text: "\(Int(currentFrequency)) Hz",
-                        color: .mint.opacity(0.6)
+                        color: .mint.opacity(0.8)
                     )
                 }
                 
                 Spacer(minLength: 0)
             }
         }
-        .padding(AppConstants.Spacing.md)
+        .padding(AppConstants.Spacing.lg)
         .mindSyncCardStyle()
     }
 }

@@ -90,4 +90,15 @@ enum EntrainmentMode: String, Codable, CaseIterable, Identifiable {
         case .beliefRewiring: return "brain.head.profile"  // Belief-Rewiring / Mind-Programming
         }
     }
+    
+    /// Indicates whether this mode uses a fixed script with frequencyOverride.
+    /// Fixed-script modes don't need audio reactivity (spectral flux tracking).
+    var usesFixedScript: Bool {
+        switch self {
+        case .dmnShutdown, .beliefRewiring:
+            return true
+        case .alpha, .theta, .gamma, .cinematic:
+            return false
+        }
+    }
 }
