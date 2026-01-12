@@ -271,7 +271,7 @@ final class AudioPlaybackService: NSObject {
     
     /// Precise audio time in seconds (derived from AVAudioPlayerNode's render time)
     /// This provides audio-thread accurate timing, eliminating drift between audio and display threads
-    /// Accounts for accumulated pause duration to maintain synchronization after pause/resume cycles
+    /// Note: totalTime is already the absolute position in the file, so we don't subtract accumulatedPauseTime
     var preciseAudioTime: TimeInterval {
         guard let node = playerNode,
               let nodeTime = node.lastRenderTime,
@@ -280,15 +280,15 @@ final class AudioPlaybackService: NSObject {
             return currentTime
         }
         
-        // Time elapsed in current segment
+        // Time elapsed in current segment (Samples / Rate)
         let segmentElapsed = Double(playerTime.sampleTime) / playerTime.sampleRate
         
         // Total time in file (segmentStartTime is the file position where we started the current segment)
+        // This is already the absolute position in the file, so no need to subtract accumulatedPauseTime
         let totalTime = segmentStartTime + segmentElapsed
         
-        // Subtract accumulated pause time to maintain synchronization
-        // This ensures pause handling is consistent with the currentTime fallback path
-        let adjustedTime = totalTime - accumulatedPauseTime
+        // FIX: Keine Pause abziehen! totalTime ist bereits die absolute Position im File.
+        let adjustedTime = totalTime
         
         // Clamp to file duration if available
         if fileDuration > 0 {

@@ -1426,9 +1426,11 @@ final class SessionViewModel: ObservableObject {
             try await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
         }
 
-        // Now all systems start at the exact same moment
-        let synchronizedStartTime = Date()
-        logger.info("Master Clock: Synchronized start time reached (actual time: \(synchronizedStartTime))")
+        // FIX: Nutze futureStartTime statt Date(), damit Licht und Audio mathematisch synchron sind,
+        // selbst wenn dieser Thread hier 2ms zu spät aufgewacht ist.
+        // Das Audio wurde hardware-seitig exakt für futureStartTime eingeplant.
+        let synchronizedStartTime = futureStartTime
+        logger.info("Master Clock: Synchronized start time reached (planned time: \(synchronizedStartTime), actual wake-up: \(Date()))")
 
         if lightControllerStarted {
             // Start LightScript execution synchronized to the future start time
