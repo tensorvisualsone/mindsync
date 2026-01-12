@@ -1372,9 +1372,11 @@ final class SessionViewModel: ObservableObject {
         // Total: ~500-750ms minimum. 750ms provides comfortable margin for all devices.
         //
         // NOTE: This is currently a fixed value that works reliably across all supported
-        // devices (iPhone with iOS 17+). Future enhancement could make this adaptive based
-        // on device capabilities or system load, but the fixed 750ms value has proven
-        // sufficient in testing on devices ranging from iPhone 13 to iPhone 15 Pro.
+        // devices (iPhone with iOS 17+). Testing on devices from iPhone 13 to iPhone 15 Pro
+        // has validated this value. Future enhancement could make this adaptive based on
+        // device capabilities or system load if needed, though the fixed value has proven
+        // sufficient in practice. Consider monitoring actual sync accuracy if implementing
+        // adaptive delays to ensure improvements justify added complexity.
         let syncStartDelay: TimeInterval = 0.75 // 750ms delay for synchronization
         let systemUptime = ProcessInfo.processInfo.systemUptime
         let futureStartUptime = systemUptime + syncStartDelay
@@ -1441,15 +1443,6 @@ final class SessionViewModel: ObservableObject {
                 // The wait was cancelled (e.g. user stopped the session) after audio was scheduled.
                 // Stop the audio engine to prevent unsynchronized audio-only playback.
                 logger.info("Master Clock: Synchronized start cancelled during wait; stopping audio engine")
-                if let engine = audioPlayback.getAudioEngine() {
-                    engine.stop()
-                }
-                throw CancellationError()
-            }
-            
-            // Check for cancellation after sleep completes
-            if Task.isCancelled {
-                logger.info("Master Clock: Cancellation detected after wait; stopping audio engine before synchronized start")
                 if let engine = audioPlayback.getAudioEngine() {
                     engine.stop()
                 }

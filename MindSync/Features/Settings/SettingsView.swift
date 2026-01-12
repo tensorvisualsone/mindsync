@@ -459,14 +459,14 @@ struct SettingsView: View {
 private struct SettingsCard<Content: View>: View {
     let icon: String?
     let iconColor: Color?
-    let title: String?
+    let title: String
     let footer: String?
     @ViewBuilder let content: () -> Content
     
     init(
         icon: String? = nil,
         iconColor: Color? = nil,
-        title: String? = nil,
+        title: String,
         footer: String? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) {
@@ -480,17 +480,15 @@ private struct SettingsCard<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppConstants.Spacing.md) {
             // Header
-            if let title = title {
-                HStack(spacing: AppConstants.Spacing.sm) {
-                    if let icon = icon, let iconColor = iconColor {
-                        Image(systemName: icon)
-                            .font(.system(size: AppConstants.IconSize.small, weight: .semibold))
-                            .foregroundColor(iconColor)
-                    }
-                    Text(title)
-                        .font(AppConstants.Typography.headline)
-                        .foregroundColor(.mindSyncPrimaryText)
+            HStack(spacing: AppConstants.Spacing.sm) {
+                if let icon = icon, let iconColor = iconColor {
+                    Image(systemName: icon)
+                        .font(.system(size: AppConstants.IconSize.small, weight: .semibold))
+                        .foregroundColor(iconColor)
                 }
+                Text(title)
+                    .font(AppConstants.Typography.headline)
+                    .foregroundColor(.mindSyncPrimaryText)
             }
             
             // Content

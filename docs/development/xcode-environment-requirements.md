@@ -24,6 +24,8 @@ jobs:
     # - All Apple frameworks
 ```
 
+**Important**: GitHub-hosted macOS runners come with multiple Xcode versions pre-installed. For production use, it's recommended to explicitly select a specific Xcode version using `xcode-select` to ensure consistent builds across workflow runs, as the default version may change when the runner image is updated.
+
 **Available macOS Images:**
 - `macos-14` - macOS Sonoma 14.x (Xcode 15.x - 16.x)
 - `macos-13` - macOS Ventura 13.x (Xcode 14.x - 15.x)
