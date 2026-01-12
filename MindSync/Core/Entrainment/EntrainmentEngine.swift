@@ -15,6 +15,14 @@ final class EntrainmentEngine {
     ///   would be 0.1, which is then clamped to this minimum (0.15).
     static let minVibrationIntensity: Float = 0.15
     
+    /// Advances the PRNG seed without using the generated value.
+    /// Used to keep light and vibration scripts synchronized when one script
+    /// needs to advance the seed but doesn't use the random value.
+    /// - Parameter seed: The current PRNG seed (passed as inout to update in place)
+    private static func advanceRandomSeed(_ seed: inout UInt64) {
+        seed = seed &* 1103515245 &+ 12345
+    }
+    
     /// Calculates cinematic intensity with audio-reactive beat detection
     /// - Parameters:
     ///   - baseFrequency: Base frequency in Hz (typically 6.5 for cinematic mode)
@@ -974,7 +982,6 @@ extension EntrainmentEngine {
             ))
             currentTime += 1.0
         }
-        currentTime += transitionDuration - Double(Int(transitionDuration)) // Adjust for rounding
         
         // --- PHASE 4: THE VOID / UNIVERSE (20.5-30 Min) ---
         // 40 Hz Gamma Burst - maximale Helligkeit (mit Safety-Limit)
@@ -1029,7 +1036,7 @@ extension EntrainmentEngine {
                 timestamp: currentTime + phase1Time,
                 intensity: baseIntensity,
                 duration: period,
-                waveform: .sine // Soft sine waves for calming heartbeat rhythm
+                waveform: .sine // Gentle sine waveform synchronized to the heartbeat rhythm
             ))
             phase1Time += period
         }
@@ -1082,10 +1089,9 @@ extension EntrainmentEngine {
             let randomValue2 = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
             let variedIntensity: Float = 0.15 + Float(randomValue2 * 0.25) // 0.15-0.4
             
-            // Third seed advance for synchronization with Light-Script (Light-Script uses this for Duration)
-            // We use period (calculated from frequency) as duration, but still need to advance the seed
-            randomSeed = randomSeed &* 1103515245 &+ 12345
-            // randomValue3 is not used, but seed advance is necessary for PRNG synchronization
+            // Advance seed for synchronization with Light-Script (which uses this for Duration)
+            // We use period (calculated from frequency) as duration, so we don't need the random value
+            Self.advanceRandomSeed(&randomSeed)
             
             events.append(try VibrationEvent(
                 timestamp: currentTime + phase3Time,
@@ -1097,11 +1103,11 @@ extension EntrainmentEngine {
         }
         currentTime += phase3Duration
         
-        // --- PHASE 4: THE VOID / UNIVERSE (20-30 Min) ---
+        // --- PHASE 4: THE VOID / UNIVERSE (20.5-30 Min) ---
         // VIBRATION AUS - totale Stille im Körper, nur Licht im Kopf
         // "Körper schläft, Geist ist wach" - das erzeugt das Gefühl der Dissoziation
         // Keine Events in Phase 4 - Vibration bleibt aus
-        let phase4Duration: TimeInterval = 600 // 10 minutes (20-30 Min)
+        let phase4Duration: TimeInterval = 570 // 9.5 minutes (20.5-30 Min)
         // Vibration bleibt komplett aus - keine Events erstellt
         currentTime += phase4Duration
         

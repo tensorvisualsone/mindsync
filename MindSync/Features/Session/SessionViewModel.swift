@@ -1378,7 +1378,6 @@ final class SessionViewModel: ObservableObject {
         
         // Schedule audio to start at the future start time
         // This ensures audio start is aligned with the Master Clock synchronization
-        // Note: futureStartTime is used here - linter warning is a false positive
         try audioPlayback.schedulePlayback(at: futureStartTime)
         logger.info("Audio playback scheduled to start at futureStartTime: \(futureStartTime)")
 
@@ -1411,9 +1410,9 @@ final class SessionViewModel: ObservableObject {
             IsochronicAudioService.shared.start(mode: currentSession!.mode, attachToEngine: engine)
         }
         
-        // Enable audio energy tracking for audio-reactive modes (NOT for fixed script modes)
-        // dmnShutdown and beliefRewiring use fixed scripts with frequencyOverride, so they don't need audio reactivity
-        if let mode = currentSession?.mode, mode != .dmnShutdown && mode != .beliefRewiring {
+        // Enable audio energy tracking for audio-reactive modes (not for fixed script modes)
+        // Fixed script modes use frequencyOverride and don't need audio reactivity
+        if let mode = currentSession?.mode, !mode.usesFixedScript {
             enableSpectralFluxForCinematicMode(mode)
         }
 
