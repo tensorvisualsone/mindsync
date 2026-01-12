@@ -20,7 +20,7 @@ final class AudioPlaybackService: NSObject {
     
     /// Polling interval for checking if audio has started rendering (in nanoseconds)
     /// 50ms provides good responsiveness while limiting CPU usage
-    private static let renderCheckPollingInterval: UInt64 = 50_000_000
+    private static let renderCheckPollingInterval: UInt64 = 50 * 1_000_000  // 50 milliseconds
     
     /// Playback state to distinguish between scheduled and actually playing
     private enum PlaybackState {

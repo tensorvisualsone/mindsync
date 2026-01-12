@@ -91,14 +91,16 @@ final class AudioPlaybackServiceTests: XCTestCase {
         XCTAssertFalse(service.isPlaying)
         
         // When: Waiting for playback to start with very short timeout
+        let timeout: TimeInterval = 0.1
         let startTime = Date()
-        let actualStartTime = await service.waitForPlaybackToStart(timeout: 0.1)
+        let actualStartTime = await service.waitForPlaybackToStart(timeout: timeout)
         let elapsed = Date().timeIntervalSince(startTime)
         
         // Then: Should timeout and return nil
         XCTAssertNil(actualStartTime, "Should return nil when audio doesn't start")
-        XCTAssertGreaterThanOrEqual(elapsed, 0.1, "Should wait at least the timeout duration")
-        XCTAssertLessThan(elapsed, 0.3, "Should not wait significantly longer than timeout")
+        XCTAssertGreaterThanOrEqual(elapsed, timeout, "Should wait at least the timeout duration")
+        // Allow up to 2x timeout for system scheduling variance
+        XCTAssertLessThan(elapsed, timeout * 2.0, "Should not wait significantly longer than timeout")
     }
     
     func testWaitForPlaybackToStart_WithZeroTimeout_ReturnsImmediately() async {
