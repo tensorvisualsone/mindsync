@@ -870,18 +870,18 @@ extension EntrainmentEngine {
     /// to specifically deactivate the Default Mode Network (DMN).
     /// 
     /// Phases (Tepperwein Sequence):
-    /// - Phase 1: ENTRY (0-3 Min) - 10 Hz Alpha, weiche Sinus-Wellen
-    /// - Phase 2: THE ABYSS / VAKUUM (3-12 Min) - 4.5 Hz Theta, dimme auf 0.1 (keine schwarzen Pausen)
-    /// - Phase 3: DISSOLUTION (12-20 Min) - Randomized Intervalle (Variabilität bricht Erwartungshaltung)
-    /// - Phase 4: THE VOID / UNIVERSE (20-30 Min) - 40 Hz Gamma Burst, maximale Helligkeit
+    /// - Phase 1: ENTRY (0-3 Min) - 10 Hz Alpha, soft sine waves
+    /// - Phase 2: THE ABYSS / VACUUM (3-12 Min) - 4.5 Hz Theta, dim to 0.1 (no black pauses)
+    /// - Phase 3: DISSOLUTION (12-20 Min) - Randomized intervals (variability breaks expectation)
+    /// - Phase 4: THE VOID / UNIVERSE (20-30 Min) - 40 Hz Gamma burst, maximum brightness
     /// Total duration: 30 minutes (1800 seconds)
     static func generateDMNShutdownScript() -> LightScript {
         var events: [LightEvent] = []
         var currentTime: TimeInterval = 0.0
         
         // --- PHASE 1: ENTRY (0-3 Min) ---
-        // 10 Hz Alpha, weiche Sinus-Wellen für sanften Einstieg
-        // "Lass alles los..." - beruhigt den Körper sofort
+        // 10 Hz Alpha, soft sine waves for gentle entry
+        // "Let everything go..." - calms the body immediately
         let phase1Duration: TimeInterval = 180 // 3 minutes
         let p1Frequency = 10.0 // 10 Hz Alpha
         
@@ -889,24 +889,25 @@ extension EntrainmentEngine {
         for i in 0..<Int(phase1Duration) {
             events.append(LightEvent(
                 timestamp: currentTime,
-                intensity: 0.4, // Sanfter Start
+                intensity: 0.4, // Gentle start
                 duration: 1.0,
-                waveform: .sine, // Weiche Sinus-Wellen (geändert von Square)
+                waveform: .sine, // Soft sine waves (changed from Square)
                 color: .blue,
                 frequencyOverride: p1Frequency
             ))
             currentTime += 1.0
         }
         
-        // --- PHASE 2: THE ABYSS / VAKUUM (3-12 Min) ---
+        // --- PHASE 2: THE ABYSS / VACUUM (3-12 Min) ---
         // 4.5 Hz Theta - "underwater feeling"
         // IMPORTANT: No black pauses (0.0), instead dim down to 0.1
-        // This keeps the visual cortex active, but "bores" it
+        // This keeps the visual cortex minimally active for therapeutic effect.
+        // Note: Sine waveform naturally oscillates through lower values, achieving a breathing effect.
         let phase2Duration: TimeInterval = 540 // 9 minutes (3-12 Min)
         let p2Frequency = 4.5 // 4.5 Hz Theta
         
         // 2-second events with alternating intensity (0.35/0.1) - no complete off
-        // This keeps the visual cortex active, but "bores" it (prevents habituation)
+        // This keeps the visual cortex minimally active, creating a "breathing" sensory experience
         for i in 0..<Int(phase2Duration / 2) {
             // Alternate between 0.35 and 0.1 (instead of 0.0) - no complete off
             let intensity: Float = (i % 2 == 0) ? 0.35 : 0.1
@@ -923,29 +924,30 @@ extension EntrainmentEngine {
         }
         
         // --- PHASE 3: DISSOLUTION (12-20 Min) ---
-        // Randomized intervals (variability) - the brain must not be able to predict the pattern anymore
-        // This breaks expectations (ego) and leads to dissociation
+        // Randomized intervals (variability) - the brain cannot predict the pattern anymore
+        // This breaks expectations and leads to dissociation
         let phase3Duration: TimeInterval = 480 // 8 minutes (12-20 Min)
         let p3BaseFrequency = 4.5 // Start at Theta
         
         // Generate varying intervals with random frequency (3.5-6.0 Hz) and varying intensity
         // This makes the pattern unpredictable and breaks expectations
+        // Fixed seed ensures consistent therapeutic experience across sessions
         var phase3Time: TimeInterval = 0
-        var randomSeed: UInt64 = 12345 // Seed for reproducible "randomness"
+        var randomSeed: UInt64 = 12345 // Fixed seed for reproducible "randomness" across sessions
         
         while phase3Time < phase3Duration {
             // Pseudo-random number for frequency variation (3.5-6.0 Hz)
-            randomSeed = randomSeed &* 1103515245 &+ 12345
+            advanceRandomSeed(&randomSeed)
             let randomValue = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
             let variedFrequency = 3.5 + (randomValue * 2.5) // 3.5-6.0 Hz
             
             // Pseudo-random number for intensity variation (0.2-0.5)
-            randomSeed = randomSeed &* 1103515245 &+ 12345
+            advanceRandomSeed(&randomSeed)
             let randomValue2 = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
             let variedIntensity: Float = 0.2 + Float(randomValue2 * 0.3) // 0.2-0.5
             
             // Varying event duration (1.5-3.0 seconds) for additional unpredictability
-            randomSeed = randomSeed &* 1103515245 &+ 12345
+            advanceRandomSeed(&randomSeed)
             let randomValue3 = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
             let variedDuration = 1.5 + (randomValue3 * 1.5) // 1.5-3.0 seconds
             
@@ -984,14 +986,15 @@ extension EntrainmentEngine {
         }
         
         // --- PHASE 4: THE VOID / UNIVERSE (20.5-30 Min) ---
-        // 40 Hz Gamma Burst - maximale Helligkeit (mit Safety-Limit)
-        // "Körper schläft, Geist ist wach" - totale Stille im Körper, nur Licht im Kopf
+        // 40 Hz Gamma Burst - maximum brightness (with safety limit)
+        // "Body sleeps, mind is awake" - total stillness in the body, only light in the mind
+        // WARNING: This phase ends abruptly at high intensity. Consider adding a cooldown phase.
         let phase4Duration: TimeInterval = 570 // 9.5 minutes (20.5-30 Min)
         events.append(LightEvent(
             timestamp: currentTime,
-            intensity: 0.9, // Maximale Helligkeit (mit Safety-Limit)
+            intensity: 0.9, // Maximum brightness (with safety limit)
             duration: phase4Duration,
-            waveform: .square, // Square wave ist Gold-Standard für Gamma-Sync
+            waveform: .square, // Square wave is gold standard for Gamma sync
             color: .white,
             frequencyOverride: 40.0
         ))
@@ -1008,10 +1011,11 @@ extension EntrainmentEngine {
     
     /// Generates a VibrationScript for DMN-Shutdown mode (Tepperwein Sequence)
     /// This follows the same phase structure as the light script:
-    /// - Phase 1: ENTRY (0-3 Min) - Synchron zum Herzschlag (60 BPM ≈ 1 Hz)
-    /// - Phase 2: THE ABYSS (3-12 Min) - 4.5Hz Theta, Continuous Haptics (schwellend)
-    /// - Phase 3: DISSOLUTION (12-20 Min) - Variierende Frequenzen
-    /// - Phase 4: THE VOID (20-30 Min) - AUS (totale Stille im Körper, nur Licht im Kopf)
+    /// - Phase 1: ENTRY (0-3 Min) - Synchronized with heartbeat (60 BPM ≈ 1 Hz)
+    /// - Phase 2: THE ABYSS (3-12 Min) - 4.5Hz Theta, Continuous Haptics (swelling)
+    /// - Phase 3: DISSOLUTION (12-20 Min) - Varying frequencies
+    /// - Phase 4: THE VOID (20-30 Min) - OFF (total stillness in body, only light in mind)
+    ///   WARNING: Phase 4 has no vibration for 9.5 minutes, which may be disorienting
     /// - Parameters:
     ///   - intensity: User preference for vibration intensity (0.1 - 1.0)
     /// - Returns: A VibrationScript synchronized with the light script
@@ -1079,19 +1083,19 @@ extension EntrainmentEngine {
         
         while phase3Time < phase3Duration {
             // Pseudo-random number for frequency variation (3.5-6.0 Hz) - synchronized with light
-            randomSeed = randomSeed &* 1103515245 &+ 12345
+            advanceRandomSeed(&randomSeed)
             let randomValue = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
             let variedFrequency = 3.5 + (randomValue * 2.5) // 3.5-6.0 Hz
             let period = 1.0 / variedFrequency
             
             // Pseudo-random number for intensity variation (0.15-0.4)
-            randomSeed = randomSeed &* 1103515245 &+ 12345
+            advanceRandomSeed(&randomSeed)
             let randomValue2 = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
             let variedIntensity: Float = 0.15 + Float(randomValue2 * 0.25) // 0.15-0.4
             
             // Advance seed for synchronization with Light-Script (which uses this for Duration)
             // We use period (calculated from frequency) as duration, so we don't need the random value
-            Self.advanceRandomSeed(&randomSeed)
+            advanceRandomSeed(&randomSeed)
             
             events.append(try VibrationEvent(
                 timestamp: currentTime + phase3Time,
@@ -1104,11 +1108,11 @@ extension EntrainmentEngine {
         currentTime += phase3Duration
         
         // --- PHASE 4: THE VOID / UNIVERSE (20.5-30 Min) ---
-        // VIBRATION AUS - totale Stille im Körper, nur Licht im Kopf
-        // "Körper schläft, Geist ist wach" - das erzeugt das Gefühl der Dissoziation
-        // Keine Events in Phase 4 - Vibration bleibt aus
+        // VIBRATION OFF - total stillness in the body, only light in the mind
+        // "Body sleeps, mind is awake" - this creates the feeling of dissociation
+        // No events in Phase 4 - vibration remains off
         let phase4Duration: TimeInterval = 570 // 9.5 minutes (20.5-30 Min)
-        // Vibration bleibt komplett aus - keine Events erstellt
+        // Vibration remains completely off - no events are created
         currentTime += phase4Duration
         
         // Create VibrationScript

@@ -68,11 +68,11 @@ final class FlashlightController: BaseLightController, LightControlling {
     private var fixedThreshold: Float = 0.08  // Fallback threshold when not enough history (dynamically adjusted)
     private let adaptiveThresholdMultiplier: Float = 0.25  // Use mean + 0.25 * stdDev (reduced from 0.4 for more sensitive peak detection)
     
-    // Rolling Average Calibrator: Lernt in den ersten 10 Sekunden die Dynamik des Songs
-    private var calibrationStartTime: TimeInterval = -1.0  // -1 bedeutet: noch nicht gestartet
-    private let calibrationDuration: TimeInterval = 10.0  // 10 Sekunden Kalibrierung
-    private var calibrationFluxValues: [Float] = []  // Flux-Werte während der Kalibrierung
-    private var isCalibrated: Bool = false  // Ob die Kalibrierung abgeschlossen ist
+    // Rolling Average Calibrator: Learns the dynamics of the song in the first 10 seconds
+    private var calibrationStartTime: TimeInterval = -1.0  // -1 means: not yet started
+    private let calibrationDuration: TimeInterval = 10.0  // 10 seconds calibration duration
+    private var calibrationFluxValues: [Float] = []  // Flux values collected during calibration
+    private var isCalibrated: Bool = false  // Whether calibration has completed
     
     /// Precision timer interval shared across light controllers
     /// OPTIMIZED FOR LAMBDA: 1ms (1000 Hz) resolution needed for stable 100 Hz output.
@@ -234,6 +234,9 @@ final class FlashlightController: BaseLightController, LightControlling {
         fluxHistory.removeAll()
         lastPeakTime = 0
         // Reset calibration state
+        // Calibration is intentionally reset on each session start to allow adaptation
+        // to different music tracks or playlists. This ensures the cinematic mode
+        // optimizes its sensitivity for whatever the user plays next.
         calibrationStartTime = -1.0
         calibrationFluxValues.removeAll()
         isCalibrated = false
@@ -396,7 +399,8 @@ final class FlashlightController: BaseLightController, LightControlling {
         recentFluxValues.removeAll()
         fluxHistory.removeAll()
         lastPeakTime = 0
-        // Reset calibration state
+        // Reset calibration state (also happens on stop())
+        // Calibration is intentionally reset to allow adaptation to different music
         calibrationStartTime = -1.0
         calibrationFluxValues.removeAll()
         isCalibrated = false
@@ -470,6 +474,8 @@ final class FlashlightController: BaseLightController, LightControlling {
                     let rawEnergy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
                     
                     // ROLLING AVERAGE CALIBRATOR: Learn the dynamics of the song in the first 10 seconds
+                    // This calibration helps cinematic mode adapt to different music genres automatically.
+                    // Recalibration occurs on each session restart to adapt to playlist changes.
                     let currentUptime = ProcessInfo.processInfo.systemUptime
                     if calibrationStartTime >= 0 && !isCalibrated {
                         let calibrationElapsed = currentUptime - calibrationStartTime

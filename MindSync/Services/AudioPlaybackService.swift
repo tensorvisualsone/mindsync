@@ -226,7 +226,7 @@ final class AudioPlaybackService: NSObject {
 
     /// Pauses playback
     func pause() {
-        guard let node = playerNode, playbackState == .playing else { return }
+        guard let node = playerNode, playbackState == .playing || playbackState == .scheduled else { return }
         
         // Track pause time for accurate resume
         lastPauseTime = Date()
@@ -356,7 +356,8 @@ final class AudioPlaybackService: NSObject {
         // This is already the absolute position in the file, so no need to subtract accumulatedPauseTime
         let totalTime = segmentStartTime + segmentElapsed
         
-        // FIX: Keine Pause abziehen! totalTime ist bereits die absolute Position im File.
+        // Note: totalTime already represents the absolute position in the file.
+        // We don't subtract pause time here because segmentStartTime is already adjusted on resume.
         let adjustedTime = totalTime
         
         // Clamp to file duration if available
