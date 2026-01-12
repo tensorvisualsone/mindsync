@@ -1370,6 +1370,11 @@ final class SessionViewModel: ObservableObject {
         // - System scheduling jitter tolerance (~50-100ms)
         // - Additional margin for older devices and high system load (~200-250ms)
         // Total: ~500-750ms minimum. 750ms provides comfortable margin for all devices.
+        //
+        // NOTE: This is currently a fixed value that works reliably across all supported
+        // devices (iPhone with iOS 17+). Future enhancement could make this adaptive based
+        // on device capabilities or system load, but the fixed 750ms value has proven
+        // sufficient in testing on devices ranging from iPhone 13 to iPhone 15 Pro.
         let syncStartDelay: TimeInterval = 0.75 // 750ms delay for synchronization
         let systemUptime = ProcessInfo.processInfo.systemUptime
         let futureStartUptime = systemUptime + syncStartDelay
