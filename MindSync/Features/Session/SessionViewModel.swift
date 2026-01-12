@@ -1462,8 +1462,8 @@ final class SessionViewModel: ObservableObject {
         // For DMN-Shutdown mode, this is especially important as the script is synchronized
         // to the audio timeline.
         logger.info("Waiting for audio playback to actually start...")
-        // Use longer timeout (10s) to account for potential audio hardware delays
-        let actualAudioStartTime = await audioPlayback.waitForPlaybackToStart(timeout: 10.0)
+        // Use default timeout (3s) - if audio hasn't started by then, something is wrong
+        let actualAudioStartTime = await audioPlayback.waitForPlaybackToStart()
         
         if let actualStartTime = actualAudioStartTime {
             // Audio started successfully - use the actual hardware render start time
