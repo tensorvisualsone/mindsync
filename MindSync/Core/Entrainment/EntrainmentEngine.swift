@@ -1028,7 +1028,7 @@ extension EntrainmentEngine {
                 timestamp: currentTime + phase1Time,
                 intensity: baseIntensity,
                 duration: period,
-                waveform: .sine // Soft sine waves for calming heartbeat rhythm
+                waveform: .sine // Gentle sine waveform synchronized to the heartbeat rhythm
             ))
             phase1Time += period
         }
