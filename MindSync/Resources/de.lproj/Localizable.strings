@@ -180,15 +180,15 @@
 "mode.alpha.displayName" = "Alpha (8-12 Hz)";
 "mode.alpha.description" = "Entspannter Fokus, Stressabbau, ruhige Achtsamkeit";
 "mode.theta.displayName" = "Theta (4-8 Hz)";
-"mode.theta.description" = "Tiefe Kreativität, Meditation, Unterbewusstsein";
+"mode.theta.description" = "Tiefe Kreativität, Meditation, Selbstreflexion";
 "mode.gamma.displayName" = "Gamma (40 Hz)";
 "mode.gamma.description" = "Höchste Konzentration, Gedächtnis, kognitive Einsicht";
 "mode.cinematic.displayName" = "Cinematic (6,5 Hz)";
 "mode.cinematic.description" = "Flow State Sync – Audio-reaktive Immersion";
 "mode.dmnShutdown.displayName" = "DMN-Shutdown (4,5-40 Hz)";
-"mode.dmnShutdown.description" = "Ego-Dissolution: Tiefe Theta-Entspannung gefolgt von Gamma-Synchronisation für transzendente Zustände";
+"mode.dmnShutdown.description" = "Tiefe Entspannungsreise: Theta-Wellen gefolgt von Gamma-Synchronisation für fokussierte Achtsamkeit";
 "mode.beliefRewiring.displayName" = "Belief-Rewiring (5-40 Hz)";
-"mode.beliefRewiring.description" = "Glaubenssätze umprogrammieren: Theta-Open für Zugang zum Unterbewusstsein, Gamma-Sync für neuronale Umprogrammierung";
+"mode.beliefRewiring.description" = "Reflexionsmodus: Theta für tiefe Selbstreflexion, Gamma für fokussierte Klarheit";
 
 // MARK: - Safety Banner
 "safety.thermalReduced" = "Intensität reduziert wegen Gerätewärme";

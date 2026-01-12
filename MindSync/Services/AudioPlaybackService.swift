@@ -35,10 +35,11 @@ final class AudioPlaybackService: NSObject {
         return audioEngine
     }
 
-    /// Plays an audio file
+    /// Prepares audio for playback without starting it
+    /// This allows scheduling playback to start at a specific time for synchronization
     /// - Parameter url: URL of the audio file
-    /// - Throws: Error if playback is not possible
-    func play(url: URL) throws {
+    /// - Throws: Error if preparation is not possible
+    func prepare(url: URL) throws {
         stop()
         
         // Configure audio session to ensure audio plays even in silent mode
@@ -61,27 +62,99 @@ final class AudioPlaybackService: NSObject {
         // Connect player node to main mixer
         engine.connect(node, to: engine.mainMixerNode, format: file.processingFormat)
         
-        // Schedule file for playback
+        // Schedule file for playback (but don't start yet)
         node.scheduleFile(file, at: nil) { [weak self] in
             DispatchQueue.main.async {
                 self?.handlePlaybackComplete()
             }
         }
         
-        // Start engine
+        // Start engine (but don't start playback yet)
         try engine.start()
-        
-        // Start playback
-        node.play()
         
         // Store references
         audioEngine = engine
         playerNode = node
         
+        logger.info("Audio prepared for playback: \(url.lastPathComponent, privacy: .public)")
+    }
+    
+    /// Plays an audio file immediately
+    /// - Parameter url: URL of the audio file
+    /// - Throws: Error if playback is not possible
+    func play(url: URL) throws {
+        try prepare(url: url)
+        
+        // Start playback immediately
+        playerNode?.play()
+        
         // Track playback position for currentTime property
         startPlaybackTimer()
         
         logger.info("Audio playback started: \(url.lastPathComponent, privacy: .public)")
+    }
+    
+    /// Schedules audio playback to start at a specific future time
+    /// This enables Master Clock synchronization by aligning audio start with other systems
+    /// - Parameters:
+    ///   - futureStartTime: The Date when playback should start
+    ///   - Throws: Error if scheduling is not possible
+    func schedulePlayback(at futureStartTime: Date) throws {
+        guard let engine = audioEngine,
+              let node = playerNode,
+              let file = audioFile else {
+            throw NSError(
+                domain: "AudioPlaybackService",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Audio not prepared. Call prepare(url:) first."]
+            )
+        }
+        
+        // Calculate delay from now to future start time
+        let delay = futureStartTime.timeIntervalSinceNow
+        
+        guard delay >= 0 else {
+            throw NSError(
+                domain: "AudioPlaybackService",
+                code: 2,
+                userInfo: [NSLocalizedDescriptionKey: "Future start time must be in the future"]
+            )
+        }
+        
+        // Get current audio time from the engine
+        // If the engine hasn't rendered yet, use a zero time as baseline
+        let sampleRate = file.fileFormat.sampleRate
+        let nodeTime: AVAudioTime
+        if let lastRenderTime = node.lastRenderTime {
+            nodeTime = lastRenderTime
+        } else {
+            // Engine hasn't rendered yet, create a baseline time
+            nodeTime = AVAudioTime(sampleTime: 0, atRate: sampleRate)
+        }
+        
+        // Calculate the future AVAudioTime
+        // Convert delay (TimeInterval) to sample time at the file's sample rate
+        let delayInSamples = AVAudioFramePosition(delay * sampleRate)
+        let futureSampleTime = nodeTime.sampleTime + delayInSamples
+        
+        // Create AVAudioTime for the future start
+        let futureAudioTime = AVAudioTime(
+            sampleTime: futureSampleTime,
+            atRate: sampleRate
+        )
+        
+        // Start playback at the scheduled time
+        node.play(at: futureAudioTime)
+        
+        // Track playback position for currentTime property
+        // Adjust start time to account for the delay
+        playbackStartTime = futureStartTime
+        segmentStartTime = 0
+        
+        // Get file duration
+        fileDuration = Double(file.length) / sampleRate
+        
+        logger.info("Audio playback scheduled to start at: \(futureStartTime) (delay=\(delay)s, sampleTime=\(futureSampleTime))")
     }
 
     /// Stops playback

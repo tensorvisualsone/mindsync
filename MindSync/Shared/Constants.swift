@@ -59,7 +59,7 @@ enum AppConstants {
         static let title2 = Font.title2.bold()
         
         /// Title 3 (e.g., tertiary headers, card titles)
-        static let title3 = Font.title3
+        static let title3 = Font.title3.bold()
         
         /// Headline (e.g., button labels, important text)
         static let headline = Font.headline

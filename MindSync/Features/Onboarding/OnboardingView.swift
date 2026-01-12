@@ -46,7 +46,7 @@ struct OnboardingView: View {
                         Text(NSLocalizedString("onboarding.description", comment: ""))
                             .font(AppConstants.Typography.body)
                             .multilineTextAlignment(.center)
-                            .foregroundColor(.mindSyncSecondaryText)
+                            .foregroundStyle(Color.mindSyncSecondaryText)
                             .lineSpacing(4)
                             .padding(.horizontal, AppConstants.Spacing.md)
                     }

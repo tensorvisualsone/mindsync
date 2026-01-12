@@ -1367,14 +1367,20 @@ final class SessionViewModel: ObservableObject {
         let futureStartUptime = systemUptime + syncStartDelay
         let futureStartTime = Date(timeIntervalSinceNow: syncStartDelay)
         
-        logger.info("Master Clock: Future start time calculated (delay=\(syncStartDelay)s, uptime=\(systemUptime)s, futureUptime=\(futureStartUptime)s)")
+        logger.info("Master Clock: Future start time calculated (delay=\(syncStartDelay)s, uptime=\(systemUptime)s, futureUptime=\(futureStartUptime)s, futureStartTime=\(futureStartTime))")
 
         // Prepare all systems first (prewarm)
         logger.info("Preparing all systems for synchronized start")
         
-        // Start audio playback (but don't wait for it to actually start)
-        try audioPlayback.play(url: url)
-        logger.info("Audio playback initiated")
+        // Prepare audio for playback (load and schedule, but don't start yet)
+        try audioPlayback.prepare(url: url)
+        logger.info("Audio playback prepared (engine started, file scheduled)")
+        
+        // Schedule audio to start at the future start time
+        // This ensures audio start is aligned with the Master Clock synchronization
+        // Note: futureStartTime is used here - linter warning is a false positive
+        try audioPlayback.schedulePlayback(at: futureStartTime)
+        logger.info("Audio playback scheduled to start at futureStartTime: \(futureStartTime)")
 
         // Start light controller (preparation phase)
         let lightStartTask = Task {

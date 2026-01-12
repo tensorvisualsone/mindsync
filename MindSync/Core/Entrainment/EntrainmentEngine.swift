@@ -1035,12 +1035,12 @@ extension EntrainmentEngine {
         }
         currentTime += phase1Duration
         
-        // --- PHASE 2: THE ABYSS (12 Min) ---
+        // --- PHASE 2: THE ABYSS (3-12 Min) ---
         // Deep theta oscillation at 4.5 Hz
         // Continuous Haptics: Sinusförmige Modulation parallel zum Licht für "Unterwasser-Gefühl"
         // Statt stumpfer Events nutzen wir viele kleine Events mit Sine-Wellenform,
         // die zusammen eine kontinuierliche, schwellende Vibration erzeugen
-        let phase2Duration: TimeInterval = 720 // 12 Minuten
+        let phase2Duration: TimeInterval = 540 // 9 Minuten (3-12 Min)
         let phase2Frequency = 4.5 // 4.5 Hz Theta
         
         // Erstelle viele kleine Events (0.1s) mit Sine-Wellenform für flüssige Modulation
@@ -1081,6 +1081,11 @@ extension EntrainmentEngine {
             randomSeed = randomSeed &* 1103515245 &+ 12345
             let randomValue2 = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
             let variedIntensity: Float = 0.15 + Float(randomValue2 * 0.25) // 0.15-0.4
+            
+            // Dritter Seed-Advance für Synchronisation mit Light-Script (Light-Script verwendet diesen für Duration)
+            // Wir verwenden period (aus Frequenz berechnet) als Duration, aber müssen den Seed trotzdem vorantreiben
+            randomSeed = randomSeed &* 1103515245 &+ 12345
+            // randomValue3 wird nicht verwendet, aber Seed-Advance ist notwendig für PRNG-Synchronisation
             
             events.append(try VibrationEvent(
                 timestamp: currentTime + phase3Time,
