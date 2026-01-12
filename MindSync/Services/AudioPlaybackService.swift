@@ -453,6 +453,7 @@ final class AudioPlaybackService: NSObject {
     
     /// Gets the actual audio render start time from AVAudioPlayerNode's lastRenderTime
     /// Converts the audio hardware render time to a Date using mach timebase conversion
+    /// Uses playerTime.sampleTime to determine when playback actually started (sampleTime near 0 = just started)
     /// - Returns: The actual audio render start time as Date, or nil if not available
     private func getActualAudioRenderStartTime() -> Date? {
         guard let node = playerNode,
@@ -466,64 +467,108 @@ final class AudioPlaybackService: NSObject {
         var timebaseInfo = mach_timebase_info_data_t()
         mach_timebase_info(&timebaseInfo)
         
-        // Convert mach time to nanoseconds
+        // Calculate when playback actually started
+        // playerTime.sampleTime is the number of samples that have been rendered
+        // If sampleTime is small (e.g., < 0.1 seconds worth), playback just started
+        let samplesElapsed = Double(playerTime.sampleTime)
+        let secondsElapsed = samplesElapsed / playerTime.sampleRate
+        
+        // Convert the hostTime to Date
         let nanoseconds = (Double(nodeTime.hostTime) * Double(timebaseInfo.numer)) / Double(timebaseInfo.denom)
         
         // Convert nanoseconds to Date
         // mach_absolute_time() is relative to boot time, so we need to add boot time offset
         let bootTime = Date(timeIntervalSinceNow: -ProcessInfo.processInfo.systemUptime)
-        let actualStartTime = bootTime.addingTimeInterval(nanoseconds / 1_000_000_000.0)
+        let renderTime = bootTime.addingTimeInterval(nanoseconds / 1_000_000_000.0)
+        
+        // Subtract the elapsed playback time to get the actual start time
+        let actualStartTime = renderTime.addingTimeInterval(-secondsElapsed)
         
         return actualStartTime
     }
     
+    /// Checks if audio has actually started rendering by checking lastRenderTime
+    /// This is more reliable than checking isPlaying state, which may lag behind
+    /// - Returns: True if audio is rendering, false otherwise
+    private func isAudioActuallyRendering() -> Bool {
+        guard let node = playerNode,
+              let nodeTime = node.lastRenderTime,
+              let playerTime = node.playerTime(forNodeTime: nodeTime) else {
+            return false
+        }
+        
+        // Audio is rendering if we have a valid playerTime
+        // Check that sampleTime is reasonable (not negative and not too large)
+        return playerTime.sampleTime >= 0 && playerTime.sampleTime < Int64.max / 2
+    }
+    
     /// Waits for audio to actually start playing after being scheduled
     /// This is necessary because AVAudioPlayerNode.play(at:) may not start immediately
-    /// - Parameter timeout: Maximum time to wait in seconds (default: 5.0)
+    /// Uses direct checking of lastRenderTime for more reliable detection
+    /// - Parameter timeout: Maximum time to wait in seconds (default: 10.0)
     /// - Returns: The actual audio render start time (from hardware) if audio started, nil if timeout
-    func waitForPlaybackToStart(timeout: TimeInterval = 5.0) async -> Date? {
+    func waitForPlaybackToStart(timeout: TimeInterval = 10.0) async -> Date? {
         let waitStartTime = Date()
+        var lastCheckTime = waitStartTime
         
-        // Poll until audio is playing or timeout
-        while !isPlaying && Date().timeIntervalSince(waitStartTime) < timeout {
-            // Check if audio has actually started by checking preciseAudioTime
-            // This triggers state transition from scheduled to playing
-            _ = preciseAudioTime
-            
-            if isPlaying {
-                // Audio is playing, get the actual render start time from hardware
+        // Poll until audio is rendering or timeout
+        while Date().timeIntervalSince(waitStartTime) < timeout {
+            // Check if audio has actually started rendering by checking lastRenderTime directly
+            // This is more reliable than checking isPlaying state
+            if isAudioActuallyRendering() {
+                // Update state if needed
+                stateLock.lock()
+                if _playbackState == .scheduled {
+                    _playbackState = .playing
+                    stateLock.unlock()
+                    logger.info("Audio playback transitioned from scheduled to playing (detected via render time)")
+                } else {
+                    stateLock.unlock()
+                }
+                
+                // Audio is rendering, get the actual render start time from hardware
                 if let actualStartTime = getActualAudioRenderStartTime() {
                     let waitDuration = Date().timeIntervalSince(waitStartTime)
                     logger.info("Audio playback confirmed started after \(waitDuration)s wait, actual render start: \(actualStartTime)")
                     return actualStartTime
                 } else {
-                    // Fallback: use current time if hardware time not available
-                    let fallbackTime = Date()
+                    // Fallback: use current time minus a small offset if hardware time not available
+                    // This accounts for the fact that audio just started
+                    let fallbackTime = Date().addingTimeInterval(-0.1) // Assume 100ms ago
                     logger.info("Audio playback confirmed started but hardware time unavailable, using fallback: \(fallbackTime)")
                     return fallbackTime
                 }
             }
             
-            // Wait a short time before checking again (10ms polling interval)
-            try? await Task.sleep(nanoseconds: 10_000_000)
+            // Check if state changed (backup check)
+            if isPlaying {
+                // State says playing, but lastRenderTime might not be available yet
+                // Wait a bit more and check again
+                try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+                if isAudioActuallyRendering() {
+                    if let actualStartTime = getActualAudioRenderStartTime() {
+                        let waitDuration = Date().timeIntervalSince(waitStartTime)
+                        logger.info("Audio playback confirmed started after \(waitDuration)s wait, actual render start: \(actualStartTime)")
+                        return actualStartTime
+                    }
+                }
+            }
+            
+            // Wait a short time before checking again (50ms polling interval for better responsiveness)
+            try? await Task.sleep(nanoseconds: 50_000_000)
         }
         
-        if isPlaying {
-            // Audio is playing, get the actual render start time from hardware
+        // Final check after timeout
+        if isAudioActuallyRendering() {
             if let actualStartTime = getActualAudioRenderStartTime() {
                 let waitDuration = Date().timeIntervalSince(waitStartTime)
-                logger.info("Audio playback confirmed started after \(waitDuration)s wait, actual render start: \(actualStartTime)")
+                logger.info("Audio playback confirmed started after \(waitDuration)s wait (timeout reached), actual render start: \(actualStartTime)")
                 return actualStartTime
-            } else {
-                // Fallback: use current time if hardware time not available
-                let fallbackTime = Date()
-                logger.info("Audio playback confirmed started but hardware time unavailable, using fallback: \(fallbackTime)")
-                return fallbackTime
             }
-        } else {
-            logger.warning("Audio playback did not start within \(timeout)s timeout")
-            return nil
         }
+        
+        logger.warning("Audio playback did not start within \(timeout)s timeout")
+        return nil
     }
     
     /// Total duration of the currently loaded file

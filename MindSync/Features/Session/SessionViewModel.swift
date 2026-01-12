@@ -1462,7 +1462,8 @@ final class SessionViewModel: ObservableObject {
         // For DMN-Shutdown mode, this is especially important as the script is synchronized
         // to the audio timeline.
         logger.info("Waiting for audio playback to actually start...")
-        let actualAudioStartTime = await audioPlayback.waitForPlaybackToStart(timeout: 5.0)
+        // Use longer timeout (10s) to account for potential audio hardware delays
+        let actualAudioStartTime = await audioPlayback.waitForPlaybackToStart(timeout: 10.0)
         
         if let actualStartTime = actualAudioStartTime {
             // Audio started successfully - use the actual hardware render start time
@@ -1482,22 +1483,37 @@ final class SessionViewModel: ObservableObject {
             // Return actual audio render start time for vibration synchronization
             return actualStartTime
         } else {
-            // Audio did not start within timeout - use scheduled time as fallback
-            // The audio was scheduled precisely, so we use the scheduled time as the "truth"
-            logger.warning("Audio did not start within timeout, using scheduled time as fallback (may cause sync issues)")
-            
-            if lightControllerStarted {
-                // Fallback: Start LightScript execution synchronized to the scheduled start time
-                // The audio hardware should have started at futureStartTime (scheduled via schedulePlayback)
-                // Any delay is already accounted for in the scheduling
-                lightController.execute(script: script, syncedTo: synchronizedStartTime)
-                logger.info("startPlaybackAndLight: light script execution started with Master Clock synchronization (fallback)")
+            // Audio did not start within timeout - this is unusual
+            // Check if audio is actually playing now (might have started just after timeout)
+            if audioPlayback.isPlaying {
+                // Audio is playing but we didn't get the start time - use current time minus a small offset
+                let estimatedStartTime = Date().addingTimeInterval(-0.5) // Estimate 500ms ago
+                logger.warning("Audio is playing but start time unavailable, using estimated start time: \(estimatedStartTime)")
+                
+                if lightControllerStarted {
+                    lightController.execute(script: script, syncedTo: estimatedStartTime)
+                    logger.info("startPlaybackAndLight: light script execution started with estimated audio start time")
+                }
+                
+                return estimatedStartTime
             } else {
-                logger.info("startPlaybackAndLight: continuing in audio-only mode")
+                // Audio truly didn't start - use scheduled time as fallback
+                // The audio was scheduled precisely, so we use the scheduled time as the "truth"
+                logger.warning("Audio did not start within timeout, using scheduled time as fallback (may cause sync issues)")
+                
+                if lightControllerStarted {
+                    // Fallback: Start LightScript execution synchronized to the scheduled start time
+                    // The audio hardware should have started at futureStartTime (scheduled via schedulePlayback)
+                    // Any delay is already accounted for in the scheduling
+                    lightController.execute(script: script, syncedTo: synchronizedStartTime)
+                    logger.info("startPlaybackAndLight: light script execution started with Master Clock synchronization (fallback)")
+                } else {
+                    logger.info("startPlaybackAndLight: continuing in audio-only mode")
+                }
+                
+                // Return scheduled start time for vibration synchronization
+                return synchronizedStartTime
             }
-            
-            // Return scheduled start time for vibration synchronization
-            return synchronizedStartTime
         }
     }
 
