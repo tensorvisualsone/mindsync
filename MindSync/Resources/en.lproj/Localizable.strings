@@ -1,6 +1,8 @@
 /* 
- Localizable.strings (English)
+ Localizable.strings (English localization)
  MindSync
+ 
+ English localization strings (German is the base language in de.lproj)
 */
 
 // MARK: - Onboarding
@@ -34,6 +36,8 @@
 
 // MARK: - Source Selection
 "sourceSelection.title" = "Choose Audio Source";
+"sourceSelection.subtitle" = "Select your audio source";
+"sourceSelection.recommended" = "Recommended";
 "sourceSelection.musicLibrary" = "Music Library";
 "sourceSelection.musicLibraryDescription" = "Pick a song from your local library";
 "sourceSelection.musicLibraryButton" = "Select Music Library";
@@ -164,15 +168,21 @@
 "mode.alpha.displayName" = "Alpha (8-12 Hz)";
 "mode.alpha.description" = "Relaxed focus, stress relief, calm awareness";
 "mode.theta.displayName" = "Theta (4-8 Hz)";
-"mode.theta.description" = "Deep creativity, meditation, subconscious access";
+"mode.theta.description" = "Deep creativity, meditation, introspection";
 "mode.gamma.displayName" = "Gamma (40 Hz)";
 "mode.gamma.description" = "Peak concentration, memory, cognitive insight";
 "mode.cinematic.displayName" = "Cinematic (6.5 Hz)";
 "mode.cinematic.description" = "Flow state sync – audio-reactive immersion";
 "mode.dmnShutdown.displayName" = "DMN-Shutdown (4.5-40 Hz)";
-"mode.dmnShutdown.description" = "Ego-dissolution: Deep theta relaxation followed by gamma synchronization for transcendent states";
-"mode.beliefRewiring.displayName" = "Belief-Rewiring (5-40 Hz)";
-"mode.beliefRewiring.description" = "Reprogram beliefs: Theta-open for subconscious access, gamma-sync for neural reprogramming";
+"mode.dmnShutdown.description" = "Deep relaxation journey: Theta waves followed by gamma synchronization for focused awareness";
+/* NOTE:
+ The technical mode identifier remains "beliefRewiring" for compatibility
+ (e.g. persisted data, internal references), while the user-facing name is
+ "Reflection mode" in English and "Reflexionsmodus" in German. Do not rename
+ this key without updating all corresponding technical references.
+ */
+"mode.beliefRewiring.displayName" = "Reflection mode (5-40 Hz)";
+"mode.beliefRewiring.description" = "Reflection mode: Theta for deep introspection, gamma for focused clarity";
 
 // MARK: - Safety Banner
 "safety.thermalReduced" = "Intensity reduced due to device heat";

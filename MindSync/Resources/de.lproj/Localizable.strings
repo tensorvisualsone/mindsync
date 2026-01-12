@@ -36,6 +36,8 @@
 
 // MARK: - Source Selection
 "sourceSelection.title" = "Audioquelle auswählen";
+"sourceSelection.subtitle" = "Wähle deine Audioquelle";
+"sourceSelection.recommended" = "Empfohlen";
 "sourceSelection.musicLibrary" = "Musikbibliothek";
 "sourceSelection.musicLibraryDescription" = "Wähle einen Song aus deiner lokalen Musikbibliothek";
 "sourceSelection.musicLibraryButton" = "Musikbibliothek auswählen";
@@ -178,15 +180,20 @@
 "mode.alpha.displayName" = "Alpha (8-12 Hz)";
 "mode.alpha.description" = "Entspannter Fokus, Stressabbau, ruhige Achtsamkeit";
 "mode.theta.displayName" = "Theta (4-8 Hz)";
-"mode.theta.description" = "Tiefe Kreativität, Meditation, Unterbewusstsein";
+"mode.theta.description" = "Tiefe Kreativität, Meditation, Selbstreflexion";
 "mode.gamma.displayName" = "Gamma (40 Hz)";
 "mode.gamma.description" = "Höchste Konzentration, Gedächtnis, kognitive Einsicht";
 "mode.cinematic.displayName" = "Cinematic (6,5 Hz)";
 "mode.cinematic.description" = "Flow State Sync – Audio-reaktive Immersion";
 "mode.dmnShutdown.displayName" = "DMN-Shutdown (4,5-40 Hz)";
-"mode.dmnShutdown.description" = "Ego-Dissolution: Tiefe Theta-Entspannung gefolgt von Gamma-Synchronisation für transzendente Zustände";
-"mode.beliefRewiring.displayName" = "Belief-Rewiring (5-40 Hz)";
-"mode.beliefRewiring.description" = "Glaubenssätze umprogrammieren: Theta-Open für Zugang zum Unterbewusstsein, Gamma-Sync für neuronale Umprogrammierung";
+"mode.dmnShutdown.description" = "Tiefe Entspannungsreise: Theta-Wellen gefolgt von Gamma-Synchronisation für fokussierte Achtsamkeit";
+/* NOTE:
+   The technical mode identifier remains `beliefRewiring` in code for historical consistency,
+   while the user-facing name is localized as "Reflexionsmodus". The enum case name should not
+   be changed without also updating all persisted references and session history.
+ */
+"mode.beliefRewiring.displayName" = "Reflexionsmodus (5-40 Hz)";
+"mode.beliefRewiring.description" = "Reflexionsmodus: Theta für tiefe Selbstreflexion, Gamma für fokussierte Klarheit";
 
 // MARK: - Safety Banner
 "safety.thermalReduced" = "Intensität reduziert wegen Gerätewärme";

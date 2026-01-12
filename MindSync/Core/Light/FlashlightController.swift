@@ -61,12 +61,25 @@ final class FlashlightController: BaseLightController, LightControlling {
     private var fluxHistory: [Float] = []  // Longer history for adaptive threshold calculation
     private var lastPeakTime: TimeInterval = 0
     private let peakCooldownDuration: TimeInterval = 0.08  // 80ms minimum between peaks (prevents double-triggers)
-    private let peakRiseThreshold: Float = 0.04  // Minimum 4% rise above local average for peak (reduced from 0.08 for better sensitivity)
     private let maxFluxHistorySize = 10  // Keep last 10 flux values for local average calculation
     private let maxAdaptiveHistorySize = 200  // Keep last 200 flux values for adaptive threshold (~20 seconds at 10 Hz)
     private let absoluteMinimumThreshold: Float = 0.05  // Absolute minimum flux value to consider (reduced from 0.1 for better sensitivity)
-    private let fixedThreshold: Float = 0.08  // Fallback threshold when not enough history (reduced from 0.15 for better sensitivity)
     private let adaptiveThresholdMultiplier: Float = 0.25  // Use mean + 0.25 * stdDev (reduced from 0.4 for more sensitive peak detection)
+    
+    // Rolling Average Calibrator: Learns the dynamics of the song in the first 10 seconds
+    // Thread Safety: These calibration properties (including peakRiseThreshold and fixedThreshold)
+    // are only accessed from the precision timer thread, which runs on a serial dispatch queue.
+    // No additional synchronization is needed as long as all access remains on the same queue.
+    // ⚠️ WARNING: Do not access these properties from other threads without proper locking.
+    // This includes logging statements that read these values - all such logging must occur
+    // within the precision timer queue to avoid race conditions and undefined behavior.
+    // All calibration state must be read/written exclusively from the precision timer queue.
+    private var calibrationStartTime: TimeInterval = -1.0  // -1 means: not yet started
+    private let calibrationDuration: TimeInterval = 10.0  // 10 seconds calibration duration
+    private var calibrationFluxValues: [Float] = []  // Flux values collected during calibration
+    private var isCalibrated: Bool = false  // Whether calibration has completed
+    private var peakRiseThreshold: Float = 0.04  // Dynamically adjusted by calibration
+    private var fixedThreshold: Float = 0.08  // Fallback threshold (dynamically adjusted by calibration)
     
     /// Precision timer interval shared across light controllers
     /// OPTIMIZED FOR LAMBDA: 1ms (1000 Hz) resolution needed for stable 100 Hz output.
@@ -227,6 +240,15 @@ final class FlashlightController: BaseLightController, LightControlling {
         recentFluxValues.removeAll()
         fluxHistory.removeAll()
         lastPeakTime = 0
+        // Reset calibration state
+        // Calibration is intentionally reset on each session start to allow adaptation
+        // to different music tracks or playlists. This ensures the cinematic mode
+        // optimizes its sensitivity for whatever the user plays next.
+        calibrationStartTime = -1.0
+        calibrationFluxValues.removeAll()
+        isCalibrated = false
+        peakRiseThreshold = 0.04  // Reset to default
+        fixedThreshold = 0.08  // Reset to default
         // Reset debug logging timestamp
         lastAudioLogTime = -1.0
         noEventLogCount = 0
@@ -359,6 +381,14 @@ final class FlashlightController: BaseLightController, LightControlling {
 
     func execute(script: LightScript, syncedTo startTime: Date) {
         initializeScriptExecution(script: script, startTime: startTime)
+        
+        // Start calibration for cinematic mode
+        if script.mode == .cinematic {
+            calibrationStartTime = ProcessInfo.processInfo.systemUptime
+            calibrationFluxValues.removeAll()
+            isCalibrated = false
+            logger.info("Cinematic mode: Starting 10-second calibration period")
+        }
 
         setupPrecisionTimer(interval: precisionInterval) { [weak self] in
             self?.updateLight()
@@ -376,6 +406,13 @@ final class FlashlightController: BaseLightController, LightControlling {
         recentFluxValues.removeAll()
         fluxHistory.removeAll()
         lastPeakTime = 0
+        // Reset calibration state (also happens on stop())
+        // Calibration is intentionally reset to allow adaptation to different music
+        calibrationStartTime = -1.0
+        calibrationFluxValues.removeAll()
+        isCalibrated = false
+        peakRiseThreshold = 0.04  // Reset to default
+        fixedThreshold = 0.08  // Reset to default
         // Reset debug logging timestamp
         lastAudioLogTime = -1.0
         noEventLogCount = 0
@@ -442,6 +479,44 @@ final class FlashlightController: BaseLightController, LightControlling {
                 if let tracker = audioEnergyTracker {
                     // Use spectral flux for peak detection (better beat detection)
                     let rawEnergy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
+                    
+                    // ROLLING AVERAGE CALIBRATOR: Learn the dynamics of the song in the first 10 seconds
+                    // This calibration helps cinematic mode adapt to different music genres automatically.
+                    // Recalibration occurs on each session restart to adapt to playlist changes.
+                    let currentUptime = ProcessInfo.processInfo.systemUptime
+                    if calibrationStartTime >= 0 && !isCalibrated {
+                        let calibrationElapsed = currentUptime - calibrationStartTime
+                        
+                        if calibrationElapsed < calibrationDuration {
+                            // Collect flux values during calibration
+                            calibrationFluxValues.append(rawEnergy)
+                        } else if calibrationFluxValues.count > 0 {
+                            // Calibration complete: Calculate optimal thresholds
+                            let mean = calibrationFluxValues.reduce(0, +) / Float(calibrationFluxValues.count)
+                            let variance = calibrationFluxValues.map { pow($0 - mean, 2) }.reduce(0, +) / Float(calibrationFluxValues.count)
+                            let stdDev = sqrt(variance)
+                            let maxFlux = calibrationFluxValues.max() ?? 0.0
+                            let minFlux = calibrationFluxValues.min() ?? 0.0
+                            let dynamicRange = maxFlux - minFlux
+                            
+                            // High dynamics (beats): Set threshold higher (only kicks trigger light)
+                            // Low dynamics (drone/ambient): Set threshold lower and use soft transitions
+                            if dynamicRange > 0.15 {
+                                // High dynamics (techno, EDM, rock): Higher threshold for clear beat detection
+                                peakRiseThreshold = 0.06  // Increased from 0.04
+                                fixedThreshold = 0.12  // Increased from 0.08
+                                logger.info("Cinematic calibration: High dynamics detected (range=\(dynamicRange)), using higher thresholds")
+                            } else {
+                                // Low dynamics (ambient, drone): Lower threshold for more subtle reaction
+                                peakRiseThreshold = 0.02  // Reduced from 0.04
+                                fixedThreshold = 0.05  // Reduced from 0.08
+                                logger.info("Cinematic calibration: Low dynamics detected (range=\(dynamicRange)), using lower thresholds")
+                            }
+                            
+                            isCalibrated = true
+                            logger.info("Cinematic calibration complete: mean=\(mean), stdDev=\(stdDev), range=\(dynamicRange), threshold=\(peakRiseThreshold)")
+                        }
+                    }
                     
                     // Build local average buffer for peak detection (fast response)
                     recentFluxValues.append(rawEnergy)

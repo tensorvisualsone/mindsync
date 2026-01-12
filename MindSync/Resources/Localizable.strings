@@ -36,6 +36,8 @@
 
 // MARK: - Source Selection
 "sourceSelection.title" = "Audioquelle auswählen";
+"sourceSelection.subtitle" = "Wähle deine Audioquelle";
+"sourceSelection.recommended" = "Empfohlen";
 "sourceSelection.musicLibrary" = "Musikbibliothek";
 "sourceSelection.musicLibraryDescription" = "Wähle einen Song aus deiner lokalen Musikbibliothek";
 "sourceSelection.musicLibraryButton" = "Musikbibliothek auswählen";
@@ -69,9 +71,11 @@
 "session.screenController.error" = "Fehler beim Wechseln zum bildschirmbasierten Lichtcontroller";
 "session.affirmation.waiting" = "Affirmation wird nach 5 Minuten im Theta-Modus abgespielt.";
 "session.affirmation.playing" = "Affirmation läuft – entspanne dich und lausche.";
+"session.cinematic.liveMode" = "Cinematic Modus: Live-Reaktion ohne Latenz-Kompensation";
 "session.pauseAccessibility" = "Sitzung pausieren";
 "session.resumeAccessibility" = "Sitzung fortsetzen";
 "session.stopAccessibility" = "Sitzung stoppen";
+"session.frequencyBpm" = "%d Hz • %d BPM";
 
 // MARK: - Analysis Progress
 "analysis.loading" = "Audio wird geladen...";
@@ -98,10 +102,10 @@
 "settings.thermalProtection" = "Thermischer Schutz";
 "settings.hapticFeedback" = "Haptisches Feedback";
 "settings.hapticFeedbackDescription" = "Kurzes haptisches Feedback für UI-Interaktionen (Buttons, Start/Stop)";
-"settings.vibration" = "Sitzungs-Vibration";
+"settings.vibration" = "Sitzungsvibration";
 "settings.vibrationDescription" = "Kontinuierliche Vibration synchron mit Audio und Licht während der Sitzung";
-"settings.vibrationEnabled" = "Sitzungs-Vibration aktivieren";
-"settings.vibrationIntensity" = "Vibrations-Intensität";
+"settings.vibrationEnabled" = "Sitzungsvibration aktivieren";
+"settings.vibrationIntensity" = "Vibrationsintensität";
 "settings.intensity" = "Intensität";
 "settings.defaultIntensity" = "Standard-Intensität";
 "settings.intensityDescription" = "Standard-Helligkeit für Stroboskoplicht (betrifft nur Taschenlampe).";
@@ -113,9 +117,16 @@
 "settings.session" = "Sitzung & Analyse";
 "settings.sessionDescription" = "Begrenzt die maximale Dauer von Taschenlampen-Sessions, um Überhitzung zu vermeiden.";
 "settings.quickAnalysis" = "Schnellanalyse";
-"settings.quickAnalysisDescription" = "Aktiviert die Schnellanalyse für alle Titel und reduziert die Analysezeit durch schnellere Beat-Erkennung. Titel mit mehr als 10 Minuten Länge verwenden Schnellanalyse immer automatisch – unabhängig von dieser Einstellung.";
+"settings.quickAnalysisDescription" = "Reduziert die Analysezeit für Audiotracks durch schnellere Beat-Erkennung. Titel über 10 Minuten verwenden automatisch Schnellanalyse.";
 "settings.maxDuration" = "Maximale Dauer";
 "settings.duration.unlimited" = "Kein Limit";
+"settings.duration.5min" = "5 Min";
+"settings.duration.10min" = "10 Min";
+"settings.duration.15min" = "15 Min";
+"settings.audio" = "Audio-Synchronisation";
+"settings.audioDescription" = "Kalibriere die Audio-Latenz für perfekte Synchronisation zwischen Ton und Licht, besonders wichtig bei Bluetooth-Kopfhörern.";
+"settings.latencyCalibration" = "Latenz-Kalibrierung";
+"settings.latencyCalibration.current" = "Aktuell: %d ms";
 "settings.history" = "Sitzungshistorie";
 "settings.invalidAudioFile" = "Die ausgewählte Datei ist keine gültige oder abspielbare Audiodatei";
 "settings.importError" = "Fehler beim Importieren der Datei";
@@ -169,13 +180,15 @@
 "mode.alpha.displayName" = "Alpha (8-12 Hz)";
 "mode.alpha.description" = "Entspannter Fokus, Stressabbau, ruhige Achtsamkeit";
 "mode.theta.displayName" = "Theta (4-8 Hz)";
-"mode.theta.description" = "Tiefe Kreativität, Meditation, Unterbewusstsein";
+"mode.theta.description" = "Tiefe Kreativität, Meditation, Selbstreflexion";
 "mode.gamma.displayName" = "Gamma (40 Hz)";
 "mode.gamma.description" = "Höchste Konzentration, Gedächtnis, kognitive Einsicht";
 "mode.cinematic.displayName" = "Cinematic (6,5 Hz)";
 "mode.cinematic.description" = "Flow State Sync – Audio-reaktive Immersion";
 "mode.dmnShutdown.displayName" = "DMN-Shutdown (4,5-40 Hz)";
-"mode.dmnShutdown.description" = "Ego-Dissolution: Tiefe Theta-Entspannung gefolgt von Gamma-Synchronisation für transzendente Zustände";
+"mode.dmnShutdown.description" = "Tiefe Entspannungsreise: Theta-Wellen gefolgt von Gamma-Synchronisation für fokussierte Achtsamkeit";
+"mode.beliefRewiring.displayName" = "Reflexionsmodus (5-40 Hz)";
+"mode.beliefRewiring.description" = "Reflexionsmodus: Theta für tiefe Selbstreflexion, Gamma für fokussierte Klarheit";
 
 // MARK: - Safety Banner
 "safety.thermalReduced" = "Intensität reduziert wegen Gerätewärme";
@@ -200,8 +213,10 @@
 "error.audio.unsupportedFormat" = "Audioformat wird nicht unterstützt.";
 "error.audio.analysisFailure" = "Analyse fehlgeschlagen: %@";
 "error.audio.cancelled" = "Analyse abgebrochen.";
+"error.dmnShutdown.audioFileNotFound" = "Master-Audio-File 'void_master.mp3' nicht im Bundle gefunden. Bitte sicherstellen, dass die Datei zum App-Bundle hinzugefügt wurde.";
 "status.audio.cancelled" = "Analyse wurde abgebrochen.";
 "status.vibration.unavailable" = "Vibration ist nicht verfügbar. Session wird ohne Vibration fortgesetzt.";
+"status.light.failed" = "Lichtsynchronisation fehlgeschlagen. Session wird nur mit Audio fortgesetzt.";
 "error.audio.fileTooLong" = "Audiodatei ist zu lang (%d Minuten). Die maximal unterstützte Länge beträgt 120 Minuten.";
 "error.audio.corruptedData" = "Die Audiodaten wirken beschädigt oder leer. Bitte wähle einen anderen Titel.";
 "error.audio.timeout" = "Die Audio-Analyse hat ungewöhnlich lange gedauert und wurde abgebrochen. Bitte wähle einen kürzeren Titel oder versuche es erneut.";
@@ -210,6 +225,11 @@
 "error.file.validationFailed" = "Fehler beim Prüfen der Audiodatei: %@";
 "error.file.selectionFailed" = "Fehler beim Auswählen der Datei: %@";
 "error.file.saveFailed" = "Datei konnte nicht gespeichert werden. Bitte stelle sicher, dass du Zugriff auf die Datei hast.";
+"error.vibration.hapticsUnavailable" = "Dieses Gerät unterstützt keine Haptik. Vibration ist nicht verfügbar.";
+"error.vibration.engineCreationFailed" = "Haptikmodul konnte nicht initialisiert werden. Vibration ist nicht verfügbar.";
+"error.vibration.scriptGenerationFailed" = "Vibrationsskript konnte nicht erstellt werden. Bitte versuche es erneut.";
+"error.vibrationScript.invalidTargetFrequency" = "Ungültige Zielfrequenz: %f Hz. Die Frequenz muss endlich und größer als null sein.";
+"error.vibrationScript.invalidMultiplier" = "Ungültiger Multiplikator: %d. Der Multiplikator muss größer als null sein.";
 
 // MARK: - Frequency Validation
 "frequency.tooLow" = "Frequenz zu niedrig (Minimum: %d Hz)";
@@ -222,7 +242,7 @@
 "common.close" = "Schließen";
 "common.dismiss" = "Schließen";
 "common.back" = "Zurück";
-"common.home" = "Home";
+"common.home" = "Startseite";
 "common.open" = "Öffnen";
 "common.error" = "Fehler";
 

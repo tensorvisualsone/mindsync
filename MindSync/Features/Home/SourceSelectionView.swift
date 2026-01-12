@@ -19,82 +19,77 @@ struct SourceSelectionView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: AppConstants.Spacing.sectionSpacing) {
-                Text(NSLocalizedString("sourceSelection.title", comment: ""))
-                    .font(AppConstants.Typography.title)
-                    .accessibilityIdentifier("sourceSelection.title")
-                
-                // Direct file selection (RECOMMENDED)
-                Button(action: {
-                    HapticFeedback.light()
-                    showingFilePicker = true
-                }) {
-                    VStack(spacing: AppConstants.Spacing.md) {
-                        Image(systemName: "folder.fill")
-                            .font(.system(size: AppConstants.IconSize.extraLarge))
-                            .foregroundColor(.mindSyncSuccess)
-                        Text(NSLocalizedString("sourceSelection.filePicker.title", comment: ""))
-                            .font(AppConstants.Typography.headline)
-                        Text(NSLocalizedString("sourceSelection.filePicker.description", comment: ""))
-                            .font(AppConstants.Typography.caption)
+            ScrollView {
+                VStack(spacing: AppConstants.Spacing.xl) {
+                    // Header
+                    VStack(spacing: AppConstants.Spacing.sm) {
+                        Text(NSLocalizedString("sourceSelection.title", comment: ""))
+                            .font(AppConstants.Typography.title)
+                            .accessibilityIdentifier("sourceSelection.title")
+                        
+                        Text(NSLocalizedString("sourceSelection.subtitle", comment: "Subtitle for source selection"))
+                            .font(AppConstants.Typography.subheadline)
                             .foregroundColor(.mindSyncSecondaryText)
                             .multilineTextAlignment(.center)
-                        
-                        Text(NSLocalizedString("sourceSelection.filePicker.advantage", comment: ""))
-                            .font(AppConstants.Typography.caption2)
-                            .foregroundColor(.mindSyncSuccess)
-                            .multilineTextAlignment(.center)
-                            .padding(.top, AppConstants.Spacing.xs)
+                            .padding(.horizontal, AppConstants.Spacing.md)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(AppConstants.Spacing.md)
-                    .mindSyncCardStyle()
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("sourceSelection.filePickerButton")
-                
-                // Local music library
-                Button(action: {
-                    HapticFeedback.light()
-                    requestMediaLibraryAccess()
-                }) {
+                    .padding(.top, AppConstants.Spacing.lg)
+                    
+                    // Source Selection Cards
                     VStack(spacing: AppConstants.Spacing.md) {
-                        Image(systemName: "music.note.list")
-                            .font(.system(size: AppConstants.IconSize.extraLarge))
-                            .foregroundColor(.mindSyncInfo)
-                        Text(NSLocalizedString("sourceSelection.musicLibrary", comment: ""))
-                            .font(AppConstants.Typography.headline)
-                        Text(NSLocalizedString("sourceSelection.musicLibraryDescription", comment: ""))
-                            .font(AppConstants.Typography.caption)
-                            .foregroundColor(.mindSyncSecondaryText)
-                            .multilineTextAlignment(.center)
+                        // File Picker Card (Recommended)
+                        SourceCard(
+                            icon: "folder.fill",
+                            iconColor: .mindSyncSuccess,
+                            title: NSLocalizedString("sourceSelection.filePicker.title", comment: ""),
+                            description: NSLocalizedString("sourceSelection.filePicker.description", comment: ""),
+                            badge: NSLocalizedString("sourceSelection.filePicker.advantage", comment: ""),
+                            badgeColor: .mindSyncSuccess,
+                            isRecommended: true,
+                            action: {
+                                HapticFeedback.light()
+                                showingFilePicker = true
+                            }
+                        )
+                        .accessibilityIdentifier("sourceSelection.filePickerButton")
                         
-                        // Warning about DRM
-                        Text(NSLocalizedString("sourceSelection.musicLibrary.drmWarning", comment: ""))
-                            .font(AppConstants.Typography.caption2)
-                            .foregroundColor(.mindSyncWarning)
-                            .multilineTextAlignment(.center)
-                            .padding(.top, AppConstants.Spacing.xs)
+                        // Music Library Card
+                        SourceCard(
+                            icon: "music.note.list",
+                            iconColor: .mindSyncInfo,
+                            title: NSLocalizedString("sourceSelection.musicLibrary", comment: ""),
+                            description: NSLocalizedString("sourceSelection.musicLibraryDescription", comment: ""),
+                            badge: NSLocalizedString("sourceSelection.musicLibrary.drmWarning", comment: ""),
+                            badgeColor: .mindSyncWarning,
+                            isRecommended: false,
+                            isDisabled: authorizationStatus == .denied,
+                            action: {
+                                HapticFeedback.light()
+                                requestMediaLibraryAccess()
+                            }
+                        )
+                        .accessibilityIdentifier("sourceSelection.musicLibraryButton")
+                        .accessibilityLabel(NSLocalizedString("sourceSelection.musicLibraryButton", comment: ""))
+                        .accessibilityHint(NSLocalizedString("sourceSelection.musicLibraryHint", comment: ""))
+                        
+                        if authorizationStatus == .denied {
+                            HStack(spacing: AppConstants.Spacing.sm) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .foregroundColor(.mindSyncError)
+                                    .font(.system(size: AppConstants.IconSize.small))
+                                Text(NSLocalizedString("sourceSelection.musicLibraryDenied", comment: "Message shown when music library access is denied"))
+                                    .font(AppConstants.Typography.caption)
+                                    .foregroundColor(.mindSyncError)
+                            }
+                            .padding(AppConstants.Spacing.md)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .mindSyncCardStyle()
+                        }
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(AppConstants.Spacing.md)
-                    .mindSyncCardStyle()
+                    .padding(.horizontal, AppConstants.Spacing.md)
                 }
-                .buttonStyle(.plain)
-                .disabled(authorizationStatus == .denied)
-                .accessibilityIdentifier("sourceSelection.musicLibraryButton")
-                .accessibilityLabel(NSLocalizedString("sourceSelection.musicLibraryButton", comment: ""))
-                .accessibilityHint(NSLocalizedString("sourceSelection.musicLibraryHint", comment: ""))
-                
-                if authorizationStatus == .denied {
-                    Text(NSLocalizedString("sourceSelection.musicLibraryDenied", comment: "Message shown when music library access is denied"))
-                        .font(AppConstants.Typography.caption)
-                        .foregroundColor(.mindSyncError)
-                        .multilineTextAlignment(.center)
-                        .padding(AppConstants.Spacing.md)
-                }
+                .padding(.bottom, AppConstants.Spacing.lg)
             }
-            .padding(AppConstants.Spacing.md)
             .navigationTitle(NSLocalizedString("sourceSelection.title", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingMediaPicker) {
@@ -336,6 +331,83 @@ struct MediaPickerView: UIViewControllerRepresentable {
                 self.onCancel()
             }
         }
+    }
+}
+
+// MARK: - Source Card Component
+
+private struct SourceCard: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let description: String
+    let badge: String?
+    let badgeColor: Color?
+    let isRecommended: Bool
+    var isDisabled: Bool = false
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: AppConstants.Spacing.md) {
+                HStack(alignment: .top) {
+                    // Icon
+                    ZStack {
+                        Circle()
+                            .fill(iconColor.opacity(0.2))
+                            .frame(width: 60, height: 60)
+                        
+                        Image(systemName: icon)
+                            .font(.system(size: 30, weight: .semibold))
+                            .foregroundColor(iconColor)
+                    }
+                    
+                    Spacer()
+                    
+                    // Recommended Badge
+                    if isRecommended {
+                        Text(NSLocalizedString("sourceSelection.recommended", comment: "Recommended badge"))
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, AppConstants.Spacing.sm)
+                            .padding(.vertical, AppConstants.Spacing.xs)
+                            .background(
+                                Capsule()
+                                    .fill(iconColor)
+                            )
+                    }
+                }
+                
+                VStack(alignment: .leading, spacing: AppConstants.Spacing.xs) {
+                    Text(title)
+                        .font(AppConstants.Typography.headline)
+                        .foregroundColor(.mindSyncPrimaryText)
+                    
+                    Text(description)
+                        .font(AppConstants.Typography.caption)
+                        .foregroundColor(.mindSyncSecondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                    
+                    if let badge = badge, let badgeColor = badgeColor {
+                        HStack(spacing: AppConstants.Spacing.xs) {
+                            Image(systemName: "info.circle.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(badgeColor)
+                            Text(badge)
+                                .font(AppConstants.Typography.caption2)
+                                .foregroundColor(badgeColor)
+                        }
+                        .padding(.top, AppConstants.Spacing.xs)
+                    }
+                }
+            }
+            .padding(AppConstants.Spacing.lg)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .mindSyncCardStyle()
+            .opacity(isDisabled ? 0.6 : 1.0)
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
     }
 }
 
