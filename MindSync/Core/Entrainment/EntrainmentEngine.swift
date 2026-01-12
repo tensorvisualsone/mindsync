@@ -1096,11 +1096,11 @@ extension EntrainmentEngine {
         }
         currentTime += phase3Duration
         
-        // --- PHASE 4: THE VOID / UNIVERSE (20-30 Min) ---
+        // --- PHASE 4: THE VOID / UNIVERSE (20.5-30 Min) ---
         // VIBRATION AUS - totale Stille im Körper, nur Licht im Kopf
         // "Körper schläft, Geist ist wach" - das erzeugt das Gefühl der Dissoziation
         // Keine Events in Phase 4 - Vibration bleibt aus
-        let phase4Duration: TimeInterval = 600 // 10 minutes (20-30 Min)
+        let phase4Duration: TimeInterval = 570 // 9.5 minutes (20.5-30 Min)
         // Vibration bleibt komplett aus - keine Events erstellt
         currentTime += phase4Duration
         
