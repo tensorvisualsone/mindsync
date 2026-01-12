@@ -451,22 +451,57 @@ final class AudioPlaybackService: NSObject {
         return playbackState == .scheduled
     }
     
+    /// Gets the actual audio render start time from AVAudioPlayerNode's lastRenderTime
+    /// Converts the audio hardware render time to a Date using mach timebase conversion
+    /// - Returns: The actual audio render start time as Date, or nil if not available
+    private func getActualAudioRenderStartTime() -> Date? {
+        guard let node = playerNode,
+              let nodeTime = node.lastRenderTime,
+              let playerTime = node.playerTime(forNodeTime: nodeTime) else {
+            return nil
+        }
+        
+        // Convert hostTime (mach_absolute_time) to Date
+        // hostTime is in mach time units, need to convert to nanoseconds then to Date
+        var timebaseInfo = mach_timebase_info_data_t()
+        mach_timebase_info(&timebaseInfo)
+        
+        // Convert mach time to nanoseconds
+        let nanoseconds = (Double(nodeTime.hostTime) * Double(timebaseInfo.numer)) / Double(timebaseInfo.denom)
+        
+        // Convert nanoseconds to Date
+        // mach_absolute_time() is relative to boot time, so we need to add boot time offset
+        let bootTime = Date(timeIntervalSinceNow: -ProcessInfo.processInfo.systemUptime)
+        let actualStartTime = bootTime.addingTimeInterval(nanoseconds / 1_000_000_000.0)
+        
+        return actualStartTime
+    }
+    
     /// Waits for audio to actually start playing after being scheduled
     /// This is necessary because AVAudioPlayerNode.play(at:) may not start immediately
     /// - Parameter timeout: Maximum time to wait in seconds (default: 5.0)
-    /// - Returns: True if audio started playing, false if timeout was reached
-    func waitForPlaybackToStart(timeout: TimeInterval = 5.0) async -> Bool {
-        let startTime = Date()
+    /// - Returns: The actual audio render start time (from hardware) if audio started, nil if timeout
+    func waitForPlaybackToStart(timeout: TimeInterval = 5.0) async -> Date? {
+        let waitStartTime = Date()
         
         // Poll until audio is playing or timeout
-        while !isPlaying && Date().timeIntervalSince(startTime) < timeout {
+        while !isPlaying && Date().timeIntervalSince(waitStartTime) < timeout {
             // Check if audio has actually started by checking preciseAudioTime
             // This triggers state transition from scheduled to playing
             _ = preciseAudioTime
             
             if isPlaying {
-                logger.info("Audio playback confirmed started after \(Date().timeIntervalSince(startTime))s wait")
-                return true
+                // Audio is playing, get the actual render start time from hardware
+                if let actualStartTime = getActualAudioRenderStartTime() {
+                    let waitDuration = Date().timeIntervalSince(waitStartTime)
+                    logger.info("Audio playback confirmed started after \(waitDuration)s wait, actual render start: \(actualStartTime)")
+                    return actualStartTime
+                } else {
+                    // Fallback: use current time if hardware time not available
+                    let fallbackTime = Date()
+                    logger.info("Audio playback confirmed started but hardware time unavailable, using fallback: \(fallbackTime)")
+                    return fallbackTime
+                }
             }
             
             // Wait a short time before checking again (10ms polling interval)
@@ -474,11 +509,20 @@ final class AudioPlaybackService: NSObject {
         }
         
         if isPlaying {
-            logger.info("Audio playback confirmed started after \(Date().timeIntervalSince(startTime))s wait")
-            return true
+            // Audio is playing, get the actual render start time from hardware
+            if let actualStartTime = getActualAudioRenderStartTime() {
+                let waitDuration = Date().timeIntervalSince(waitStartTime)
+                logger.info("Audio playback confirmed started after \(waitDuration)s wait, actual render start: \(actualStartTime)")
+                return actualStartTime
+            } else {
+                // Fallback: use current time if hardware time not available
+                let fallbackTime = Date()
+                logger.info("Audio playback confirmed started but hardware time unavailable, using fallback: \(fallbackTime)")
+                return fallbackTime
+            }
         } else {
             logger.warning("Audio playback did not start within \(timeout)s timeout")
-            return false
+            return nil
         }
     }
     

@@ -40,7 +40,7 @@ struct VibrationScript: Codable, Identifiable {
     
     // MARK: - Codable
     
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
         // Decode all properties
