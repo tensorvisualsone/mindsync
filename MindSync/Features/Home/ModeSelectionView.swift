@@ -155,14 +155,23 @@ private struct ModeCard: View {
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
             .animation(.spring(response: 0.2, dampingFraction: 0.8), value: isPressed)
         }
-        .buttonStyle(.plain)
-        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
-            isPressed = pressing
-        }, perform: {})
+        .buttonStyle(PressableButtonStyle(isPressed: $isPressed))
         .accessibilityIdentifier("modeCard.\(mode.rawValue)")
         .accessibilityLabel(mode.displayName)
         .accessibilityHint(isSelected ? NSLocalizedString("modeSelection.selectedMode", comment: "") : NSLocalizedString("modeSelection.selectMode", comment: ""))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+/// Custom button style that tracks press state for visual feedback
+private struct PressableButtonStyle: ButtonStyle {
+    @Binding var isPressed: Bool
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .onChange(of: configuration.isPressed) { _, newValue in
+                isPressed = newValue
+            }
     }
 }
 

@@ -2,7 +2,7 @@
  Localizable.strings (English localization)
  MindSync
  
- English localization strings (base language is German)
+ English localization strings (German is the base language in de.lproj)
 */
 
 // MARK: - Onboarding
@@ -175,6 +175,12 @@
 "mode.cinematic.description" = "Flow state sync – audio-reactive immersion";
 "mode.dmnShutdown.displayName" = "DMN-Shutdown (4.5-40 Hz)";
 "mode.dmnShutdown.description" = "Deep relaxation journey: Theta waves followed by gamma synchronization for focused awareness";
+/* NOTE:
+ The technical mode identifier remains "beliefRewiring" for compatibility
+ (e.g. persisted data, internal references), while the user-facing name is
+ "Reflection mode" in English and "Reflexionsmodus" in German. Do not rename
+ this key without updating all corresponding technical references.
+ */
 "mode.beliefRewiring.displayName" = "Reflection mode (5-40 Hz)";
 "mode.beliefRewiring.description" = "Reflection mode: Theta for deep introspection, gamma for focused clarity";
 
