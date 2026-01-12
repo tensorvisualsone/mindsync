@@ -158,9 +158,13 @@ final class AudioPlaybackService: NSObject {
             currentSampleRate = sampleRate
         }
         
-        // Convert delay to host ticks for precise scheduling
-        let delayInHostTicks = AVAudioTime.hostTime(forSeconds: delay)
-        let futureHostTime = currentHostTime + UInt64(delayInHostTicks)
+        // Convert delay (seconds) to host ticks for precise scheduling using mach timebase
+        var timebaseInfo = mach_timebase_info_data_t()
+        mach_timebase_info(&timebaseInfo)
+        let nanosecondsPerTick = Double(timebaseInfo.numer) / Double(timebaseInfo.denom)
+        let delayInNanoseconds = delay * 1_000_000_000.0
+        let delayInHostTicks = UInt64(delayInNanoseconds / nanosecondsPerTick)
+        let futureHostTime = currentHostTime &+ delayInHostTicks
         
         // Calculate future sample time at the current render sample rate
         let delayInSamples = AVAudioFramePosition(delay * currentSampleRate)
