@@ -187,9 +187,11 @@
 "mode.cinematic.description" = "Flow State Sync – Audio-reaktive Immersion";
 "mode.dmnShutdown.displayName" = "DMN-Shutdown (4,5-40 Hz)";
 "mode.dmnShutdown.description" = "Tiefe Entspannungsreise: Theta-Wellen gefolgt von Gamma-Synchronisation für fokussierte Achtsamkeit";
-// NOTE: The technical mode identifier remains `beliefRewiring` in code for historical consistency,
-// while the user-facing name is localized as "Reflexionsmodus". The enum case name should not
-// be changed without also updating all persisted references and session history.
+/* NOTE:
+   The technical mode identifier remains `beliefRewiring` in code for historical consistency,
+   while the user-facing name is localized as "Reflexionsmodus". The enum case name should not
+   be changed without also updating all persisted references and session history.
+ */
 "mode.beliefRewiring.displayName" = "Reflexionsmodus (5-40 Hz)";
 "mode.beliefRewiring.description" = "Reflexionsmodus: Theta für tiefe Selbstreflexion, Gamma für fokussierte Klarheit";
 

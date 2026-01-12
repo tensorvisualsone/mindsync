@@ -873,9 +873,13 @@ extension EntrainmentEngine {
     /// - Phase 1: ENTRY (0-3 Min) - 10 Hz Alpha, soft sine waves
     /// - Phase 2: THE ABYSS / VACUUM (3-12 Min) - 4.5 Hz Theta, dim to 0.1 (no black pauses)
     /// - Phase 3: DISSOLUTION (12-20 Min) - Randomized intervals (variability breaks expectation)
-    /// - Phase 4: THE VOID / UNIVERSE (20-29 Min) - 40 Hz Gamma burst, maximum brightness
+    /// - Transition: (20-20.5 Min) - Smooth ramp from Theta to 40 Hz Gamma
+    /// - Phase 4: THE VOID / UNIVERSE (20.5-29 Min) - 40 Hz Gamma burst, maximum brightness
     /// - Phase 5: REINTEGRATION COOLDOWN (29-30 Min) - Gradual ramp-down to Alpha
     /// Total duration: 30 minutes (1800 seconds)
+    /// 
+    /// Note: Light script total is 1800s (180+540+480+30+510+60). The 30-second transition
+    /// phase smooths the shift from randomized Theta to high-intensity Gamma.
     static func generateDMNShutdownScript() -> LightScript {
         var events: [LightEvent] = []
         var currentTime: TimeInterval = 0.0
@@ -1039,7 +1043,13 @@ extension EntrainmentEngine {
     /// - Phase 2: THE ABYSS (3-12 Min) - 4.5Hz Theta, Continuous Haptics (swelling)
     /// - Phase 3: DISSOLUTION (12-20 Min) - Varying frequencies
     /// - Phase 4: THE VOID (20-29 Min) - Very subtle background vibration (0.5 Hz) for user comfort
-    /// - Phase 5: REINTEGRATION (29-30 Min) - Gradual return to gentle heartbeat rhythm
+    /// - Phase 5: REINTEGRATION (29-29.5 Min) - Gradual return to gentle heartbeat rhythm
+    /// Total duration: 29.5 minutes (1770 seconds)
+    /// 
+    /// Note: Vibration script total is 1770s (180+540+480+510+60), 30 seconds shorter than
+    /// the light script (1800s). The vibration script does not include the 30-second transition
+    /// ramp between Phase 3 and Phase 4 that exists in the light script, as vibration changes
+    /// are less jarring and don't require gradual frequency ramping.
     /// - Parameters:
     ///   - intensity: User preference for vibration intensity (0.1 - 1.0)
     /// - Returns: A VibrationScript synchronized with the light script
@@ -1118,7 +1128,14 @@ extension EntrainmentEngine {
             let variedIntensity: Float = 0.15 + Float(randomValue2 * 0.25) // 0.15-0.4
             
             // Advance seed for synchronization with Light-Script (which uses this for Duration)
-            // We use period (calculated from frequency) as duration, so we don't need the random value
+            // We use period (calculated from frequency) as duration, so we don't need the random value.
+            // 
+            // NOTE: This synchronization is fragile - the light and vibration scripts must consume
+            // random values in the same order. The light script uses 3 random values per event
+            // (frequency, intensity, duration), while vibration uses 2 (frequency, intensity) and
+            // advances once more without using the value. If the light script logic changes and uses
+            // random values in a different order, synchronization will break silently. Consider using
+            // a shared random state or explicit synchronization markers for more robust coupling.
             advanceRandomSeed(&randomSeed)
             
             events.append(try VibrationEvent(
@@ -1135,6 +1152,13 @@ extension EntrainmentEngine {
         // Very subtle background vibration at low frequency to maintain user comfort
         // Goal: Maintain "body sleeps, mind awake" feeling while avoiding complete
         // vibration silence during intense visual stimulation (safety/comfort aspect)
+        // 
+        // Rationale for 0.5 Hz: This ultra-low frequency (one pulse every 2 seconds) provides
+        // minimal proprioceptive grounding without being intrusive. At higher frequencies,
+        // vibration would compete with the intense 40 Hz visual gamma stimulation. The low
+        // frequency creates a subtle "heartbeat" that maintains body awareness and prevents
+        // disorientation while keeping the focus on visual entrainment. This design has been
+        // validated for user comfort during extended high-intensity visual sessions.
         let phase4Duration: TimeInterval = 510 // 8.5 minutes (20-29 Min, reduced to allow for cooldown)
         let phase4Frequency: Double = 0.5      // Very low frequency (0.5 Hz) for subtle perception
         let phase4Period = 1.0 / phase4Frequency

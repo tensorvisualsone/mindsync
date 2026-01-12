@@ -75,7 +75,6 @@ private struct ModeCard: View {
     let mode: EntrainmentMode
     let isSelected: Bool
     let action: () -> Void
-    @State private var isPressed = false
     
     var body: some View {
         Button(action: action) {
@@ -151,11 +150,9 @@ private struct ModeCard: View {
                 RoundedRectangle(cornerRadius: AppConstants.CornerRadius.large, style: .continuous)
                     .fill(isSelected ? mode.themeColor : Color.mindSyncCardBackground())
             )
-            .scaleEffect(isPressed ? 0.98 : 1.0)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
-            .animation(.spring(response: 0.2, dampingFraction: 0.8), value: isPressed)
         }
-        .buttonStyle(PressableButtonStyle(isPressed: $isPressed))
+        .buttonStyle(ScaleButtonStyle())
         .accessibilityIdentifier("modeCard.\(mode.rawValue)")
         .accessibilityLabel(mode.displayName)
         .accessibilityHint(isSelected ? NSLocalizedString("modeSelection.selectedMode", comment: "") : NSLocalizedString("modeSelection.selectMode", comment: ""))
@@ -163,15 +160,12 @@ private struct ModeCard: View {
     }
 }
 
-/// Custom button style that tracks press state for visual feedback
-private struct PressableButtonStyle: ButtonStyle {
-    @Binding var isPressed: Bool
-    
+/// Button style that scales down on press for tactile feedback
+private struct ScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .onChange(of: configuration.isPressed) { _, newValue in
-                isPressed = newValue
-            }
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.8), value: configuration.isPressed)
     }
 }
 
