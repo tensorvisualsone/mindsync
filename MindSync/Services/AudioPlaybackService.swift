@@ -527,6 +527,23 @@ final class AudioPlaybackService: NSObject {
     /// Waits for audio to actually start playing after being scheduled
     /// This is necessary because AVAudioPlayerNode.play(at:) may not start immediately
     /// Uses direct checking of lastRenderTime for more reliable detection
+    /// 
+    /// ## Polling Strategy
+    /// This method uses a polling approach with 50ms intervals (configurable via `renderCheckPollingInterval`).
+    /// While polling is not the most efficient mechanism, it was chosen because:
+    /// - AVAudioPlayerNode does not provide KVO or notifications for render state changes
+    /// - The polling interval (50ms) balances responsiveness with CPU efficiency
+    /// - Polling duration is limited by timeout (default 3s), minimizing battery impact
+    /// - Task.sleep yields control, preventing UI blocking
+    /// 
+    /// ## Future Improvements
+    /// If AVFoundation adds notification support for render events, consider migrating to:
+    /// - KVO on AVAudioPlayerNode.lastRenderTime
+    /// - NotificationCenter observers for render state changes
+    /// - Completion handlers or Combine publishers for render events
+    /// 
+    /// For now, polling provides the most reliable cross-iOS-version compatibility.
+    /// 
     /// - Parameter timeout: Maximum time to wait in seconds (default: 3.0 for better UX)
     /// - Returns: The actual audio render start time (from hardware) if audio started, nil if timeout
     func waitForPlaybackToStart(timeout: TimeInterval = Self.playbackStartTimeout) async -> Date? {
