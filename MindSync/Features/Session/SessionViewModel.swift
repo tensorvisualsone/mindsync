@@ -1360,16 +1360,17 @@ final class SessionViewModel: ObservableObject {
             throw LightControlError.configurationFailed
         }
 
-        // MASTER CLOCK: Calculate future start time (500ms in the future)
+        // MASTER CLOCK: Calculate future start time (750ms in the future)
         // This gives all systems time to prepare and ensures perfect synchronization.
         // 
-        // Rationale for 500ms delay:
+        // Rationale for 750ms delay:
         // - Audio scheduling requires hardware buffer preparation (~100-200ms)
         // - Light controller needs display link stabilization (~100ms)
         // - Vibration controller needs haptic engine priming (~50-100ms)
         // - System scheduling jitter tolerance (~50-100ms)
-        // Total: ~300-500ms minimum. 500ms provides comfortable margin.
-        let syncStartDelay: TimeInterval = 0.5 // 500ms delay for synchronization
+        // - Additional margin for older devices and high system load (~200-250ms)
+        // Total: ~500-750ms minimum. 750ms provides comfortable margin for all devices.
+        let syncStartDelay: TimeInterval = 0.75 // 750ms delay for synchronization
         let systemUptime = ProcessInfo.processInfo.systemUptime
         let futureStartUptime = systemUptime + syncStartDelay
         let futureStartTime = Date(timeIntervalSinceNow: syncStartDelay)
@@ -1429,7 +1430,26 @@ final class SessionViewModel: ObservableObject {
         
         if waitTime > 0 {
             logger.info("Master Clock: Waiting \(waitTime)s until synchronized start time")
-            try await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+            do {
+                try await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+            } catch is CancellationError {
+                // The wait was cancelled (e.g. user stopped the session) after audio was scheduled.
+                // Stop the audio engine to prevent unsynchronized audio-only playback.
+                logger.info("Master Clock: Synchronized start cancelled during wait; stopping audio engine")
+                if let engine = audioPlayback.getAudioEngine() {
+                    engine.stop()
+                }
+                throw CancellationError()
+            }
+            
+            // Check for cancellation after sleep completes
+            if Task.isCancelled {
+                logger.info("Master Clock: Cancellation detected after wait; stopping audio engine before synchronized start")
+                if let engine = audioPlayback.getAudioEngine() {
+                    engine.stop()
+                }
+                throw CancellationError()
+            }
         }
 
         // Use futureStartTime instead of Date() to keep light and audio mathematically synchronized,

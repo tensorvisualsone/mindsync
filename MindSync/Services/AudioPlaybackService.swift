@@ -18,7 +18,24 @@ final class AudioPlaybackService: NSObject {
     private var playerNode: AVAudioPlayerNode?
     private var audioFile: AVAudioFile?
     private var playbackTimer: Timer?
-    private var playbackState: PlaybackState = .idle
+    
+    // Thread-safe state management using NSLock
+    // Note: All state access is now protected by stateLock to prevent race conditions
+    // between UI thread, timer callbacks, and audio render thread
+    private let stateLock = NSLock()
+    private var _playbackState: PlaybackState = .idle
+    private var playbackState: PlaybackState {
+        get {
+            stateLock.lock()
+            defer { stateLock.unlock() }
+            return _playbackState
+        }
+        set {
+            stateLock.lock()
+            defer { stateLock.unlock() }
+            _playbackState = newValue
+        }
+    }
     
     /// Callback when playback completes
     var onPlaybackComplete: (() -> Void)?
@@ -164,7 +181,9 @@ final class AudioPlaybackService: NSObject {
         let nanosecondsPerTick = Double(timebaseInfo.numer) / Double(timebaseInfo.denom)
         let delayInNanoseconds = delay * 1_000_000_000.0
         let delayInHostTicks = UInt64(delayInNanoseconds / nanosecondsPerTick)
-        // Use overflow addition (&+) as host time values can wrap around at UInt64.max
+        // Use overflow addition (&+) defensively in case host time ever wraps at UInt64.max.
+        // This wraparound is extremely unlikely during the app's lifetime, but &+ keeps
+        // the calculation well-defined even in that theoretical edge case.
         let futureHostTime = currentHostTime &+ delayInHostTicks
         
         // Calculate future sample time at the current render sample rate
@@ -226,7 +245,19 @@ final class AudioPlaybackService: NSObject {
 
     /// Pauses playback
     func pause() {
-        guard let node = playerNode, playbackState == .playing || playbackState == .scheduled else { return }
+        guard let node = playerNode else { return }
+        
+        let currentState = playbackState
+        guard currentState == .playing || currentState == .scheduled else { return }
+        
+        // If scheduled but not yet playing, stop the scheduled playback
+        if currentState == .scheduled {
+            // Cancel the scheduled playback by stopping and clearing the node
+            node.stop()
+            playbackState = .paused
+            logger.info("Audio playback paused (was scheduled)")
+            return
+        }
         
         // Track pause time for accurate resume
         lastPauseTime = Date()
@@ -297,16 +328,24 @@ final class AudioPlaybackService: NSObject {
         
         let now = Date()
         
+        // Thread-safe check and update of playback state
+        stateLock.lock()
+        let currentState = _playbackState
+        
         // If scheduled, check if the start time has been reached
-        if playbackState == .scheduled {
+        if currentState == .scheduled {
             if now >= startTime {
                 // Start time reached, transition to playing state
-                playbackState = .playing
+                _playbackState = .playing
+                stateLock.unlock()
                 logger.info("Audio playback transitioned from scheduled to playing at: \(now)")
             } else {
+                stateLock.unlock()
                 // Still waiting for start time
                 return 0
             }
+        } else {
+            stateLock.unlock()
         }
         
         let elapsed = now.timeIntervalSince(startTime)
@@ -330,7 +369,7 @@ final class AudioPlaybackService: NSObject {
     /// This provides audio-thread accurate timing, eliminating drift between audio and display threads
     /// Note: totalTime is already the absolute position in the file, so we don't subtract accumulatedPauseTime
     var preciseAudioTime: TimeInterval {
-        // If scheduled but not yet playing, return 0 (playback hasn't started yet)
+        // Thread-safe state check
         if playbackState == .scheduled {
             return 0
         }
@@ -344,9 +383,13 @@ final class AudioPlaybackService: NSObject {
         }
         
         // If we have render time, audio is actually playing - update state if needed
-        if playbackState == .scheduled {
-            playbackState = .playing
+        stateLock.lock()
+        if _playbackState == .scheduled {
+            _playbackState = .playing
+            stateLock.unlock()
             logger.info("Audio playback transitioned from scheduled to playing (detected via render time)")
+        } else {
+            stateLock.unlock()
         }
         
         // Time elapsed in current segment (Samples / Rate)
@@ -358,6 +401,8 @@ final class AudioPlaybackService: NSObject {
         
         // Note: totalTime already represents the absolute position in the file.
         // We don't subtract pause time here because segmentStartTime is already adjusted on resume.
+        // The previous implementation incorrectly subtracted accumulatedPauseTime, causing double-counting
+        // since segmentStartTime already accounts for all previous pause adjustments.
         let adjustedTime = totalTime
         
         // Clamp to file duration if available

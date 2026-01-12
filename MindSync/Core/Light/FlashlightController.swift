@@ -61,18 +61,22 @@ final class FlashlightController: BaseLightController, LightControlling {
     private var fluxHistory: [Float] = []  // Longer history for adaptive threshold calculation
     private var lastPeakTime: TimeInterval = 0
     private let peakCooldownDuration: TimeInterval = 0.08  // 80ms minimum between peaks (prevents double-triggers)
-    private var peakRiseThreshold: Float = 0.04  // Minimum 4% rise above local average for peak (dynamically adjusted)
     private let maxFluxHistorySize = 10  // Keep last 10 flux values for local average calculation
     private let maxAdaptiveHistorySize = 200  // Keep last 200 flux values for adaptive threshold (~20 seconds at 10 Hz)
     private let absoluteMinimumThreshold: Float = 0.05  // Absolute minimum flux value to consider (reduced from 0.1 for better sensitivity)
-    private var fixedThreshold: Float = 0.08  // Fallback threshold when not enough history (dynamically adjusted)
     private let adaptiveThresholdMultiplier: Float = 0.25  // Use mean + 0.25 * stdDev (reduced from 0.4 for more sensitive peak detection)
     
     // Rolling Average Calibrator: Learns the dynamics of the song in the first 10 seconds
+    // Thread Safety: These calibration properties (including peakRiseThreshold and fixedThreshold)
+    // are only accessed from the precision timer thread, which runs on a serial dispatch queue.
+    // No additional synchronization is needed as long as all access remains on the same queue.
+    // Do not access from other threads without proper locking.
     private var calibrationStartTime: TimeInterval = -1.0  // -1 means: not yet started
     private let calibrationDuration: TimeInterval = 10.0  // 10 seconds calibration duration
     private var calibrationFluxValues: [Float] = []  // Flux values collected during calibration
     private var isCalibrated: Bool = false  // Whether calibration has completed
+    private var peakRiseThreshold: Float = 0.04  // Dynamically adjusted by calibration
+    private var fixedThreshold: Float = 0.08  // Fallback threshold (dynamically adjusted by calibration)
     
     /// Precision timer interval shared across light controllers
     /// OPTIMIZED FOR LAMBDA: 1ms (1000 Hz) resolution needed for stable 100 Hz output.

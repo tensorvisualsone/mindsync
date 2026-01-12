@@ -873,7 +873,8 @@ extension EntrainmentEngine {
     /// - Phase 1: ENTRY (0-3 Min) - 10 Hz Alpha, soft sine waves
     /// - Phase 2: THE ABYSS / VACUUM (3-12 Min) - 4.5 Hz Theta, dim to 0.1 (no black pauses)
     /// - Phase 3: DISSOLUTION (12-20 Min) - Randomized intervals (variability breaks expectation)
-    /// - Phase 4: THE VOID / UNIVERSE (20-30 Min) - 40 Hz Gamma burst, maximum brightness
+    /// - Phase 4: THE VOID / UNIVERSE (20-29 Min) - 40 Hz Gamma burst, maximum brightness
+    /// - Phase 5: REINTEGRATION COOLDOWN (29-30 Min) - Gradual ramp-down to Alpha
     /// Total duration: 30 minutes (1800 seconds)
     static func generateDMNShutdownScript() -> LightScript {
         var events: [LightEvent] = []
@@ -978,18 +979,17 @@ extension EntrainmentEngine {
                 timestamp: currentTime,
                 intensity: 0.5, // Moderate intensity during transition
                 duration: 1.0,
-                waveform: .square, // Square für harten Übergang zu Gamma
+                waveform: .square, // Square wave for hard transition to Gamma
                 color: .white,
                 frequencyOverride: currentFreq
             ))
             currentTime += 1.0
         }
         
-        // --- PHASE 4: THE VOID / UNIVERSE (20.5-30 Min) ---
+        // --- PHASE 4: THE VOID / UNIVERSE (20.5-29 Min) ---
         // 40 Hz Gamma Burst - maximum brightness (with safety limit)
         // "Body sleeps, mind is awake" - total stillness in the body, only light in the mind
-        // WARNING: This phase ends abruptly at high intensity. Consider adding a cooldown phase.
-        let phase4Duration: TimeInterval = 570 // 9.5 minutes (20.5-30 Min)
+        let phase4Duration: TimeInterval = 510 // 8.5 minutes (reduced from 9.5 to allow for cooldown)
         events.append(LightEvent(
             timestamp: currentTime,
             intensity: 0.9, // Maximum brightness (with safety limit)
@@ -998,6 +998,31 @@ extension EntrainmentEngine {
             color: .white,
             frequencyOverride: 40.0
         ))
+        currentTime += phase4Duration
+        
+        // --- PHASE 5: REINTEGRATION COOLDOWN (29-30 Min) ---
+        // Gradual ramp-down from high Gamma to help users transition back safely
+        // Prevents jarring abrupt ending at maximum intensity
+        let cooldownDuration: TimeInterval = 60 // 1 minute cooldown
+        let cooldownStartFreq = 40.0
+        let cooldownEndFreq = 10.0 // Return to Alpha for gentle landing
+        
+        for i in 0..<Int(cooldownDuration) {
+            let progress = Double(i) / cooldownDuration
+            let smoothProgress = MathHelpers.smoothstep(progress)
+            let currentFreq = cooldownStartFreq - (cooldownStartFreq - cooldownEndFreq) * smoothProgress
+            let currentIntensity = 0.9 - (0.6 * Float(smoothProgress)) // Fade from 0.9 to 0.3
+            
+            events.append(LightEvent(
+                timestamp: currentTime,
+                intensity: currentIntensity,
+                duration: 1.0,
+                waveform: .sine, // Sine wave for gentle reintegration
+                color: .blue,
+                frequencyOverride: currentFreq
+            ))
+            currentTime += 1.0
+        }
         
         // Dummy Audio Track ID (since we don't analyze music here, but provide frequencies)
         return LightScript(
@@ -1014,8 +1039,8 @@ extension EntrainmentEngine {
     /// - Phase 1: ENTRY (0-3 Min) - Synchronized with heartbeat (60 BPM ≈ 1 Hz)
     /// - Phase 2: THE ABYSS (3-12 Min) - 4.5Hz Theta, Continuous Haptics (swelling)
     /// - Phase 3: DISSOLUTION (12-20 Min) - Varying frequencies
-    /// - Phase 4: THE VOID (20-30 Min) - OFF (total stillness in body, only light in mind)
-    ///   WARNING: Phase 4 has no vibration for 9.5 minutes, which may be disorienting
+    /// - Phase 4: THE VOID (20-29 Min) - Very subtle background vibration (0.5 Hz) for user comfort
+    /// - Phase 5: REINTEGRATION (29-30 Min) - Gradual return to gentle heartbeat rhythm
     /// - Parameters:
     ///   - intensity: User preference for vibration intensity (0.1 - 1.0)
     /// - Returns: A VibrationScript synchronized with the light script
@@ -1107,13 +1132,48 @@ extension EntrainmentEngine {
         }
         currentTime += phase3Duration
         
-        // --- PHASE 4: THE VOID / UNIVERSE (20.5-30 Min) ---
-        // VIBRATION OFF - total stillness in the body, only light in the mind
-        // "Body sleeps, mind is awake" - this creates the feeling of dissociation
-        // No events in Phase 4 - vibration remains off
-        let phase4Duration: TimeInterval = 570 // 9.5 minutes (20.5-30 Min)
-        // Vibration remains completely off - no events are created
+        // --- PHASE 4: THE VOID / UNIVERSE (20-29 Min) ---
+        // Very subtle background vibration at low frequency to maintain user comfort
+        // Goal: Maintain "body sleeps, mind awake" feeling while avoiding complete
+        // vibration silence during intense visual stimulation (safety/comfort aspect)
+        let phase4Duration: TimeInterval = 510 // 8.5 minutes (20-29 Min, reduced to allow for cooldown)
+        let phase4Frequency: Double = 0.5      // Very low frequency (0.5 Hz) for subtle perception
+        let phase4Period = 1.0 / phase4Frequency
+        
+        var phase4Time: TimeInterval = 0
+        while phase4Time < phase4Duration {
+            events.append(try VibrationEvent(
+                timestamp: currentTime + phase4Time,
+                intensity: Self.minVibrationIntensity, // Minimal but perceptible vibration
+                duration: phase4Period,
+                waveform: .sine // Soft, organic background wave
+            ))
+            phase4Time += phase4Period
+        }
         currentTime += phase4Duration
+        
+        // --- PHASE 5: REINTEGRATION COOLDOWN (29-30 Min) ---
+        // Gradual return to gentle heartbeat rhythm to help users transition back
+        // Synchronized with light cooldown phase
+        let phase5Duration: TimeInterval = 60 // 1 minute cooldown
+        let cooldownFrequency = 1.0 // Return to heartbeat rhythm (60 BPM)
+        let cooldownPeriod = 1.0 / cooldownFrequency
+        
+        var phase5Time: TimeInterval = 0
+        while phase5Time < phase5Duration {
+            // Gradually increase intensity from minimal to gentle
+            let progress = phase5Time / phase5Duration
+            let cooldownIntensity = Self.minVibrationIntensity + (baseIntensity * 0.5 - Self.minVibrationIntensity) * Float(progress)
+            
+            events.append(try VibrationEvent(
+                timestamp: currentTime + phase5Time,
+                intensity: cooldownIntensity,
+                duration: cooldownPeriod,
+                waveform: .sine // Gentle sine waveform synchronized to heartbeat rhythm
+            ))
+            phase5Time += cooldownPeriod
+        }
+        currentTime += phase5Duration
         
         // Create VibrationScript
         return try VibrationScript(

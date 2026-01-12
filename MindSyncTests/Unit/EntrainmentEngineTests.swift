@@ -498,9 +498,9 @@ final class EntrainmentEngineTests: XCTestCase {
     func testGenerateDMNShutdownScript_Phase4Structure() {
         let script = EntrainmentEngine.generateDMNShutdownScript()
         
-        // Phase 4: THE VOID (1230-1800 seconds = 9.5 minutes = 570 seconds)
+        // Phase 4: THE VOID (1230-1740 seconds = 8.5 minutes = 510 seconds, reduced to allow for cooldown)
         // Single long event at 40Hz with maximum intensity
-        let phase4Events = script.events.filter { $0.timestamp >= 1230 }
+        let phase4Events = script.events.filter { $0.timestamp >= 1230 && $0.timestamp < 1740 }
         
         XCTAssertEqual(phase4Events.count, 1)
         
@@ -508,10 +508,49 @@ final class EntrainmentEngineTests: XCTestCase {
             XCTAssertEqual(event.timestamp, 1230.0, accuracy: 1.0) // After Phase 3 + Transition
             XCTAssertEqual(event.waveform, .square)
             XCTAssertEqual(event.intensity, 0.9, accuracy: 0.01) // Maximum brightness
-            XCTAssertEqual(event.duration, 570.0, accuracy: 1.0) // 9.5 minutes
+            XCTAssertEqual(event.duration, 510.0, accuracy: 1.0) // 8.5 minutes (reduced from 9.5)
             XCTAssertEqual(event.color, .white)
             XCTAssertNotNil(event.frequencyOverride)
             XCTAssertEqual(event.frequencyOverride ?? 0, 40.0, accuracy: 0.01)
+        }
+    }
+    
+    func testGenerateDMNShutdownScript_Phase5CooldownStructure() {
+        let script = EntrainmentEngine.generateDMNShutdownScript()
+        
+        // Phase 5: REINTEGRATION COOLDOWN (1740-1800 seconds = 1 minute)
+        // Gradual ramp-down from high Gamma to Alpha for safe transition
+        let phase5Events = script.events.filter { $0.timestamp >= 1740 }
+        
+        XCTAssertEqual(phase5Events.count, 60) // 60 1-second events for 1-minute cooldown
+        
+        if let firstEvent = phase5Events.first {
+            XCTAssertEqual(firstEvent.waveform, .sine) // Sine wave for gentle reintegration
+            XCTAssertEqual(firstEvent.color, .blue)
+            XCTAssertEqual(firstEvent.duration, 1.0)
+            // Should start near 40Hz
+            let firstFreq = firstEvent.frequencyOverride ?? 0
+            XCTAssertGreaterThan(firstFreq, 35.0)
+            // Should start at high intensity
+            XCTAssertGreaterThan(firstEvent.intensity, 0.8)
+        }
+        
+        if let lastEvent = phase5Events.last {
+            XCTAssertEqual(lastEvent.waveform, .sine)
+            XCTAssertEqual(lastEvent.color, .blue)
+            // Should end near 10Hz (Alpha)
+            let lastFreq = lastEvent.frequencyOverride ?? 0
+            XCTAssertLessThan(lastFreq, 15.0)
+            XCTAssertGreaterThan(lastFreq, 8.0)
+            // Should fade to lower intensity
+            XCTAssertLessThan(lastEvent.intensity, 0.5)
+        }
+        
+        // Verify frequency ramps down smoothly
+        if phase5Events.count >= 2 {
+            let firstFreq = phase5Events.first?.frequencyOverride ?? 0
+            let lastFreq = phase5Events.last?.frequencyOverride ?? 0
+            XCTAssertGreaterThan(firstFreq, lastFreq) // Should ramp down
         }
     }
     
