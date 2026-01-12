@@ -187,7 +187,7 @@
 "mode.cinematic.description" = "Flow State Sync – Audio-reaktive Immersion";
 "mode.dmnShutdown.displayName" = "DMN-Shutdown (4,5-40 Hz)";
 "mode.dmnShutdown.description" = "Tiefe Entspannungsreise: Theta-Wellen gefolgt von Gamma-Synchronisation für fokussierte Achtsamkeit";
-"mode.beliefRewiring.displayName" = "Belief-Rewiring (5-40 Hz)";
+"mode.beliefRewiring.displayName" = "Reflexionsmodus (5-40 Hz)";
 "mode.beliefRewiring.description" = "Reflexionsmodus: Theta für tiefe Selbstreflexion, Gamma für fokussierte Klarheit";
 
 // MARK: - Safety Banner

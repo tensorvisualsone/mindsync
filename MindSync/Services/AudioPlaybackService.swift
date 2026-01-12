@@ -6,10 +6,19 @@ import os.log
 final class AudioPlaybackService: NSObject {
     private let logger = Logger(subsystem: "com.mindsync", category: "AudioPlaybackService")
     
+    /// Playback state to distinguish between scheduled and actually playing
+    private enum PlaybackState {
+        case idle           // No playback prepared
+        case scheduled      // Scheduled to start at a future time (not yet playing)
+        case playing        // Currently playing
+        case paused         // Paused during playback
+    }
+    
     private var audioEngine: AVAudioEngine?
     private var playerNode: AVAudioPlayerNode?
     private var audioFile: AVAudioFile?
     private var playbackTimer: Timer?
+    private var playbackState: PlaybackState = .idle
     
     /// Callback when playback completes
     var onPlaybackComplete: (() -> Void)?
@@ -90,6 +99,7 @@ final class AudioPlaybackService: NSObject {
         
         // Track playback position for currentTime property
         startPlaybackTimer()
+        playbackState = .playing
         
         logger.info("Audio playback started: \(url.lastPathComponent, privacy: .public)")
     }
@@ -100,7 +110,7 @@ final class AudioPlaybackService: NSObject {
     ///   - futureStartTime: The Date when playback should start
     ///   - Throws: Error if scheduling is not possible
     func schedulePlayback(at futureStartTime: Date) throws {
-        guard let engine = audioEngine,
+        guard audioEngine != nil,  // Engine must be running
               let node = playerNode,
               let file = audioFile else {
             throw NSError(
@@ -121,26 +131,47 @@ final class AudioPlaybackService: NSObject {
             )
         }
         
-        // Get current audio time from the engine
-        // If the engine hasn't rendered yet, use a zero time as baseline
+        // Get current audio time from the engine with host-time context
+        // This ensures reliable scheduling by maintaining the host-time reference
         let sampleRate = file.fileFormat.sampleRate
-        let nodeTime: AVAudioTime
-        if let lastRenderTime = node.lastRenderTime {
-            nodeTime = lastRenderTime
+        let engine = audioEngine!
+        
+        // Get hostTime from node's lastRenderTime, or fallback to engine's outputNode
+        let currentHostTime: UInt64
+        let currentSampleTime: AVAudioFramePosition
+        let currentSampleRate: Double
+        
+        if let nodeLastRenderTime = node.lastRenderTime {
+            // Node has rendered, use its hostTime and sampleTime
+            currentHostTime = nodeLastRenderTime.hostTime
+            currentSampleTime = nodeLastRenderTime.sampleTime
+            currentSampleRate = nodeLastRenderTime.sampleRate
+        } else if let outputLastRenderTime = engine.outputNode.lastRenderTime {
+            // Node hasn't rendered yet, use engine's outputNode hostTime
+            currentHostTime = outputLastRenderTime.hostTime
+            currentSampleTime = outputLastRenderTime.sampleTime
+            currentSampleRate = outputLastRenderTime.sampleRate
         } else {
-            // Engine hasn't rendered yet, create a baseline time
-            nodeTime = AVAudioTime(sampleTime: 0, atRate: sampleRate)
+            // Engine hasn't rendered yet, use current mach time as baseline
+            currentHostTime = mach_absolute_time()
+            currentSampleTime = 0
+            currentSampleRate = sampleRate
         }
         
-        // Calculate the future AVAudioTime
-        // Convert delay (TimeInterval) to sample time at the file's sample rate
-        let delayInSamples = AVAudioFramePosition(delay * sampleRate)
-        let futureSampleTime = nodeTime.sampleTime + delayInSamples
+        // Convert delay to host ticks for precise scheduling
+        let delayInHostTicks = AVAudioTime.hostTime(forSeconds: delay)
+        let futureHostTime = currentHostTime + UInt64(delayInHostTicks)
         
-        // Create AVAudioTime for the future start
+        // Calculate future sample time at the file's sample rate
+        let delayInSamples = AVAudioFramePosition(delay * sampleRate)
+        let futureSampleTime = currentSampleTime + delayInSamples
+        
+        // Create AVAudioTime with both sampleTime and hostTime for reliable scheduling
+        // This maintains host-time context which makes node.play(at:) reliable
         let futureAudioTime = AVAudioTime(
             sampleTime: futureSampleTime,
-            atRate: sampleRate
+            atRate: sampleRate,
+            hostTime: futureHostTime
         )
         
         // Start playback at the scheduled time
@@ -154,7 +185,10 @@ final class AudioPlaybackService: NSObject {
         // Get file duration
         fileDuration = Double(file.length) / sampleRate
         
-        logger.info("Audio playback scheduled to start at: \(futureStartTime) (delay=\(delay)s, sampleTime=\(futureSampleTime))")
+        // Set state to scheduled (not yet playing, waiting for futureStartTime)
+        playbackState = .scheduled
+        
+        logger.info("Audio playback scheduled to start at: \(futureStartTime) (delay=\(delay)s, sampleTime=\(futureSampleTime), state=scheduled)")
     }
 
     /// Stops playback
@@ -180,13 +214,14 @@ final class AudioPlaybackService: NSObject {
         accumulatedPauseTime = 0
         lastPauseTime = nil
         fileDuration = 0
+        playbackState = .idle
         
         logger.info("Audio playback stopped")
     }
 
     /// Pauses playback
     func pause() {
-        guard let node = playerNode, node.isPlaying else { return }
+        guard let node = playerNode, playbackState == .playing else { return }
         
         // Track pause time for accurate resume
         lastPauseTime = Date()
@@ -194,6 +229,7 @@ final class AudioPlaybackService: NSObject {
         node.pause()
         playbackTimer?.invalidate()
         playbackTimer = nil
+        playbackState = .paused
         
         logger.info("Audio playback paused")
     }
@@ -245,19 +281,35 @@ final class AudioPlaybackService: NSObject {
         
         node.play()
         startPlaybackTimer()
+        playbackState = .playing
         logger.info("Audio playback resumed from position: \(pausedPosition, privacy: .public) seconds")
     }
 
     /// Current playback time in seconds (based on Date() timing)
+    /// Returns 0 if playback is scheduled but not yet started (waiting for futureStartTime)
     var currentTime: TimeInterval {
         guard let startTime = playbackStartTime else { return 0 }
         
-        let elapsed = Date().timeIntervalSince(startTime)
+        let now = Date()
+        
+        // If scheduled, check if the start time has been reached
+        if playbackState == .scheduled {
+            if now >= startTime {
+                // Start time reached, transition to playing state
+                playbackState = .playing
+                logger.info("Audio playback transitioned from scheduled to playing at: \(now)")
+            } else {
+                // Still waiting for start time
+                return 0
+            }
+        }
+        
+        let elapsed = now.timeIntervalSince(startTime)
         let totalElapsed = elapsed - accumulatedPauseTime
         
         // If currently paused, don't count time since pause
         if let pauseTime = lastPauseTime {
-            let pauseDuration = Date().timeIntervalSince(pauseTime)
+            let pauseDuration = now.timeIntervalSince(pauseTime)
             return max(0, totalElapsed - pauseDuration)
         }
         
@@ -273,11 +325,23 @@ final class AudioPlaybackService: NSObject {
     /// This provides audio-thread accurate timing, eliminating drift between audio and display threads
     /// Note: totalTime is already the absolute position in the file, so we don't subtract accumulatedPauseTime
     var preciseAudioTime: TimeInterval {
+        // If scheduled but not yet playing, return 0 (playback hasn't started yet)
+        if playbackState == .scheduled {
+            return 0
+        }
+        
         guard let node = playerNode,
               let nodeTime = node.lastRenderTime,
               let playerTime = node.playerTime(forNodeTime: nodeTime) else {
             // Fallback to currentTime if render time is not available
+            // This will also handle the scheduled -> playing transition
             return currentTime
+        }
+        
+        // If we have render time, audio is actually playing - update state if needed
+        if playbackState == .scheduled {
+            playbackState = .playing
+            logger.info("Audio playback transitioned from scheduled to playing (detected via render time)")
         }
         
         // Time elapsed in current segment (Samples / Rate)
@@ -316,8 +380,14 @@ final class AudioPlaybackService: NSObject {
     }
 
     /// Is playback active?
+    /// Returns true only when actually playing (not when scheduled but waiting to start)
     var isPlaying: Bool {
-        return playerNode?.isPlaying ?? false
+        return playbackState == .playing
+    }
+    
+    /// Is playback scheduled to start in the future?
+    var isScheduled: Bool {
+        return playbackState == .scheduled
     }
     
     /// Total duration of the currently loaded file
