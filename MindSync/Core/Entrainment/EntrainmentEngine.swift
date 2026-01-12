@@ -857,122 +857,136 @@ extension EntrainmentEngine {
         )
     }
     
-    /// Generates the special "DMN-Shutdown" script for ego-dissolution.
+    /// Generates the special "DMN-Shutdown" script for ego-dissolution (Tepperwein Sequence).
     /// This ignores audio beats and creates a fixed 30-minute sequence
     /// to specifically deactivate the Default Mode Network (DMN).
     /// 
-    /// Phases:
-    /// - Phase 1: DISCONNECT (4 Min) - 10Hz → 5Hz Ramp (Alpha to Theta)
-    /// - Phase 2: THE ABYSS (12 Min) - 4.5Hz Theta with varying intensity
-    /// - Transition: RAMP (60 Sek) - Smooth transition from 4.5Hz to 40Hz
-    /// - Phase 3: THE VOID / PEAK (7 Min) - 40Hz Gamma-Burst
-    /// - Phase 4: REINTEGRATION (6 Min) - 7.83Hz Schumann Resonance
+    /// Phases (Tepperwein Sequence):
+    /// - Phase 1: ENTRY (0-3 Min) - 10 Hz Alpha, weiche Sinus-Wellen
+    /// - Phase 2: THE ABYSS / VAKUUM (3-12 Min) - 4.5 Hz Theta, dimme auf 0.1 (keine schwarzen Pausen)
+    /// - Phase 3: DISSOLUTION (12-20 Min) - Randomized Intervalle (Variabilität bricht Erwartungshaltung)
+    /// - Phase 4: THE VOID / UNIVERSE (20-30 Min) - 40 Hz Gamma Burst, maximale Helligkeit
     /// Total duration: 30 minutes (1800 seconds)
     static func generateDMNShutdownScript() -> LightScript {
         var events: [LightEvent] = []
         var currentTime: TimeInterval = 0.0
         
-        // --- PHASE 1: DISCONNECT (4 Min) ---
-        // We start at 10Hz (Alpha) and quickly pull consciousness down to 5Hz (Theta).
-        // This breaks the everyday focus.
-        // Square waves for "harder" entrainment (higher SSVEP success rate: 90.8% vs 75%)
-        let phase1Duration: TimeInterval = 240 // 4 minutes
-        let p1StartFreq = 10.0
-        let p1EndFreq = 5.0
+        // --- PHASE 1: ENTRY (0-3 Min) ---
+        // 10 Hz Alpha, weiche Sinus-Wellen für sanften Einstieg
+        // "Lass alles los..." - beruhigt den Körper sofort
+        let phase1Duration: TimeInterval = 180 // 3 minutes
+        let p1Frequency = 10.0 // 10 Hz Alpha
         
-        // IMPORTANT: Each event has duration: 1.0 (full second), not period/2.0
-        // The square wave shape is controlled by duty cycle, not by event duration
+        // 1-second events with sine waves for gentle, organic feeling
         for i in 0..<Int(phase1Duration) {
-            let progress = Double(i) / phase1Duration
-            let smoothProgress = MathHelpers.smoothstep(progress)
-            let currentFreq = p1StartFreq + (p1EndFreq - p1StartFreq) * smoothProgress
-            
             events.append(LightEvent(
                 timestamp: currentTime,
-                intensity: 0.4,
-                duration: 1.0, // Full second - NOT period/2.0!
-                waveform: .square, // Square waves for maximum cortical excitation
+                intensity: 0.4, // Sanfter Start
+                duration: 1.0,
+                waveform: .sine, // Weiche Sinus-Wellen (geändert von Square)
                 color: .blue,
-                frequencyOverride: currentFreq
+                frequencyOverride: p1Frequency
             ))
             currentTime += 1.0
         }
         
-        // --- PHASE 2: THE ABYSS (12 Min) ---
-        // Deep theta oscillation at 4.5 Hz.
-        // Here we switch the DMN "offline". We use square waves for maximum contrast
-        // and a fluctuating intensity cycle to prevent habituation (adaptation).
-        let phase2Duration: TimeInterval = 720 // 12 minutes
-        let p2Frequency = 4.5
+        // --- PHASE 2: THE ABYSS / VAKUUM (3-12 Min) ---
+        // 4.5 Hz Theta - "Unterwasser-Gefühl"
+        // WICHTIG: Keine schwarzen Pausen (0.0), sondern dimme auf 0.1 runter
+        // Das hält den visuellen Cortex aktiv, aber "langweilt" ihn
+        let phase2Duration: TimeInterval = 540 // 9 minutes (3-12 Min)
+        let p2Frequency = 4.5 // 4.5 Hz Theta
         
-        // 2-second events with alternating intensity (0.35/0.0) for hard contrast
-        // Square waves ensure the light is completely off (0.0) between pulses
-        // IMPORTANT: duration: 2.0 (full 2 seconds), not period/2.0
+        // 2-second events with alternating intensity (0.35/0.1) - kein komplettes Aus
+        // Das hält den visuellen Cortex aktiv, aber "langweilt" ihn (verhindert Habituation)
         for i in 0..<Int(phase2Duration / 2) {
-            // We alternate between 0.35 and 0.0 (complete darkness) for maximum contrast
-            let intensity: Float = (i % 2 == 0) ? 0.35 : 0.0
+            // Wechsel zwischen 0.35 und 0.1 (statt 0.0) - kein komplettes Aus
+            let intensity: Float = (i % 2 == 0) ? 0.35 : 0.1
             
             events.append(LightEvent(
                 timestamp: currentTime,
                 intensity: intensity,
-                duration: 2.0, // Full 2 seconds - NOT period/2.0!
-                waveform: .square, // Square waves for hard contrast and visual clarity
+                duration: 2.0,
+                waveform: .sine, // Weiche Wellen für "Unterwasser-Gefühl"
                 color: .purple,
                 frequencyOverride: p2Frequency
             ))
             currentTime += 2.0
         }
         
-        // --- TRANSITION RAMP (60 Sek) ---
-        // We smoothly ramp the brain from 4.5 Hz (Theta) to 40 Hz (Gamma)
-        // This prevents the abrupt frequency jump that can cause nausea or discomfort
-        let transitionDuration: TimeInterval = 60 // 60 seconds
+        // --- PHASE 3: DISSOLUTION (12-20 Min) ---
+        // Randomized Intervalle (Variabilität) - das Gehirn darf das Muster nicht mehr vorhersagen
+        // Das bricht die Erwartungshaltung (Ego) und führt zur Dissoziation
+        let phase3Duration: TimeInterval = 480 // 8 minutes (12-20 Min)
+        let p3BaseFrequency = 4.5 // Start bei Theta
+        
+        // Erzeuge variierende Intervalle mit zufälliger Frequenz (3.5-6.0 Hz) und variierender Intensität
+        // Das macht das Muster unvorhersagbar und bricht die Erwartungshaltung
+        var phase3Time: TimeInterval = 0
+        var randomSeed: UInt64 = 12345 // Seed für reproduzierbare "Zufälligkeit"
+        
+        while phase3Time < phase3Duration {
+            // Pseudo-Zufallszahl für Frequenz-Variation (3.5-6.0 Hz)
+            randomSeed = randomSeed &* 1103515245 &+ 12345
+            let randomValue = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
+            let variedFrequency = 3.5 + (randomValue * 2.5) // 3.5-6.0 Hz
+            
+            // Pseudo-Zufallszahl für Intensitäts-Variation (0.2-0.5)
+            randomSeed = randomSeed &* 1103515245 &+ 12345
+            let randomValue2 = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
+            let variedIntensity: Float = 0.2 + Float(randomValue2 * 0.3) // 0.2-0.5
+            
+            // Variierende Event-Dauer (1.5-3.0 Sekunden) für zusätzliche Unvorhersagbarkeit
+            randomSeed = randomSeed &* 1103515245 &+ 12345
+            let randomValue3 = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
+            let variedDuration = 1.5 + (randomValue3 * 1.5) // 1.5-3.0 Sekunden
+            
+            events.append(LightEvent(
+                timestamp: currentTime + phase3Time,
+                intensity: variedIntensity,
+                duration: variedDuration,
+                waveform: .sine, // Weiche Wellen für organische Dissoziation
+                color: .purple,
+                frequencyOverride: variedFrequency
+            ))
+            phase3Time += variedDuration
+        }
+        currentTime += phase3Duration
+        
+        // --- TRANSITION RAMP (20-20.5 Min) ---
+        // Smooth transition from randomized Theta to 40 Hz Gamma
+        let transitionDuration: TimeInterval = 30 // 30 seconds
         let startFreq = 4.5
         let endFreq = 40.0
         
         for i in 0..<Int(transitionDuration) {
             let progress = Double(i) / transitionDuration
-            // Smoothstep interpolation for organic transition
             let smoothProgress = MathHelpers.smoothstep(progress)
             let currentFreq = startFreq + (endFreq - startFreq) * smoothProgress
             
             events.append(LightEvent(
                 timestamp: currentTime,
-                intensity: 0.4, // Gentle intensity during the transition
+                intensity: 0.5, // Moderate intensity during transition
                 duration: 1.0,
-                waveform: .square,
+                waveform: .square, // Square für harten Übergang zu Gamma
                 color: .white,
                 frequencyOverride: currentFreq
             ))
             currentTime += 1.0
         }
+        currentTime += transitionDuration - Double(Int(transitionDuration)) // Adjust for rounding
         
-        // --- PHASE 3: THE VOID / PEAK (7 Min) ---
-        // The "nothingness" state. We blast in with 40Hz gamma synchronization.
-        // This is the "Aha-moment" or spiritual high.
-        // Duration reduced to 7 minutes to compensate for 60-second transition ramp
-        // Total duration: 4 Min (P1) + 12 Min (P2) + 1 Min (Ramp) + 7 Min (P3) + 6 Min (P4) = 30 Min
-        let phase3Duration: TimeInterval = 420 // 7 minutes (reduced from 480 to compensate for transition ramp)
+        // --- PHASE 4: THE VOID / UNIVERSE (20.5-30 Min) ---
+        // 40 Hz Gamma Burst - maximale Helligkeit (mit Safety-Limit)
+        // "Körper schläft, Geist ist wach" - totale Stille im Körper, nur Licht im Kopf
+        let phase4Duration: TimeInterval = 570 // 9.5 minutes (20.5-30 Min)
         events.append(LightEvent(
             timestamp: currentTime,
-            intensity: 0.75, // High intensity for maximum effect
-            duration: phase3Duration, // Full duration - NOT period/2.0!
-            waveform: .square, // Square wave is gold standard for gamma sync
+            intensity: 0.9, // Maximale Helligkeit (mit Safety-Limit)
+            duration: phase4Duration,
+            waveform: .square, // Square wave ist Gold-Standard für Gamma-Sync
             color: .white,
             frequencyOverride: 40.0
-        ))
-        currentTime += phase3Duration
-        
-        // --- PHASE 4: REINTEGRATION (6 Min) ---
-        // Schumann Resonance (7.83Hz) for peaceful "afterglow" and grounding.
-        let phase4Duration: TimeInterval = 360 // 6 minutes
-        events.append(LightEvent(
-            timestamp: currentTime,
-            intensity: 0.4,
-            duration: phase4Duration, // Full duration - NOT period/2.0!
-            waveform: .sine, // Sine for gentle grounding
-            color: .green,
-            frequencyOverride: 7.83
         ))
         
         // Dummy Audio Track ID (since we don't analyze music here, but provide frequencies)
@@ -985,12 +999,12 @@ extension EntrainmentEngine {
         )
     }
     
-    /// Generates a VibrationScript for DMN-Shutdown mode
-    /// This follows the same 4-phase structure as the light script:
-    /// - Phase 1: DISCONNECT (4 Min) - 10Hz → 5Hz ramp
-    /// - Phase 2: THE ABYSS (12 Min) - 4.5Hz Theta
-    /// - Phase 3: THE VOID / PEAK (7 Min) - 40Hz Gamma (reduced from 8 Min to match light script)
-    /// - Phase 4: REINTEGRATION (6 Min) - 7.83Hz Schumann
+    /// Generates a VibrationScript for DMN-Shutdown mode (Tepperwein Sequence)
+    /// This follows the same phase structure as the light script:
+    /// - Phase 1: ENTRY (0-3 Min) - Synchron zum Herzschlag (60 BPM ≈ 1 Hz)
+    /// - Phase 2: THE ABYSS (3-12 Min) - 4.5Hz Theta, Continuous Haptics (schwellend)
+    /// - Phase 3: DISSOLUTION (12-20 Min) - Variierende Frequenzen
+    /// - Phase 4: THE VOID (20-30 Min) - AUS (totale Stille im Körper, nur Licht im Kopf)
     /// - Parameters:
     ///   - intensity: User preference for vibration intensity (0.1 - 1.0)
     /// - Returns: A VibrationScript synchronized with the light script
@@ -1002,93 +1016,89 @@ extension EntrainmentEngine {
         // Ensure minimum intensity for vibration to be noticeable
         let baseIntensity = max(Self.minVibrationIntensity, intensity)
         
-        // --- PHASE 1: DISCONNECT (4 Min) ---
-        // Ramp from 10Hz → 5Hz (Square waves for "harder" entrainment)
-        // The vibration frequency is ramped by varying event duration (period) linearly from 10Hz to 5Hz
-        let phase1Duration: TimeInterval = 240 // 4 minutes
-        let p1StartFreq = 10.0
-        let p1EndFreq = 5.0
+        // --- PHASE 1: ENTRY (0-3 Min) ---
+        // Synchron zum Herzschlag (60 BPM ≈ 1 Hz) - beruhigt den Körper sofort
+        let phase1Duration: TimeInterval = 180 // 3 minutes
+        let heartRateFrequency = 1.0 // 60 BPM = 1 Hz
         
         var phase1Time: TimeInterval = 0
-        
         while phase1Time < phase1Duration {
-            // Linear ramp of frequency from 10Hz → 5Hz based on elapsed phase time
-            let progress = phase1Time / phase1Duration
-            let currentFreq = p1StartFreq + (p1EndFreq - p1StartFreq) * progress
-            let period = 1.0 / currentFreq
+            let period = 1.0 / heartRateFrequency
             
             events.append(try VibrationEvent(
                 timestamp: currentTime + phase1Time,
                 intensity: baseIntensity,
                 duration: period,
-                waveform: .square
+                waveform: .sine // Weiche Sinus-Wellen für beruhigenden Herzschlag-Rhythmus
             ))
             phase1Time += period
         }
         currentTime += phase1Duration
         
         // --- PHASE 2: THE ABYSS (12 Min) ---
-        // Deep theta oscillation at 4.5 Hz (Sine waves for gentle floating)
+        // Deep theta oscillation at 4.5 Hz
+        // Continuous Haptics: Sinusförmige Modulation parallel zum Licht für "Unterwasser-Gefühl"
+        // Statt stumpfer Events nutzen wir viele kleine Events mit Sine-Wellenform,
+        // die zusammen eine kontinuierliche, schwellende Vibration erzeugen
         let phase2Duration: TimeInterval = 720 // 12 Minuten
+        let phase2Frequency = 4.5 // 4.5 Hz Theta
         
-        // 2-second events with alternating intensity to prevent habituation
-        let phase2EventCount = Int(phase2Duration / 2.0)
-        for i in 0..<phase2EventCount {
-            // Vary intensity slightly (0.85x - 1.0x baseIntensity)
-            let intensityVariation: Float = (i % 2 == 0) ? baseIntensity : baseIntensity * 0.85
+        // Erstelle viele kleine Events (0.1s) mit Sine-Wellenform für flüssige Modulation
+        // Die Intensität wird vom VibrationController basierend auf der Sine-Wellenform
+        // automatisch als Sinus-Kurve berechnet, was das "schwellende" Gefühl erzeugt
+        let phase2EventDuration: TimeInterval = 0.1 // 100ms Events für flüssige Modulation
+        var phase2Time: TimeInterval = 0
+        
+        while phase2Time < phase2Duration {
+            // Base intensity wird vom VibrationController mit Sine-Wellenform moduliert
+            // Das erzeugt automatisch eine sinusförmige Intensitätskurve (schwellend)
+            events.append(try VibrationEvent(
+                timestamp: currentTime + phase2Time,
+                intensity: baseIntensity * 0.7, // Leicht reduziert für subtiles "Summen"
+                duration: phase2EventDuration,
+                waveform: .sine // Sine-Wellenform erzeugt schwellende, kontinuierliche Vibration
+            ))
+            phase2Time += phase2EventDuration
+        }
+        currentTime += phase2Duration
+        
+        // --- PHASE 3: DISSOLUTION (12-20 Min) ---
+        // Variierende Frequenzen (3.5-6.0 Hz) für zusätzliche Unvorhersagbarkeit
+        // Synchronisiert mit dem Licht-Script für konsistente Dissoziation
+        let phase3Duration: TimeInterval = 480 // 8 minutes (12-20 Min)
+        
+        var phase3Time: TimeInterval = 0
+        var randomSeed: UInt64 = 12345 // Gleicher Seed wie im Licht-Script für Synchronisation
+        
+        while phase3Time < phase3Duration {
+            // Pseudo-Zufallszahl für Frequenz-Variation (3.5-6.0 Hz) - synchron mit Licht
+            randomSeed = randomSeed &* 1103515245 &+ 12345
+            let randomValue = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
+            let variedFrequency = 3.5 + (randomValue * 2.5) // 3.5-6.0 Hz
+            let period = 1.0 / variedFrequency
+            
+            // Pseudo-Zufallszahl für Intensitäts-Variation (0.15-0.4)
+            randomSeed = randomSeed &* 1103515245 &+ 12345
+            let randomValue2 = Double(randomSeed & 0x7FFFFFFF) / Double(0x7FFFFFFF)
+            let variedIntensity: Float = 0.15 + Float(randomValue2 * 0.25) // 0.15-0.4
             
             events.append(try VibrationEvent(
-                timestamp: currentTime,
-                intensity: max(Self.minVibrationIntensity, intensityVariation),
-                duration: 2.0, // 2-second events
-                waveform: .sine // Sine for gentle floating
-            ))
-            currentTime += 2.0
-        }
-        
-        // --- PHASE 3: THE VOID / PEAK (7 Min) ---
-        // 40Hz Gamma-Burst (Square waves for maximum cortical excitation)
-        // Duration reduced to 7 minutes to match light script (compensates for 60-second transition ramp)
-        // OPTIMIZATION: Create longer events (0.1s) instead of individual periods (0.0125s)
-        // to reduce event count from 38,400 to ~4,800 events and prevent main thread blocking
-        let phase3Duration: TimeInterval = 420 // 7 minutes (reduced from 480 to match light script)
-        // Note: p3Frequency (40.0 Hz) is implied by the event timing, no explicit calculation needed
-        
-        // High intensity for Phase 3 (1.2x baseIntensity, clamped to 1.0)
-        let phase3Intensity = min(1.0, baseIntensity * 1.2)
-        
-        // Use 0.1s events instead of period/2 (0.0125s) to reduce event count by 8x
-        let phase3EventDuration: TimeInterval = 0.1 // 100ms events for Phase 3
-        var phase3Time: TimeInterval = 0
-        while phase3Time < phase3Duration {
-            events.append(try VibrationEvent(
                 timestamp: currentTime + phase3Time,
-                intensity: phase3Intensity,
-                duration: phase3EventDuration,
-                waveform: .square // Square wave for gamma sync
+                intensity: max(Self.minVibrationIntensity, variedIntensity),
+                duration: period,
+                waveform: .sine // Weiche Wellen für organische Dissoziation
             ))
-            phase3Time += phase3EventDuration
+            phase3Time += period
         }
         currentTime += phase3Duration
         
-        // --- PHASE 4: REINTEGRATION (6 Min) ---
-        // Schumann Resonance (7.83Hz) for peaceful grounding (Sine waves)
-        // OPTIMIZATION: Use longer events (0.2s) to reduce event count
-        let phase4Duration: TimeInterval = 360 // 6 minutes
-        // Note: p4Frequency (7.83 Hz) is implied by the event timing, no explicit calculation needed
-        
-        // Use 0.2s events instead of full period (~0.128s) to reduce event count
-        let phase4EventDuration: TimeInterval = 0.2 // 200ms events for Phase 4
-        var phase4Time: TimeInterval = 0
-        while phase4Time < phase4Duration {
-            events.append(try VibrationEvent(
-                timestamp: currentTime + phase4Time,
-                intensity: baseIntensity,
-                duration: phase4EventDuration,
-                waveform: .sine // Sine for gentle grounding
-            ))
-            phase4Time += phase4EventDuration
-        }
+        // --- PHASE 4: THE VOID / UNIVERSE (20-30 Min) ---
+        // VIBRATION AUS - totale Stille im Körper, nur Licht im Kopf
+        // "Körper schläft, Geist ist wach" - das erzeugt das Gefühl der Dissoziation
+        // Keine Events in Phase 4 - Vibration bleibt aus
+        let phase4Duration: TimeInterval = 600 // 10 minutes (20-30 Min)
+        // Vibration bleibt komplett aus - keine Events erstellt
+        currentTime += phase4Duration
         
         // Create VibrationScript
         return try VibrationScript(

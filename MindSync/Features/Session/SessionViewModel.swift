@@ -1348,8 +1348,9 @@ final class SessionViewModel: ObservableObject {
         affirmationTimer = nil
     }
     
-    /// Starts audio playback and light synchronization
-    /// - Returns: The actual start time (after audio has started)
+    /// Starts audio playback and light synchronization with Master Clock synchronization
+    /// Uses a "Future-Start" approach: All systems (Audio, Light, Vibration) synchronize to a common future time point
+    /// - Returns: The synchronized start time (future time point that all systems wait for)
     private func startPlaybackAndLight(url: URL, script: LightScript, startTime: Date) async throws -> Date {
         let modeString = self.currentSession?.mode.rawValue ?? "unknown"
         logger.info("startPlaybackAndLight: starting with URL=\(url.lastPathComponent), mode=\(modeString)")
@@ -1359,24 +1360,44 @@ final class SessionViewModel: ObservableObject {
             throw LightControlError.configurationFailed
         }
 
-        // Start audio playback first
-        try audioPlayback.play(url: url)
+        // MASTER CLOCK: Calculate future start time (500ms in the future)
+        // This gives all systems time to prepare and ensures perfect synchronization
+        let syncStartDelay: TimeInterval = 0.5 // 500ms delay for synchronization
+        let systemUptime = ProcessInfo.processInfo.systemUptime
+        let futureStartUptime = systemUptime + syncStartDelay
+        let futureStartTime = Date(timeIntervalSinceNow: syncStartDelay)
+        
+        logger.info("Master Clock: Future start time calculated (delay=\(syncStartDelay)s, uptime=\(systemUptime)s, futureUptime=\(futureStartUptime)s)")
 
-        // CRITICAL: Wait for audio to actually start playing (not just engine started)
-        // This ensures perfect synchronization - light waits for audio to really begin
-        // Audio can take 4-5 seconds to start with Bluetooth devices
-        // We use a more reliable approach: Wait for a fixed delay that accounts for Bluetooth latency
-        // The 50ms delay is too short - Bluetooth can take 4-5 seconds to start
-        // We wait 5 seconds to ensure audio is really playing before starting light
-        try await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds - handles Bluetooth delays
+        // Prepare all systems first (prewarm)
+        logger.info("Preparing all systems for synchronized start")
         
-        // Now verify that audio is actually playing
-        let preciseTime = audioPlayback.preciseAudioTime
-        logger.info("Audio playback check after 5s delay (preciseAudioTime: \(preciseTime, privacy: .public)s, isPlaying: \(audioPlayback.isPlaying, privacy: .public))")
-        
-        // Create actual start time AFTER audio has actually started (for proper synchronization)
-        // We've waited 5 seconds, so audio should be playing now
-        let actualStartTime = Date()
+        // Start audio playback (but don't wait for it to actually start)
+        try audioPlayback.play(url: url)
+        logger.info("Audio playback initiated")
+
+        // Start light controller (preparation phase)
+        let lightStartTask = Task {
+            try await lightController.start()
+        }
+
+        var lightControllerStarted = false
+        do {
+            // Wait for light controller to start with a 5-second timeout
+            try await withTimeout(seconds: 5.0) {
+                try await lightStartTask.value
+            }
+            lightControllerStarted = true
+            logger.info("Light controller prepared successfully")
+        } catch {
+            lightStartTask.cancel()
+            if error is TimeoutError {
+                logger.error("Light controller start timed out after 5 seconds")
+            } else {
+                logger.error("Light controller start failed with error: \(error.localizedDescription, privacy: .public)")
+            }
+            statusMessage = NSLocalizedString("status.light.failed", comment: "Light synchronization failed, continuing in audio-only mode")
+        }
 
         // If cinematic mode, attach isochronic audio to the playback engine for perfect sync
         if currentSession?.mode == .cinematic, let engine = audioPlayback.getAudioEngine() {
@@ -1390,42 +1411,29 @@ final class SessionViewModel: ObservableObject {
             enableSpectralFluxForCinematicMode(mode)
         }
 
-        logger.info("startPlaybackAndLight: audio started, starting light controller with 5s timeout")
-        // Start light controller with timeout to prevent hanging
-        let lightStartTask = Task {
-            try await lightController.start()
+        // Wait until the future start time is reached
+        let currentUptime = ProcessInfo.processInfo.systemUptime
+        let waitTime = max(0.0, futureStartUptime - currentUptime)
+        
+        if waitTime > 0 {
+            logger.info("Master Clock: Waiting \(waitTime)s until synchronized start time")
+            try await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
         }
 
-        var lightControllerStarted = false
-        do {
-            // Wait for light controller to start with a 5-second timeout
-            try await withTimeout(seconds: 5.0) {
-                try await lightStartTask.value
-            }
-            lightControllerStarted = true
-        } catch {
-            lightStartTask.cancel()
-            // Log the actual error type for better diagnostics
-            if error is TimeoutError {
-                logger.error("Light controller start timed out after 5 seconds")
-            } else {
-                logger.error("Light controller start failed with error: \(error.localizedDescription, privacy: .public)")
-            }
-            // Try to continue without light controller as fallback
-            // Set status message to notify user of audio-only mode
-            statusMessage = NSLocalizedString("status.light.failed", comment: "Light synchronization failed, continuing in audio-only mode")
-        }
+        // Now all systems start at the exact same moment
+        let synchronizedStartTime = Date()
+        logger.info("Master Clock: Synchronized start time reached (actual time: \(synchronizedStartTime))")
 
         if lightControllerStarted {
-            // Start LightScript execution synchronized with audio (use actualStartTime)
-            lightController.execute(script: script, syncedTo: actualStartTime)
-            logger.info("startPlaybackAndLight: light script execution started successfully")
+            // Start LightScript execution synchronized to the future start time
+            lightController.execute(script: script, syncedTo: synchronizedStartTime)
+            logger.info("startPlaybackAndLight: light script execution started with Master Clock synchronization")
         } else {
             logger.info("startPlaybackAndLight: continuing in audio-only mode")
         }
         
-        // Return actual start time for vibration synchronization
-        return actualStartTime
+        // Return synchronized start time for vibration synchronization
+        return synchronizedStartTime
     }
 
     /// Typed timeout error for better type safety

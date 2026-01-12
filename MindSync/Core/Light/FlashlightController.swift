@@ -61,12 +61,18 @@ final class FlashlightController: BaseLightController, LightControlling {
     private var fluxHistory: [Float] = []  // Longer history for adaptive threshold calculation
     private var lastPeakTime: TimeInterval = 0
     private let peakCooldownDuration: TimeInterval = 0.08  // 80ms minimum between peaks (prevents double-triggers)
-    private let peakRiseThreshold: Float = 0.04  // Minimum 4% rise above local average for peak (reduced from 0.08 for better sensitivity)
+    private var peakRiseThreshold: Float = 0.04  // Minimum 4% rise above local average for peak (dynamically adjusted)
     private let maxFluxHistorySize = 10  // Keep last 10 flux values for local average calculation
     private let maxAdaptiveHistorySize = 200  // Keep last 200 flux values for adaptive threshold (~20 seconds at 10 Hz)
     private let absoluteMinimumThreshold: Float = 0.05  // Absolute minimum flux value to consider (reduced from 0.1 for better sensitivity)
-    private let fixedThreshold: Float = 0.08  // Fallback threshold when not enough history (reduced from 0.15 for better sensitivity)
+    private var fixedThreshold: Float = 0.08  // Fallback threshold when not enough history (dynamically adjusted)
     private let adaptiveThresholdMultiplier: Float = 0.25  // Use mean + 0.25 * stdDev (reduced from 0.4 for more sensitive peak detection)
+    
+    // Rolling Average Calibrator: Lernt in den ersten 10 Sekunden die Dynamik des Songs
+    private var calibrationStartTime: TimeInterval = -1.0  // -1 bedeutet: noch nicht gestartet
+    private let calibrationDuration: TimeInterval = 10.0  // 10 Sekunden Kalibrierung
+    private var calibrationFluxValues: [Float] = []  // Flux-Werte während der Kalibrierung
+    private var isCalibrated: Bool = false  // Ob die Kalibrierung abgeschlossen ist
     
     /// Precision timer interval shared across light controllers
     /// OPTIMIZED FOR LAMBDA: 1ms (1000 Hz) resolution needed for stable 100 Hz output.
@@ -227,6 +233,12 @@ final class FlashlightController: BaseLightController, LightControlling {
         recentFluxValues.removeAll()
         fluxHistory.removeAll()
         lastPeakTime = 0
+        // Reset calibration state
+        calibrationStartTime = -1.0
+        calibrationFluxValues.removeAll()
+        isCalibrated = false
+        peakRiseThreshold = 0.04  // Reset to default
+        fixedThreshold = 0.08  // Reset to default
         // Reset debug logging timestamp
         lastAudioLogTime = -1.0
         noEventLogCount = 0
@@ -359,6 +371,14 @@ final class FlashlightController: BaseLightController, LightControlling {
 
     func execute(script: LightScript, syncedTo startTime: Date) {
         initializeScriptExecution(script: script, startTime: startTime)
+        
+        // Start calibration for cinematic mode
+        if script.mode == .cinematic {
+            calibrationStartTime = ProcessInfo.processInfo.systemUptime
+            calibrationFluxValues.removeAll()
+            isCalibrated = false
+            logger.info("Cinematic mode: Starting 10-second calibration period")
+        }
 
         setupPrecisionTimer(interval: precisionInterval) { [weak self] in
             self?.updateLight()
@@ -376,6 +396,12 @@ final class FlashlightController: BaseLightController, LightControlling {
         recentFluxValues.removeAll()
         fluxHistory.removeAll()
         lastPeakTime = 0
+        // Reset calibration state
+        calibrationStartTime = -1.0
+        calibrationFluxValues.removeAll()
+        isCalibrated = false
+        peakRiseThreshold = 0.04  // Reset to default
+        fixedThreshold = 0.08  // Reset to default
         // Reset debug logging timestamp
         lastAudioLogTime = -1.0
         noEventLogCount = 0
@@ -442,6 +468,42 @@ final class FlashlightController: BaseLightController, LightControlling {
                 if let tracker = audioEnergyTracker {
                     // Use spectral flux for peak detection (better beat detection)
                     let rawEnergy = tracker.useSpectralFlux ? tracker.currentSpectralFlux : tracker.currentEnergy
+                    
+                    // ROLLING AVERAGE CALIBRATOR: Lerne in den ersten 10 Sekunden die Dynamik des Songs
+                    let currentUptime = ProcessInfo.processInfo.systemUptime
+                    if calibrationStartTime >= 0 && !isCalibrated {
+                        let calibrationElapsed = currentUptime - calibrationStartTime
+                        
+                        if calibrationElapsed < calibrationDuration {
+                            // Sammle Flux-Werte während der Kalibrierung
+                            calibrationFluxValues.append(rawEnergy)
+                        } else if calibrationFluxValues.count > 0 {
+                            // Kalibrierung abgeschlossen: Berechne optimale Thresholds
+                            let mean = calibrationFluxValues.reduce(0, +) / Float(calibrationFluxValues.count)
+                            let variance = calibrationFluxValues.map { pow($0 - mean, 2) }.reduce(0, +) / Float(calibrationFluxValues.count)
+                            let stdDev = sqrt(variance)
+                            let maxFlux = calibrationFluxValues.max() ?? 0.0
+                            let minFlux = calibrationFluxValues.min() ?? 0.0
+                            let dynamicRange = maxFlux - minFlux
+                            
+                            // Viel Dynamik (Beats): Setze Threshold höher (nur die Kicks triggern Licht)
+                            // Wenig Dynamik (Drone/Ambient): Setze Threshold niedriger und nutze weiche Übergänge
+                            if dynamicRange > 0.15 {
+                                // Viel Dynamik (Techno, EDM, Rock): Höherer Threshold für klare Beat-Detection
+                                peakRiseThreshold = 0.06  // Erhöht von 0.04
+                                fixedThreshold = 0.12  // Erhöht von 0.08
+                                logger.info("Cinematic calibration: High dynamics detected (range=\(dynamicRange)), using higher thresholds")
+                            } else {
+                                // Wenig Dynamik (Ambient, Drone): Niedrigerer Threshold für subtilere Reaktion
+                                peakRiseThreshold = 0.02  // Reduziert von 0.04
+                                fixedThreshold = 0.05  // Reduziert von 0.08
+                                logger.info("Cinematic calibration: Low dynamics detected (range=\(dynamicRange)), using lower thresholds")
+                            }
+                            
+                            isCalibrated = true
+                            logger.info("Cinematic calibration complete: mean=\(mean), stdDev=\(stdDev), range=\(dynamicRange), threshold=\(peakRiseThreshold)")
+                        }
+                    }
                     
                     // Build local average buffer for peak detection (fast response)
                     recentFluxValues.append(rawEnergy)
