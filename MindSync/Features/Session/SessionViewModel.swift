@@ -1378,7 +1378,6 @@ final class SessionViewModel: ObservableObject {
         
         // Schedule audio to start at the future start time
         // This ensures audio start is aligned with the Master Clock synchronization
-        // Note: futureStartTime is used here - linter warning is a false positive
         try audioPlayback.schedulePlayback(at: futureStartTime)
         logger.info("Audio playback scheduled to start at futureStartTime: \(futureStartTime)")
 
