@@ -234,6 +234,9 @@ final class FlashlightController: BaseLightController, LightControlling {
         fluxHistory.removeAll()
         lastPeakTime = 0
         // Reset calibration state
+        // Calibration is intentionally reset on each session start to allow adaptation
+        // to different music tracks or playlists. This ensures the cinematic mode
+        // optimizes its sensitivity for whatever the user plays next.
         calibrationStartTime = -1.0
         calibrationFluxValues.removeAll()
         isCalibrated = false
@@ -396,7 +399,8 @@ final class FlashlightController: BaseLightController, LightControlling {
         recentFluxValues.removeAll()
         fluxHistory.removeAll()
         lastPeakTime = 0
-        // Reset calibration state
+        // Reset calibration state (also happens on stop())
+        // Calibration is intentionally reset to allow adaptation to different music
         calibrationStartTime = -1.0
         calibrationFluxValues.removeAll()
         isCalibrated = false
