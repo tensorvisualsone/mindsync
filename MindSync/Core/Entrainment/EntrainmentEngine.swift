@@ -1095,7 +1095,7 @@ extension EntrainmentEngine {
             
             // Advance seed for synchronization with Light-Script (which uses this for Duration)
             // We use period (calculated from frequency) as duration, so we don't need the random value
-            Self.advanceRandomSeed(&randomSeed)
+            advanceRandomSeed(&randomSeed)
             
             events.append(try VibrationEvent(
                 timestamp: currentTime + phase3Time,
