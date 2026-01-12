@@ -185,10 +185,10 @@ final class AudioPlaybackService: NSObject {
         // Compute future host time with explicit overflow handling to avoid incorrect scheduling.
         let futureHostTime: UInt64
         if delayInHostTicks > UInt64.max - currentHostTime {
-            // Clamp to the maximum representable host time and log an error instead of overflowing.
-            logger.error("AudioPlaybackService.schedulePlayback: delayInHostTicks (\(delayInHostTicks)) would overflow hostTime (currentHostTime=\(currentHostTime)). Clamping delay.")
-            let clampedDelay = UInt64.max - currentHostTime
-            futureHostTime = currentHostTime + clampedDelay
+            // Overflow would occur: this indicates an invalidly large delay.
+            // Log the issue and fall back to starting as soon as possible instead of scheduling "never".
+            logger.error("AudioPlaybackService.schedulePlayback: delayInHostTicks (\(delayInHostTicks)) would overflow hostTime (currentHostTime=\(currentHostTime)). Starting immediately instead of applying delay.")
+            futureHostTime = currentHostTime
         } else {
             futureHostTime = currentHostTime + delayInHostTicks
         }
