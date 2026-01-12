@@ -164,6 +164,7 @@ final class AudioPlaybackService: NSObject {
         let nanosecondsPerTick = Double(timebaseInfo.numer) / Double(timebaseInfo.denom)
         let delayInNanoseconds = delay * 1_000_000_000.0
         let delayInHostTicks = UInt64(delayInNanoseconds / nanosecondsPerTick)
+        // Use overflow addition (&+) as host time values can wrap around at UInt64.max
         let futureHostTime = currentHostTime &+ delayInHostTicks
         
         // Calculate future sample time at the current render sample rate
