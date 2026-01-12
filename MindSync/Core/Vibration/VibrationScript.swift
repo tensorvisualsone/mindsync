@@ -10,7 +10,7 @@ struct VibrationScript: Codable, Identifiable {
     let events: [VibrationEvent]
     let createdAt: Date
 
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         trackId: UUID,
         mode: EntrainmentMode,

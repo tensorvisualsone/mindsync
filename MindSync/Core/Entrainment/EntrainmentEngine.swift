@@ -13,7 +13,7 @@ final class EntrainmentEngine {
     /// - Note: This is applied after user intensity (0.1-1.0) is multiplied by mode-specific multipliers.
     ///   For example, if a user sets intensity to 0.1 and the mode multiplier is 1.0, the result
     ///   would be 0.1, which is then clamped to this minimum (0.15).
-    static let minVibrationIntensity: Float = 0.15
+    nonisolated static let minVibrationIntensity: Float = 0.15
     
     /// Advances the PRNG seed without using the generated value.
     /// Used to keep light and vibration scripts synchronized when one script
@@ -31,7 +31,7 @@ final class EntrainmentEngine {
     ///   - duration: Total duration of Phase 3 in seconds
     ///   - interval: Fixed time interval between random value samples (e.g., 0.1 seconds)
     /// - Returns: Array of (frequency: Double, intensity: Float) pairs indexed by time step
-    private static func generatePhase3RandomValues(
+    nonisolated private static func generatePhase3RandomValues(
         seed: UInt64,
         duration: TimeInterval,
         interval: TimeInterval
@@ -946,7 +946,7 @@ extension EntrainmentEngine {
         let p1Frequency = 10.0 // 10 Hz Alpha
         
         // 1-second events with sine waves for gentle, organic feeling
-        for i in 0..<Int(phase1Duration) {
+        for _ in 0..<Int(phase1Duration) {
             events.append(LightEvent(
                 timestamp: currentTime,
                 intensity: 0.4, // Gentle start
@@ -1111,7 +1111,8 @@ extension EntrainmentEngine {
     ///   - intensity: User preference for vibration intensity (0.1 - 1.0)
     /// - Returns: A VibrationScript synchronized with the light script
     /// - Throws: VibrationScriptError if validation fails
-    nonisolated static func generateDMNShutdownVibrationScript(intensity: Float) throws -> VibrationScript {
+    @MainActor
+    static func generateDMNShutdownVibrationScript(intensity: Float) throws -> VibrationScript {
         var events: [VibrationEvent] = []
         var currentTime: TimeInterval = 0.0
         
@@ -1143,7 +1144,6 @@ extension EntrainmentEngine {
         // Instead of blunt events, we use many small events with sine waveform,
         // which together create a continuous, swelling vibration
         let phase2Duration: TimeInterval = 540 // 9 minutes (3-12 Min)
-        let phase2Frequency = 4.5 // 4.5 Hz Theta
         
         // Create many small events (0.1s) with sine waveform for fluid modulation
         // The intensity is automatically calculated by VibrationController based on sine waveform

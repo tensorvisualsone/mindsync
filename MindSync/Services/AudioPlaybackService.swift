@@ -451,6 +451,37 @@ final class AudioPlaybackService: NSObject {
         return playbackState == .scheduled
     }
     
+    /// Waits for audio to actually start playing after being scheduled
+    /// This is necessary because AVAudioPlayerNode.play(at:) may not start immediately
+    /// - Parameter timeout: Maximum time to wait in seconds (default: 5.0)
+    /// - Returns: True if audio started playing, false if timeout was reached
+    func waitForPlaybackToStart(timeout: TimeInterval = 5.0) async -> Bool {
+        let startTime = Date()
+        
+        // Poll until audio is playing or timeout
+        while !isPlaying && Date().timeIntervalSince(startTime) < timeout {
+            // Check if audio has actually started by checking preciseAudioTime
+            // This triggers state transition from scheduled to playing
+            _ = preciseAudioTime
+            
+            if isPlaying {
+                logger.info("Audio playback confirmed started after \(Date().timeIntervalSince(startTime))s wait")
+                return true
+            }
+            
+            // Wait a short time before checking again (10ms polling interval)
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        
+        if isPlaying {
+            logger.info("Audio playback confirmed started after \(Date().timeIntervalSince(startTime))s wait")
+            return true
+        } else {
+            logger.warning("Audio playback did not start within \(timeout)s timeout")
+            return false
+        }
+    }
+    
     /// Total duration of the currently loaded file
     var duration: TimeInterval {
         fileDuration

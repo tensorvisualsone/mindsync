@@ -1456,10 +1456,43 @@ final class SessionViewModel: ObservableObject {
         let synchronizedStartTime = futureStartTime
         logger.info("Master Clock: Synchronized start time reached (planned time: \(synchronizedStartTime), actual wake-up: \(Date()))")
 
+        // CRITICAL: Wait for audio to actually start playing before starting light
+        // This ensures perfect synchronization. AVAudioPlayerNode.play(at:) may schedule
+        // playback but there can be a delay before audio actually starts rendering.
+        // For DMN-Shutdown mode, this is especially important as the script is synchronized
+        // to the audio timeline.
+        logger.info("Waiting for audio playback to actually start...")
+        let audioStarted = await audioPlayback.waitForPlaybackToStart(timeout: 5.0)
+        
+        if !audioStarted {
+            logger.warning("Audio did not start within timeout, proceeding anyway (may cause sync issues)")
+        } else {
+            let actualAudioStartTime = Date()
+            let delayFromPlanned = actualAudioStartTime.timeIntervalSince(synchronizedStartTime)
+            logger.info("Audio playback confirmed started (delay from planned: \(delayFromPlanned)s)")
+            
+            // Adjust synchronized start time to actual audio start for perfect sync
+            // This compensates for any delay in audio hardware startup
+            let adjustedStartTime = actualAudioStartTime
+            logger.info("Using adjusted start time: \(adjustedStartTime) (was: \(synchronizedStartTime))")
+            
+            if lightControllerStarted {
+                // Start LightScript execution synchronized to the actual audio start time
+                lightController.execute(script: script, syncedTo: adjustedStartTime)
+                logger.info("startPlaybackAndLight: light script execution started with actual audio start time synchronization")
+            } else {
+                logger.info("startPlaybackAndLight: continuing in audio-only mode")
+            }
+            
+            // Return actual audio start time for vibration synchronization
+            return adjustedStartTime
+        }
+
         if lightControllerStarted {
-            // Start LightScript execution synchronized to the future start time
+            // Fallback: Start LightScript execution synchronized to the future start time
+            // (used if audio didn't start within timeout)
             lightController.execute(script: script, syncedTo: synchronizedStartTime)
-            logger.info("startPlaybackAndLight: light script execution started with Master Clock synchronization")
+            logger.info("startPlaybackAndLight: light script execution started with Master Clock synchronization (fallback)")
         } else {
             logger.info("startPlaybackAndLight: continuing in audio-only mode")
         }

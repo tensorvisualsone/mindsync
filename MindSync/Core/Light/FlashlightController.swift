@@ -550,7 +550,7 @@ final class FlashlightController: BaseLightController, LightControlling {
                                 peakRiseThreshold = 0.04  // Default conservative threshold
                                 fixedThreshold = 0.08     // Default conservative threshold
                                 calibrationStartTime = -1.0
-                                logger.warning("Cinematic calibration: No flux values collected during calibration window, using default thresholds (peakRiseThreshold=\(peakRiseThreshold), fixedThreshold=\(fixedThreshold))")
+                                logger.warning("Cinematic calibration: No flux values collected during calibration window, using default thresholds (peakRiseThreshold=\(self.peakRiseThreshold), fixedThreshold=\(self.fixedThreshold))")
                             }
                         }
                     }
