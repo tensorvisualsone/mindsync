@@ -37,7 +37,7 @@ struct VibrationEvent: Codable {
     /// - `timestamp`: Must be finite and >= 0.0 (negative values, infinity, and NaN are invalid)
     /// - `intensity`: Must be finite and in range [0.0, 1.0] (infinity and NaN are invalid)
     /// - `duration`: Must be finite and >= 0.0 (negative duration, infinity, and NaN are physically meaningless)
-    nonisolated init(timestamp: TimeInterval, intensity: Float, duration: TimeInterval, waveform: Waveform) throws {
+    init(timestamp: TimeInterval, intensity: Float, duration: TimeInterval, waveform: Waveform) throws {
         // Validate timestamp: must be finite and non-negative
         guard timestamp.isFinite && timestamp >= 0.0 else {
             throw ValidationError.invalidTimestamp(timestamp)
