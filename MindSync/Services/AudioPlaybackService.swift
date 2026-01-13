@@ -48,6 +48,10 @@ final class AudioPlaybackService: NSObject {
             stateLock.withLock { $0 }
         }
         set {
+            let oldValue = stateLock.withLock { $0 }
+            if oldValue != newValue {
+                logger.debug("PlaybackState transition: \(String(describing: oldValue)) → \(String(describing: newValue))")
+            }
             stateLock.withLock { $0 = newValue }
         }
     }

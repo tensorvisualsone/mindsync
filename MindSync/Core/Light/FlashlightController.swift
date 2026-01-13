@@ -254,16 +254,19 @@ final class FlashlightController: BaseLightController, LightControlling {
         invalidatePrecisionTimer()
         
         // Then perform cleanup
+        // IMPORTANT: Turn off torch BEFORE unlocking configuration to avoid setIntensity errors
         if let device = device, isLocked {
             device.torchMode = .off
+            // Set intensity to 0 before unlocking to ensure clean shutdown
+            currentIntensity = -1.0 // Reset tracked intensity to allow setIntensity to work
+            setIntensity(0.0) // Turn off torch while still locked
             device.unlockForConfiguration()
             isLocked = false
+        } else {
+            // If device is not locked, just reset tracked intensity
+            currentIntensity = -1.0 // Reset tracked intensity
         }
         torchFailureNotified = false
-        
-        // Reset state
-        currentIntensity = -1.0 // Reset tracked intensity
-        setIntensity(0.0)
         resetScriptExecution()
         lastBeatTime = 0
         lastBeatIntensity = 0.0
@@ -337,7 +340,10 @@ final class FlashlightController: BaseLightController, LightControlling {
         #endif
         
         guard let device = device, isLocked else {
-            logger.warning("setIntensity failed: device=\(self.device != nil), isLocked=\(self.isLocked)")
+            // Ignore setIntensity failures during shutdown to avoid log spam
+            if !isStopping {
+                logger.warning("setIntensity failed: device=\(self.device != nil), isLocked=\(self.isLocked)")
+            }
             return
         }
         
@@ -923,7 +929,12 @@ final class FlashlightController: BaseLightController, LightControlling {
         }
 
         let adjustedDuty = baseDuty * multiplier
-        return max(adjustedDuty, DutyCycleConfig.minimumDutyFloor)
+        let finalDuty = max(adjustedDuty, DutyCycleConfig.minimumDutyFloor)
+        
+        // Log duty cycle calculation for debugging and verification
+        logger.debug("Duty cycle calculated: \(String(format: "%.1f", finalDuty * 100))% for frequency: \(String(format: "%.1f", frequency)) Hz (base: \(String(format: "%.1f", baseDuty * 100))%, thermal multiplier: \(String(format: "%.2f", multiplier)))")
+        
+        return finalDuty
     }
     
     // MARK: - Helpers
