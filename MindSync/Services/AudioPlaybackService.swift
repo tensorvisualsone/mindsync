@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import os.log
+import Darwin
 
 @MainActor
 final class AudioPlaybackService: NSObject {
@@ -36,20 +37,20 @@ final class AudioPlaybackService: NSObject {
     private var audioFile: AVAudioFile?
     private var playbackTimer: Timer?
     
-    // Thread-safe state management using NSLock
+    // Thread-safe state management using os_unfair_lock (async-safe in Swift 6)
     // Note: All state access is now protected by stateLock to prevent race conditions
     // between UI thread, timer callbacks, and audio render thread
-    private let stateLock = NSLock()
+    private var stateLock = os_unfair_lock_s()
     private var _playbackState: PlaybackState = .idle
     private var playbackState: PlaybackState {
         get {
-            stateLock.lock()
-            defer { stateLock.unlock() }
+            os_unfair_lock_lock(&stateLock)
+            defer { os_unfair_lock_unlock(&stateLock) }
             return _playbackState
         }
         set {
-            stateLock.lock()
-            defer { stateLock.unlock() }
+            os_unfair_lock_lock(&stateLock)
+            defer { os_unfair_lock_unlock(&stateLock) }
             _playbackState = newValue
         }
     }
@@ -356,7 +357,7 @@ final class AudioPlaybackService: NSObject {
         let now = Date()
         
         // Thread-safe check and update of playback state
-        stateLock.lock()
+        os_unfair_lock_lock(&stateLock)
         let currentState = _playbackState
         
         // If scheduled, check if the start time has been reached
@@ -364,15 +365,15 @@ final class AudioPlaybackService: NSObject {
             if now >= startTime {
                 // Start time reached, transition to playing state
                 _playbackState = .playing
-                stateLock.unlock()
+                os_unfair_lock_unlock(&stateLock)
                 logger.info("Audio playback transitioned from scheduled to playing at: \(now)")
             } else {
-                stateLock.unlock()
+                os_unfair_lock_unlock(&stateLock)
                 // Still waiting for start time
                 return 0
             }
         } else {
-            stateLock.unlock()
+            os_unfair_lock_unlock(&stateLock)
         }
         
         let elapsed = now.timeIntervalSince(startTime)
@@ -410,13 +411,13 @@ final class AudioPlaybackService: NSObject {
         }
         
         // If we have render time, audio is actually playing - update state if needed
-        stateLock.lock()
+        os_unfair_lock_lock(&stateLock)
         if _playbackState == .scheduled {
             _playbackState = .playing
-            stateLock.unlock()
+            os_unfair_lock_unlock(&stateLock)
             logger.info("Audio playback transitioned from scheduled to playing (detected via render time)")
         } else {
-            stateLock.unlock()
+            os_unfair_lock_unlock(&stateLock)
         }
         
         // Time elapsed in current segment (Samples / Rate)
@@ -509,6 +510,19 @@ final class AudioPlaybackService: NSObject {
         return actualStartTime
     }
     
+    /// Helper function to safely update playback state from async context
+    /// Since we're @MainActor, we can use a Task with MainActor isolation
+    /// to safely update state without deadlocks
+    private func updatePlaybackStateIfScheduled() {
+        // Update state using async-safe os_unfair_lock
+        os_unfair_lock_lock(&stateLock)
+        defer { os_unfair_lock_unlock(&stateLock) }
+        if _playbackState == .scheduled {
+            _playbackState = .playing
+            logger.info("Audio playback transitioned from scheduled to playing (detected via render time)")
+        }
+    }
+    
     /// Checks if audio has actually started rendering by checking lastRenderTime
     /// This is more reliable than checking isPlaying state, which may lag behind
     /// Validates that we have valid timing information from the audio hardware
@@ -547,23 +561,18 @@ final class AudioPlaybackService: NSObject {
     /// 
     /// - Parameter timeout: Maximum time to wait in seconds (default: 3.0 for better UX)
     /// - Returns: The actual audio render start time (from hardware) if audio started, nil if timeout
-    func waitForPlaybackToStart(timeout: TimeInterval = Self.playbackStartTimeout) async -> Date? {
+    @MainActor
+    func waitForPlaybackToStart(timeout: TimeInterval? = nil) async -> Date? {
+        let actualTimeout = timeout ?? AudioPlaybackService.playbackStartTimeout
         let waitStartTime = Date()
         
         // Poll until audio is rendering or timeout
-        while Date().timeIntervalSince(waitStartTime) < timeout {
+        while Date().timeIntervalSince(waitStartTime) < actualTimeout {
             // Check if audio has actually started rendering by checking lastRenderTime directly
             // This is more reliable than checking isPlaying state
             if isAudioActuallyRendering() {
-                // Update state if needed
-                stateLock.lock()
-                if _playbackState == .scheduled {
-                    _playbackState = .playing
-                    stateLock.unlock()
-                    logger.info("Audio playback transitioned from scheduled to playing (detected via render time)")
-                } else {
-                    stateLock.unlock()
-                }
+                // Update state if needed (using synchronous helper to avoid async locking issues)
+                updatePlaybackStateIfScheduled()
                 
                 // Audio is rendering, get the actual render start time from hardware
                 if let actualStartTime = getActualAudioRenderStartTime() {
@@ -606,7 +615,7 @@ final class AudioPlaybackService: NSObject {
             }
         }
         
-        logger.warning("Audio playback did not start within \(timeout)s timeout")
+        logger.warning("Audio playback did not start within \(actualTimeout)s timeout")
         return nil
     }
     
