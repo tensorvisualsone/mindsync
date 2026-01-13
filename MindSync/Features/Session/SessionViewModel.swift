@@ -1439,11 +1439,15 @@ final class SessionViewModel: ObservableObject {
             statusMessage = NSLocalizedString("status.light.failed", comment: "Light synchronization failed, continuing in audio-only mode")
         }
 
-        // If cinematic mode, attach isochronic audio to the playback engine for perfect sync
-        if currentSession?.mode == .cinematic, let engine = audioPlayback.getAudioEngine() {
-            IsochronicAudioService.shared.carrierFrequency = 150.0
-            IsochronicAudioService.shared.start(mode: currentSession!.mode, attachToEngine: engine)
-        }
+        // IMPORTANT: Cinematic mode does NOT use isochronic audio
+        // Cinematic mode is designed for pure music-reactive visuals where the flashlight
+        // responds to beats and transients in the user's music. Adding an isochronic tone
+        // would interfere with beat detection (the tone's 6.5 Hz pulse would dominate
+        // the spectral flux analysis) and distract from the music experience.
+        //
+        // Other modes (Alpha, Theta, Gamma) can optionally use isochronic audio for
+        // enhanced neural entrainment, but cinematic mode should remain music-only.
+        // The isochronic service is intentionally NOT started for cinematic mode.
         
         // Enable audio energy tracking for audio-reactive modes (not for fixed script modes)
         // Fixed script modes use frequencyOverride and don't need audio reactivity
