@@ -6,6 +6,23 @@ import os.log
 final class AudioPlaybackService: NSObject {
     private let logger = Logger(subsystem: "com.mindsync", category: "AudioPlaybackService")
     
+    // MARK: - Constants
+    
+    /// Maximum time to wait for audio playback to start before falling back (in seconds)
+    /// Reduced from 10s to 3s for better user experience - if audio hasn't started
+    /// within 3 seconds, something is likely wrong and waiting longer frustrates users
+    private static let playbackStartTimeout: TimeInterval = 3.0
+    
+    /// Fallback time offset when hardware render time is unavailable (in seconds)
+    /// Assumes audio started approximately 100ms ago when we detect it's rendering
+    /// but can't get precise hardware timing
+    private static let fallbackRenderTimeOffset: TimeInterval = 0.1
+    
+    /// Polling interval for checking if audio has started rendering (in nanoseconds)
+    /// 50ms provides good responsiveness while limiting CPU usage
+    /// Calculation: 50 milliseconds * 1,000,000 nanoseconds/millisecond = 50,000,000 nanoseconds
+    private static let renderCheckPollingInterval: UInt64 = 50 * 1_000_000
+    
     /// Playback state to distinguish between scheduled and actually playing
     private enum PlaybackState {
         case idle           // No playback prepared
@@ -453,7 +470,7 @@ final class AudioPlaybackService: NSObject {
     
     /// Gets the actual audio render start time from AVAudioPlayerNode's lastRenderTime
     /// Converts the audio hardware render time to a Date using mach timebase conversion
-    /// Uses playerTime.sampleTime to determine when playback actually started (sampleTime near 0 = just started)
+    /// Uses playerTime.sampleTime and elapsed time to calculate when playback actually started
     /// - Returns: The actual audio render start time as Date, or nil if not available
     private func getActualAudioRenderStartTime() -> Date? {
         guard let node = playerNode,
@@ -477,6 +494,11 @@ final class AudioPlaybackService: NSObject {
         let nanoseconds = (Double(nodeTime.hostTime) * Double(timebaseInfo.numer)) / Double(timebaseInfo.denom)
         
         // Convert nanoseconds to Date
+        // Note: mach_absolute_time() provides nanosecond precision, but systemUptime
+        // is in seconds (TimeInterval/Double). This conversion may lose sub-millisecond
+        // precision in the final Date. For audio sync purposes, millisecond-level
+        // precision is generally sufficient (human perception ~20ms). If sub-millisecond
+        // precision becomes critical, consider using mach times throughout instead of Date.
         // mach_absolute_time() is relative to boot time, so we need to add boot time offset
         let bootTime = Date(timeIntervalSinceNow: -ProcessInfo.processInfo.systemUptime)
         let renderTime = bootTime.addingTimeInterval(nanoseconds / 1_000_000_000.0)
@@ -489,7 +511,8 @@ final class AudioPlaybackService: NSObject {
     
     /// Checks if audio has actually started rendering by checking lastRenderTime
     /// This is more reliable than checking isPlaying state, which may lag behind
-    /// - Returns: True if audio is rendering, false otherwise
+    /// Validates that we have valid timing information from the audio hardware
+    /// - Returns: True if audio is rendering with valid timing data, false otherwise
     private func isAudioActuallyRendering() -> Bool {
         guard let node = playerNode,
               let nodeTime = node.lastRenderTime,
@@ -505,11 +528,27 @@ final class AudioPlaybackService: NSObject {
     /// Waits for audio to actually start playing after being scheduled
     /// This is necessary because AVAudioPlayerNode.play(at:) may not start immediately
     /// Uses direct checking of lastRenderTime for more reliable detection
-    /// - Parameter timeout: Maximum time to wait in seconds (default: 10.0)
+    /// 
+    /// ## Polling Strategy
+    /// This method uses a polling approach with 50ms intervals (configurable via `renderCheckPollingInterval`).
+    /// While polling is not the most efficient mechanism, it was chosen because:
+    /// - AVAudioPlayerNode does not provide KVO or notifications for render state changes
+    /// - The polling interval (50ms) balances responsiveness with CPU efficiency
+    /// - Polling duration is limited by timeout (default 3s), minimizing battery impact
+    /// - Task.sleep yields control, preventing UI blocking
+    /// 
+    /// ## Future Improvements
+    /// If AVFoundation adds notification support for render events, consider migrating to:
+    /// - KVO on AVAudioPlayerNode.lastRenderTime
+    /// - NotificationCenter observers for render state changes
+    /// - Completion handlers or Combine publishers for render events
+    /// 
+    /// For now, polling provides the most reliable cross-iOS-version compatibility.
+    /// 
+    /// - Parameter timeout: Maximum time to wait in seconds (default: 3.0 for better UX)
     /// - Returns: The actual audio render start time (from hardware) if audio started, nil if timeout
-    func waitForPlaybackToStart(timeout: TimeInterval = 10.0) async -> Date? {
+    func waitForPlaybackToStart(timeout: TimeInterval = Self.playbackStartTimeout) async -> Date? {
         let waitStartTime = Date()
-        var lastCheckTime = waitStartTime
         
         // Poll until audio is rendering or timeout
         while Date().timeIntervalSince(waitStartTime) < timeout {
@@ -534,7 +573,7 @@ final class AudioPlaybackService: NSObject {
                 } else {
                     // Fallback: use current time minus a small offset if hardware time not available
                     // This accounts for the fact that audio just started
-                    let fallbackTime = Date().addingTimeInterval(-0.1) // Assume 100ms ago
+                    let fallbackTime = Date().addingTimeInterval(-Self.fallbackRenderTimeOffset)
                     logger.info("Audio playback confirmed started but hardware time unavailable, using fallback: \(fallbackTime)")
                     return fallbackTime
                 }
@@ -544,7 +583,7 @@ final class AudioPlaybackService: NSObject {
             if isPlaying {
                 // State says playing, but lastRenderTime might not be available yet
                 // Wait a bit more and check again
-                try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+                try? await Task.sleep(nanoseconds: Self.renderCheckPollingInterval)
                 if isAudioActuallyRendering() {
                     if let actualStartTime = getActualAudioRenderStartTime() {
                         let waitDuration = Date().timeIntervalSince(waitStartTime)
@@ -554,8 +593,8 @@ final class AudioPlaybackService: NSObject {
                 }
             }
             
-            // Wait a short time before checking again (50ms polling interval for better responsiveness)
-            try? await Task.sleep(nanoseconds: 50_000_000)
+            // Wait a short time before checking again (using configured polling interval)
+            try? await Task.sleep(nanoseconds: Self.renderCheckPollingInterval)
         }
         
         // Final check after timeout

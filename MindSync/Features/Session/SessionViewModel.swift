@@ -1461,9 +1461,15 @@ final class SessionViewModel: ObservableObject {
         // playback but there can be a delay before audio actually starts rendering.
         // For DMN-Shutdown mode, this is especially important as the script is synchronized
         // to the audio timeline.
+        //
+        // UI Feedback: The wait time is typically < 100ms, so no loading indicator is shown.
+        // If audio initialization is slow, the user sees the session state remain in preparation.
+        // The 3-second timeout ensures we don't block indefinitely - if exceeded, we fall back
+        // gracefully and log the issue. Future enhancement: Consider showing a subtle progress
+        // indicator if wait exceeds 500ms, but this should be rare in normal operation.
         logger.info("Waiting for audio playback to actually start...")
-        // Use longer timeout (10s) to account for potential audio hardware delays
-        let actualAudioStartTime = await audioPlayback.waitForPlaybackToStart(timeout: 10.0)
+        // Use default timeout (3s) - if audio hasn't started by then, something is wrong
+        let actualAudioStartTime = await audioPlayback.waitForPlaybackToStart()
         
         if let actualStartTime = actualAudioStartTime {
             // Audio started successfully - use the actual hardware render start time
