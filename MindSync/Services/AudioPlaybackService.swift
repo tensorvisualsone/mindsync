@@ -651,7 +651,7 @@ final class AudioPlaybackService: NSObject {
         // Final check after timeout
         if isAudioActuallyRendering(), let firstDetected = firstRenderDetectedTime {
             let renderDuration = Date().timeIntervalSince(firstDetected)
-            if renderDuration >= minimumStableRenderTime {
+            if renderDuration >= Self.minimumStableAudioTime {
                 if let actualStartTime = firstRenderStartTime ?? getActualAudioRenderStartTime() {
                     let waitDuration = Date().timeIntervalSince(waitStartTime)
                     logger.info("Audio playback confirmed started and stable after \(waitDuration)s wait (timeout reached, stable for \(renderDuration)s), actual render start: \(actualStartTime)")
