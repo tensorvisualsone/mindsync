@@ -60,11 +60,17 @@ final class FlashlightController: BaseLightController, LightControlling {
     private var recentFluxValues: [Float] = []  // Ring buffer for last N flux values (for local average)
     private var fluxHistory: [Float] = []  // Longer history for adaptive threshold calculation
     private var lastPeakTime: TimeInterval = 0
-    private let peakCooldownDuration: TimeInterval = 0.08  // 80ms minimum between peaks (prevents double-triggers)
-    private let maxFluxHistorySize = 10  // Keep last 10 flux values for local average calculation
-    private let maxAdaptiveHistorySize = 200  // Keep last 200 flux values for adaptive threshold (~20 seconds at 10 Hz)
-    private let absoluteMinimumThreshold: Float = 0.05  // Absolute minimum flux value to consider (reduced from 0.1 for better sensitivity)
-    private let adaptiveThresholdMultiplier: Float = 0.25  // Use mean + 0.25 * stdDev (reduced from 0.4 for more sensitive peak detection)
+    private let peakCooldownDuration: TimeInterval = 0.06  // 60ms minimum between peaks (reduced from 80ms for faster beat response)
+    private let maxFluxHistorySize = 6  // Keep last 6 flux values for local average (reduced from 10 for faster response)
+    private let maxAdaptiveHistorySize = 150  // Keep last 150 flux values for adaptive threshold (~15 seconds)
+    /// Absolute minimum flux value to consider as potential peak.
+    /// REDUCED from 0.05 to 0.03 now that we analyze only music (no isochronic interference).
+    /// The isolated music signal has cleaner dynamics, allowing lower thresholds.
+    private let absoluteMinimumThreshold: Float = 0.03
+    /// Adaptive threshold multiplier: mean + multiplier * stdDev
+    /// REDUCED from 0.25 to 0.15 for more sensitive peak detection with isolated music signal.
+    /// Previously, the isochronic tone inflated the mean, requiring higher multipliers.
+    private let adaptiveThresholdMultiplier: Float = 0.15
     
     // Rolling Average Calibrator: Learns the dynamics of the song in the first 10 seconds
     // Thread Safety: These calibration properties are accessed from the Main Actor (via precision timer handler).

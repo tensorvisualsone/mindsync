@@ -39,6 +39,7 @@ final class AudioPlaybackService: NSObject {
     
     private var audioEngine: AVAudioEngine?
     private var playerNode: AVAudioPlayerNode?
+    private var musicMixerNode: AVAudioMixerNode?  // Dedicated mixer for music-only audio (before isochronic mixing)
     private var audioFile: AVAudioFile?
     private var playbackTimer: Timer?
     
@@ -80,6 +81,14 @@ final class AudioPlaybackService: NSObject {
     func getMainMixerNode() -> AVAudioMixerNode? {
         return audioEngine?.mainMixerNode
     }
+    
+    /// Returns the dedicated music mixer node for audio analysis (spectral flux, beat detection)
+    /// This node contains ONLY the music audio, before it's mixed with isochronic tones.
+    /// Use this for AudioEnergyTracker to ensure beat detection responds to music, not generated tones.
+    /// - Returns: The music-only mixer node, or nil if engine is not initialized
+    func getMusicMixerNode() -> AVAudioMixerNode? {
+        return musicMixerNode
+    }
 
     /// Returns the internal AVAudioEngine instance if available. Useful for attaching
     /// additional nodes (e.g., isochronic source) for perfectly synchronized audio.
@@ -104,15 +113,26 @@ final class AudioPlaybackService: NSObject {
         let engine = AVAudioEngine()
         let node = AVAudioPlayerNode()
         
-        // Attach player node to engine
+        // Create dedicated music mixer node for isolated audio analysis
+        // This node will contain ONLY the music audio, allowing AudioEnergyTracker
+        // to analyze music beats without interference from isochronic tones
+        let musicMixer = AVAudioMixerNode()
+        
+        // Attach nodes to engine
         engine.attach(node)
+        engine.attach(musicMixer)
         
         // Load audio file
         let file = try AVAudioFile(forReading: url)
         audioFile = file
         
-        // Connect player node to main mixer
-        engine.connect(node, to: engine.mainMixerNode, format: file.processingFormat)
+        // Connect player node → music mixer → main mixer
+        // This routing allows:
+        // - AudioEnergyTracker to tap musicMixer (music only, no isochronic tone)
+        // - IsochronicAudioService to connect directly to mainMixer
+        // - Final output through mainMixer with both music and isochronic tone
+        engine.connect(node, to: musicMixer, format: file.processingFormat)
+        engine.connect(musicMixer, to: engine.mainMixerNode, format: file.processingFormat)
         
         // Schedule file for playback (but don't start yet)
         node.scheduleFile(file, at: nil) { [weak self] in
@@ -127,8 +147,9 @@ final class AudioPlaybackService: NSObject {
         // Store references
         audioEngine = engine
         playerNode = node
+        musicMixerNode = musicMixer
         
-        logger.info("Audio prepared for playback: \(url.lastPathComponent, privacy: .public)")
+        logger.info("Audio prepared for playback: \(url.lastPathComponent, privacy: .public) (with dedicated music mixer for analysis)")
     }
     
     /// Plays an audio file immediately
@@ -256,14 +277,21 @@ final class AudioPlaybackService: NSObject {
         playerNode?.stop()
         
         // Disconnect and detach nodes before stopping engine
-        if let engine = audioEngine, let node = playerNode {
-            engine.disconnectNodeInput(node)
-            engine.detach(node)
+        if let engine = audioEngine {
+            if let node = playerNode {
+                engine.disconnectNodeInput(node)
+                engine.detach(node)
+            }
+            if let musicMixer = musicMixerNode {
+                engine.disconnectNodeInput(musicMixer)
+                engine.detach(musicMixer)
+            }
         }
         
         audioEngine?.stop()
         audioEngine = nil
         playerNode = nil
+        musicMixerNode = nil
         audioFile = nil
         
         // Reset timing tracking

@@ -234,12 +234,21 @@ final class SessionViewModel: ObservableObject {
             return
         }
         
-        if let mixerNode = audioPlayback.getMainMixerNode() {
+        // CRITICAL: Use musicMixerNode (not mainMixerNode) for audio analysis
+        // The musicMixerNode contains ONLY the music audio, before it's mixed with isochronic tones.
+        // This ensures beat detection and spectral flux analysis respond to the actual music file,
+        // not the generated isochronic pulses that were previously dominating the analysis.
+        if let musicMixerNode = audioPlayback.getMusicMixerNode() {
             // Enable spectral flux for all modes
             // Provides dynamic audio-reactive intensity modulation for immersive experience
             audioEnergyTracker.useSpectralFlux = true
-            audioEnergyTracker.startTracking(mixerNode: mixerNode)
-            logger.info("[AUDIO-REACTIVE] Spectral flux enabled for \(mode.rawValue) mode")
+            audioEnergyTracker.startTracking(mixerNode: musicMixerNode)
+            logger.info("[AUDIO-REACTIVE] Spectral flux enabled for \(mode.rawValue) mode (using isolated music mixer)")
+        } else if let mainMixerNode = audioPlayback.getMainMixerNode() {
+            // Fallback to main mixer if music mixer not available (shouldn't happen normally)
+            audioEnergyTracker.useSpectralFlux = true
+            audioEnergyTracker.startTracking(mixerNode: mainMixerNode)
+            logger.warning("[AUDIO-REACTIVE] Music mixer not available, falling back to main mixer (may include isochronic tones)")
         } else {
             logger.error("[AUDIO-REACTIVE] FAILED to get mixer node - spectral flux will not work!")
         }
