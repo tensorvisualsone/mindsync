@@ -1,14 +1,26 @@
 import Foundation
 
-/// Utility for generating waveform intensity values over time
+/// Utility for generating waveform intensity values over time.
+///
+/// **Scientific Basis**: Square waves (hard on/off transitions) are significantly more effective
+/// for neural entrainment than sine waves. SSVEP (Steady-State Visual Evoked Potentials) studies
+/// show 90.8% success rate with square waves vs 75% with sine waves. Square waves maximize
+/// transient steepness (dI/dt), activating the magnocellular pathway and maximizing cortical
+/// evoked potentials. See "App-Entwicklung: Lichtwellen-Analyse und Verbesserung.md" for detailed analysis.
 enum WaveformGenerator {
-    /// Calculates intensity for a given waveform at a specific time
+    /// Calculates intensity for a given waveform at a specific time.
+    ///
+    /// **Square Wave Implementation**: Hard on/off transitions with instant switching (no smoothing/interpolation).
+    /// This creates maximum contrast and transient steepness for optimal neural entrainment effectiveness.
+    /// The duty cycle parameter controls the ratio of "light ON" to total period (standard: 30% for optimal SIVH).
+    ///
     /// - Parameters:
     ///   - waveform: The waveform type (square, sine, triangle)
     ///   - time: Time within the waveform cycle (0.0 to 1.0, where 1.0 is one full period)
     ///   - frequency: Target frequency in Hz
     ///   - baseIntensity: Base intensity value (0.0 to 1.0)
-    ///   - dutyCycle: Optional duty cycle for square wave (0.0 to 1.0). Default: 0.5 (50% on, 50% off)
+    ///   - dutyCycle: Optional duty cycle for square wave (0.0 to 1.0). Default: 0.5 (50% on, 50% off).
+    ///     **Recommended**: 0.30 (30%) for optimal stroboscopically induced visual hallucinations (SIVH).
     /// - Returns: Intensity value (0.0 to 1.0)
     static func calculateIntensity(
         waveform: LightEvent.Waveform,
@@ -27,9 +39,16 @@ enum WaveformGenerator {
         let intensity: Float
         switch waveform {
         case .square:
-            // Hard on/off with configurable duty cycle
-            // For FlashlightController: frequency-dependent duty cycle (20% for >20Hz, 35% for >10Hz, 50% default)
-            // For other controllers: standard 50% duty cycle
+            // **Hard square wave with instant on/off transitions for maximum neural entrainment effectiveness**
+            // No smoothing or interpolation - creates maximum transient steepness (dI/dt → ∞).
+            // This activates the magnocellular pathway and maximizes cortical evoked potentials.
+            //
+            // For FlashlightController: frequency-dependent duty cycle (30% standard, 15% for >30Hz hardware limitation)
+            // For other controllers: standard 50% duty cycle (legacy, consider updating to 30% for consistency)
+            //
+            // **Scientific Basis**: 30% duty cycle (30% light ON, 70% darkness) provides optimal dark phase
+            // duration for afterimage generation and geometric hallucination visibility. Research shows this
+            // configuration maximizes stroboscopically induced visual hallucinations (SIVH) effectiveness.
             intensity = phase < dutyCycle ? baseIntensity : 0.0
             
         case .sine:

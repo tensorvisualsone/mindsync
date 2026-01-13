@@ -1348,8 +1348,19 @@ final class SessionViewModel: ObservableObject {
         affirmationTimer = nil
     }
     
-    /// Starts audio playback and light synchronization with Master Clock synchronization
-    /// Uses a "Future-Start" approach: All systems (Audio, Light, Vibration) synchronize to a common future time point
+    /// Starts audio playback and light synchronization with Master Clock synchronization.
+    ///
+    /// **Scientific Basis**: Perfect audio-visual synchronization is critical for multisensory
+    /// entrainment effectiveness. Research shows that when light flashes and audio beats occur
+    /// simultaneously (phase-synchronized), neurons in the visual and auditory cortex fire
+    /// simultaneously, leading to super-additive effects via multisensory integration areas
+    /// (e.g., Colliculus superior). Phase misalignment (>50ms) is perceived as "wrong" and
+    /// weakens the entrainment effect (cognitive dissonance). See "App-Entwicklung:
+    /// Lichtwellen-Analyse und Verbesserung.md" for detailed analysis.
+    ///
+    /// Uses a "Future-Start" approach: All systems (Audio, Light, Vibration) synchronize to a
+    /// common future time point (Master Clock) to ensure perfect phase alignment.
+    ///
     /// - Returns: The synchronized start time (future time point that all systems wait for)
     private func startPlaybackAndLight(url: URL, script: LightScript, startTime: Date) async throws -> Date {
         let modeString = self.currentSession?.mode.rawValue ?? "unknown"
