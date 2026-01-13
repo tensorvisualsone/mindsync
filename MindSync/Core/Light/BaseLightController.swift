@@ -147,17 +147,16 @@ class BaseLightController: NSObject {
             // CRITICAL FIX: Wait for audio to actually start playing and render stably before using precise timing
             // This ensures light and audio start at exactly the same time
             // 
-            // Stability check: Require preciseAudioTime to be at least 0.1 seconds (100ms) before using it.
+            // Stability check: Require preciseAudioTime to be at least minimumStableAudioTime before using it.
             // This prevents the light script from starting before audio is actually playing, which can
             // happen if there's a delay between when isPlaying is set and when audio actually starts rendering.
-            // The 100ms threshold ensures audio has been rendering stably and the timing is accurate.
-            let minimumStableAudioTime: TimeInterval = 0.1 // 100ms
+            // The threshold ensures audio has been rendering stably and the timing is accurate.
             
             if audioPlayback.isPlaying {
                 // Use audio-thread precise timing while audio is actually playing
                 // IMPORTANT: Only use preciseAudioTime if it's >= minimumStableAudioTime, indicating audio has been rendering stably
                 let preciseTime = audioPlayback.preciseAudioTime
-                if preciseTime >= minimumStableAudioTime {
+                if preciseTime >= AudioPlaybackService.minimumStableAudioTime {
                     // Audio is actually rendering stably - use precise timing
                     currentTime = preciseTime
                 } else if preciseTime > 0 {

@@ -17,7 +17,12 @@ final class AudioPlaybackService: NSObject {
     /// Fallback time offset when hardware render time is unavailable (in seconds)
     /// Assumes audio started approximately 100ms ago when we detect it's rendering
     /// but can't get precise hardware timing
-    private static let fallbackRenderTimeOffset: TimeInterval = 0.1
+    static let fallbackRenderTimeOffset: TimeInterval = 0.1
+    
+    /// Minimum time audio must be rendering stably before we trust the timing (in seconds)
+    /// This prevents using timestamps when audio just started but isn't stable yet
+    /// Used by both AudioPlaybackService and BaseLightController for consistency
+    static let minimumStableAudioTime: TimeInterval = 0.1 // 100ms
     
     /// Polling interval for checking if audio has started rendering (in nanoseconds)
     /// 50ms provides good responsiveness while limiting CPU usage
@@ -48,11 +53,13 @@ final class AudioPlaybackService: NSObject {
             stateLock.withLock { $0 }
         }
         set {
-            let oldValue = stateLock.withLock { $0 }
-            if oldValue != newValue {
-                logger.debug("PlaybackState transition: \(String(describing: oldValue)) → \(String(describing: newValue))")
+            stateLock.withLock { state in
+                let oldValue = state
+                if oldValue != newValue {
+                    logger.debug("PlaybackState transition: \(String(describing: oldValue)) → \(String(describing: newValue))")
+                }
+                state = newValue
             }
-            stateLock.withLock { $0 = newValue }
         }
     }
     
@@ -571,9 +578,6 @@ final class AudioPlaybackService: NSObject {
         let actualTimeout = timeout ?? AudioPlaybackService.playbackStartTimeout
         let waitStartTime = Date()
         
-        // Minimum time audio must be rendering before we consider it stable (100ms)
-        // This prevents returning a start time when audio just started rendering but isn't stable yet
-        let minimumStableRenderTime: TimeInterval = 0.1 // 100ms
         var firstRenderDetectedTime: Date?
         var firstRenderStartTime: Date?
         
@@ -596,26 +600,23 @@ final class AudioPlaybackService: NSObject {
                     logger.info("Audio rendering detected for the first time at: \(firstRenderDetectedTime!), preciseAudioTime: \(currentPreciseTime)s")
                 }
                 
-                // Wait for audio to render for at least minimumStableRenderTime before returning
+                // Wait for audio to render for at least minimumStableAudioTime before returning
                 // This ensures the start time calculation is stable and accurate
                 if let firstDetected = firstRenderDetectedTime {
                     let renderDuration = Date().timeIntervalSince(firstDetected)
-                    if renderDuration >= minimumStableRenderTime {
-                        // Audio has been rendering stably for at least 100ms
-                        // Now we can confidently return the start time
-                        if let actualStartTime = firstRenderStartTime ?? getActualAudioRenderStartTime() {
-                            let waitDuration = Date().timeIntervalSince(waitStartTime)
-                            logger.info("Audio playback confirmed started and stable after \(waitDuration)s wait (stable for \(renderDuration)s), actual render start: \(actualStartTime)")
-                            return actualStartTime
-                        } else {
-                            // Fallback: use first detected time minus a small offset
-                            let fallbackTime = firstDetected.addingTimeInterval(-Self.fallbackRenderTimeOffset)
-                            logger.info("Audio playback confirmed stable but hardware time unavailable, using fallback: \(fallbackTime)")
-                            return fallbackTime
+                    if renderDuration >= Self.minimumStableAudioTime {
+                        // Audio has been rendering stably - return the start time
+                        if let startTime = checkStableAudioAndReturnStartTime(
+                            firstDetected: firstDetected,
+                            firstRenderStartTime: firstRenderStartTime,
+                            renderDuration: renderDuration,
+                            waitStartTime: waitStartTime
+                        ) {
+                            return startTime
                         }
                     } else {
                         // Audio is rendering but not stable yet, continue waiting
-                        logger.debug("Audio rendering detected but not yet stable (duration: \(renderDuration)s, need: \(minimumStableRenderTime)s)")
+                        logger.debug("Audio rendering detected but not yet stable (duration: \(renderDuration)s, need: \(Self.minimumStableAudioTime)s)")
                     }
                 }
             }
@@ -629,11 +630,14 @@ final class AudioPlaybackService: NSObject {
                     // Re-check stability if we already detected rendering
                     if let firstDetected = firstRenderDetectedTime {
                         let renderDuration = Date().timeIntervalSince(firstDetected)
-                        if renderDuration >= minimumStableRenderTime {
-                            if let actualStartTime = firstRenderStartTime ?? getActualAudioRenderStartTime() {
-                                let waitDuration = Date().timeIntervalSince(waitStartTime)
-                                logger.info("Audio playback confirmed started and stable after \(waitDuration)s wait, actual render start: \(actualStartTime)")
-                                return actualStartTime
+                        if renderDuration >= Self.minimumStableAudioTime {
+                            if let startTime = checkStableAudioAndReturnStartTime(
+                                firstDetected: firstDetected,
+                                firstRenderStartTime: firstRenderStartTime,
+                                renderDuration: renderDuration,
+                                waitStartTime: waitStartTime
+                            ) {
+                                return startTime
                             }
                         }
                     }
@@ -658,6 +662,28 @@ final class AudioPlaybackService: NSObject {
         
         logger.warning("Audio playback did not start within \(actualTimeout)s timeout")
         return nil
+    }
+    
+    /// Helper method to check if audio is stable and return the start time
+    /// Extracts common logic for returning audio start time once stability is confirmed
+    private func checkStableAudioAndReturnStartTime(
+        firstDetected: Date,
+        firstRenderStartTime: Date?,
+        renderDuration: TimeInterval,
+        waitStartTime: Date
+    ) -> Date? {
+        // Audio has been rendering stably for at least minimumStableAudioTime
+        // Now we can confidently return the start time
+        if let actualStartTime = firstRenderStartTime ?? getActualAudioRenderStartTime() {
+            let waitDuration = Date().timeIntervalSince(waitStartTime)
+            logger.info("Audio playback confirmed started and stable after \(waitDuration)s wait (stable for \(renderDuration)s), actual render start: \(actualStartTime)")
+            return actualStartTime
+        } else {
+            // Fallback: use first detected time minus a small offset
+            let fallbackTime = firstDetected.addingTimeInterval(-Self.fallbackRenderTimeOffset)
+            logger.info("Audio playback confirmed stable but hardware time unavailable, using fallback: \(fallbackTime)")
+            return fallbackTime
+        }
     }
     
     /// Total duration of the currently loaded file

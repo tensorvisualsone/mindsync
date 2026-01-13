@@ -1503,8 +1503,8 @@ final class SessionViewModel: ObservableObject {
             // Audio did not start within timeout - this is unusual
             // Check if audio is actually playing now (might have started just after timeout)
             if audioPlayback.isPlaying {
-                // Audio is playing but we didn't get the start time - use current time minus a small offset
-                let estimatedStartTime = Date().addingTimeInterval(-0.5) // Estimate 500ms ago
+                // Audio is playing but we didn't get the start time - use fallback offset
+                let estimatedStartTime = Date().addingTimeInterval(-AudioPlaybackService.fallbackRenderTimeOffset)
                 logger.warning("Audio is playing but start time unavailable, using estimated start time: \(estimatedStartTime)")
                 
                 if lightControllerStarted {
