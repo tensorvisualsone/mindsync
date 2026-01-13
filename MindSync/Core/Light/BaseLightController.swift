@@ -173,7 +173,7 @@ class BaseLightController: NSObject {
                 // Audio is scheduled but not yet playing - check if preciseAudioTime is available
                 // If preciseAudioTime >= minimumStableAudioTime, audio has started and is stable (state transition pending)
                 let preciseTime = audioPlayback.preciseAudioTime
-                if preciseTime >= minimumStableAudioTime {
+                if preciseTime >= AudioPlaybackService.minimumStableAudioTime {
                     // Audio is actually playing stably (state just transitioned) - use precise timing
                     currentTime = preciseTime
                 } else {
