@@ -144,15 +144,26 @@ class BaseLightController: NSObject {
         // This eliminates drift between audio and display threads
         let currentTime: TimeInterval
         if let audioPlayback = audioPlayback {
-            // CRITICAL FIX: Wait for audio to actually start playing before using precise timing
+            // CRITICAL FIX: Wait for audio to actually start playing and render stably before using precise timing
             // This ensures light and audio start at exactly the same time
+            // 
+            // Stability check: Require preciseAudioTime to be at least 0.1 seconds (100ms) before using it.
+            // This prevents the light script from starting before audio is actually playing, which can
+            // happen if there's a delay between when isPlaying is set and when audio actually starts rendering.
+            // The 100ms threshold ensures audio has been rendering stably and the timing is accurate.
+            let minimumStableAudioTime: TimeInterval = 0.1 // 100ms
+            
             if audioPlayback.isPlaying {
                 // Use audio-thread precise timing while audio is actually playing
-                // IMPORTANT: Only use preciseAudioTime if it's > 0, indicating audio has actually started rendering
+                // IMPORTANT: Only use preciseAudioTime if it's >= minimumStableAudioTime, indicating audio has been rendering stably
                 let preciseTime = audioPlayback.preciseAudioTime
-                if preciseTime > 0 {
-                    // Audio is actually rendering - use precise timing
+                if preciseTime >= minimumStableAudioTime {
+                    // Audio is actually rendering stably - use precise timing
                     currentTime = preciseTime
+                } else if preciseTime > 0 {
+                    // Audio just started rendering but not stable yet - wait to prevent desync
+                    // Return nil event to prevent light from starting prematurely
+                    return CurrentEventResult(event: nil, elapsed: 0, isComplete: false)
                 } else {
                     // Audio state says "playing" but preciseAudioTime is 0 - audio hasn't started rendering yet
                     // Wait to prevent desync (return nil event)
@@ -161,13 +172,13 @@ class BaseLightController: NSObject {
                 }
             } else if audioPlayback.isScheduled {
                 // Audio is scheduled but not yet playing - check if preciseAudioTime is available
-                // If preciseAudioTime > 0, audio has started (state transition pending)
+                // If preciseAudioTime >= minimumStableAudioTime, audio has started and is stable (state transition pending)
                 let preciseTime = audioPlayback.preciseAudioTime
-                if preciseTime > 0 {
-                    // Audio is actually playing (state just transitioned) - use precise timing
+                if preciseTime >= minimumStableAudioTime {
+                    // Audio is actually playing stably (state just transitioned) - use precise timing
                     currentTime = preciseTime
                 } else {
-                    // Audio is scheduled but hasn't started yet - wait (return 0) to prevent desync
+                    // Audio is scheduled but hasn't started yet or not stable - wait (return nil) to prevent desync
                     return CurrentEventResult(event: nil, elapsed: 0, isComplete: false)
                 }
             } else {
