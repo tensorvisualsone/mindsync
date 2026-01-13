@@ -37,21 +37,18 @@ final class AudioPlaybackService: NSObject {
     private var audioFile: AVAudioFile?
     private var playbackTimer: Timer?
     
-    // Thread-safe state management using os_unfair_lock (async-safe in Swift 6)
+    // Thread-safe state management using OSAllocatedUnfairLock (heap-allocated, memory-safe)
     // Note: All state access is now protected by stateLock to prevent race conditions
     // between UI thread, timer callbacks, and audio render thread
-    private var stateLock = os_unfair_lock_s()
-    private var _playbackState: PlaybackState = .idle
+    // OSAllocatedUnfairLock is heap-allocated and maintains a stable memory address,
+    // making it safe to use in a class (unlike os_unfair_lock_s which is memory-unsafe)
+    private let stateLock = OSAllocatedUnfairLock(initialState: PlaybackState.idle)
     private var playbackState: PlaybackState {
         get {
-            os_unfair_lock_lock(&stateLock)
-            defer { os_unfair_lock_unlock(&stateLock) }
-            return _playbackState
+            stateLock.withLock { $0 }
         }
         set {
-            os_unfair_lock_lock(&stateLock)
-            defer { os_unfair_lock_unlock(&stateLock) }
-            _playbackState = newValue
+            stateLock.withLock { $0 = newValue }
         }
     }
     
@@ -357,23 +354,24 @@ final class AudioPlaybackService: NSObject {
         let now = Date()
         
         // Thread-safe check and update of playback state
-        os_unfair_lock_lock(&stateLock)
-        let currentState = _playbackState
-        
-        // If scheduled, check if the start time has been reached
-        if currentState == .scheduled {
-            if now >= startTime {
-                // Start time reached, transition to playing state
-                _playbackState = .playing
-                os_unfair_lock_unlock(&stateLock)
-                logger.info("Audio playback transitioned from scheduled to playing at: \(now)")
-            } else {
-                os_unfair_lock_unlock(&stateLock)
-                // Still waiting for start time
-                return 0
+        let currentState = stateLock.withLock { state -> PlaybackState in
+            // If scheduled, check if the start time has been reached
+            if state == .scheduled {
+                if now >= startTime {
+                    // Start time reached, transition to playing state
+                    state = .playing
+                    logger.info("Audio playback transitioned from scheduled to playing at: \(now)")
+                } else {
+                    // Still waiting for start time
+                    return .scheduled
+                }
             }
-        } else {
-            os_unfair_lock_unlock(&stateLock)
+            return state
+        }
+        
+        // If still scheduled, return 0 (waiting for start time)
+        if currentState == .scheduled {
+            return 0
         }
         
         let elapsed = now.timeIntervalSince(startTime)
@@ -411,13 +409,11 @@ final class AudioPlaybackService: NSObject {
         }
         
         // If we have render time, audio is actually playing - update state if needed
-        os_unfair_lock_lock(&stateLock)
-        if _playbackState == .scheduled {
-            _playbackState = .playing
-            os_unfair_lock_unlock(&stateLock)
-            logger.info("Audio playback transitioned from scheduled to playing (detected via render time)")
-        } else {
-            os_unfair_lock_unlock(&stateLock)
+        stateLock.withLock { state in
+            if state == .scheduled {
+                state = .playing
+                logger.info("Audio playback transitioned from scheduled to playing (detected via render time)")
+            }
         }
         
         // Time elapsed in current segment (Samples / Rate)
@@ -514,12 +510,12 @@ final class AudioPlaybackService: NSObject {
     /// Since we're @MainActor, we can use a Task with MainActor isolation
     /// to safely update state without deadlocks
     private func updatePlaybackStateIfScheduled() {
-        // Update state using async-safe os_unfair_lock
-        os_unfair_lock_lock(&stateLock)
-        defer { os_unfair_lock_unlock(&stateLock) }
-        if _playbackState == .scheduled {
-            _playbackState = .playing
-            logger.info("Audio playback transitioned from scheduled to playing (detected via render time)")
+        // Update state using heap-allocated OSAllocatedUnfairLock (memory-safe)
+        stateLock.withLock { state in
+            if state == .scheduled {
+                state = .playing
+                logger.info("Audio playback transitioned from scheduled to playing (detected via render time)")
+            }
         }
     }
     

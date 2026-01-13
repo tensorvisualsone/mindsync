@@ -12,7 +12,7 @@ enum WaveformGenerator {
     ///
     /// **Square Wave Implementation**: Hard on/off transitions with instant switching (no smoothing/interpolation).
     /// This creates maximum contrast and transient steepness for optimal neural entrainment effectiveness.
-    /// The duty cycle parameter controls the ratio of "light ON" to total period (standard: 30% for optimal SIVH).
+    /// The duty cycle parameter controls the ratio of "light ON" to total period (recommended: 30% for optimal SIVH).
     ///
     /// - Parameters:
     ///   - waveform: The waveform type (square, sine, triangle)

@@ -177,11 +177,43 @@ Verwendung von NSTimer ist verboten, da dieser an den RunLoop des Main Threads g
 
 #### **4.2.2 Android Implementierung (Kotlin / Java / C++)**
 
-Android ist aufgrund der Gerätefragmentierung schwieriger. Die Latenz der Camera2 API kann bei älteren Geräten bis zu 100ms betragen.16
+Android ist aufgrund der Gerätefragmentierung schwieriger. Die Latenz der Camera2 API variiert stark zwischen Geräten: Bei älteren Geräten kann die Latenz bis zu 100ms betragen, während neuere Geräte (Android 13+, moderne Hardware) typischerweise 20-50ms erreichen.16
 
-* **High-Performance Loop:** Vermeiden Sie Thread.sleep(). Nutzen Sie eine Spin-Wait-Schleife basierend auf System.nanoTime() in einem hoch priorisierten Thread (Process.THREAD\_PRIORITY\_URGENT\_AUDIO). Dies kostet mehr Batterie, ist aber für die Präzision notwendig.  
-* **Android 13+ Features:** Nutzen Sie die neue API turnOnTorchWithStrengthLevel(String cameraId, int torchStrength). Dies erlaubt Helligkeitssteuerung.17  
-  * *Hack für Rechteckwellen:* Anstatt setTorchMode(false) (was langsam sein kann, da der Kameratreiber den Modus wechselt), nutzen Sie turnOnTorchWithStrengthLevel(id, 1\) (minimale Helligkeit) als "AUS"-Zustand, falls das komplette Abschalten Latenz verursacht. Testen Sie dies auf Zielgeräten.  
+**Wichtig:** Die tatsächliche Latenz muss **gerätespezifisch gemessen** werden (siehe 6.1.4 für Emergency Stop Latenz-Messung). Pauschale Behauptungen wie "<10ms" sind nicht haltbar, da die Hardware-Limitationen des Kameratreibers geräteabhängig sind.
+
+* **High-Performance Loop (Empfohlener Ansatz):** 
+  * **Vermeiden Sie Thread.sleep() und Spin-Wait-Schleifen** - diese sind ineffizient und können zu unvorhersehbaren Timing-Problemen führen.
+  * **Empfohlene Implementierung:** Nutzen Sie einen `HandlerThread` mit hoher Priorität (`Process.THREAD_PRIORITY_URGENT_AUDIO`) und einen `Handler` mit `SystemClock`-basierter Planung:
+    ```kotlin
+    // HandlerThread mit hoher Priorität für präzises Timing
+    val torchThread = HandlerThread("TorchControl", Process.THREAD_PRIORITY_URGENT_AUDIO)
+    torchThread.start()
+    val torchHandler = Handler(torchThread.looper)
+    
+    // Periodisches Toggling mit SystemClock-basierter Planung
+    val torchToggleRunnable = object : Runnable {
+        override fun run() {
+            toggleTorch() // Torch ein/aus schalten
+            val nextToggleTime = SystemClock.uptimeMillis() + periodMs
+            torchHandler.postAtTime(this, nextToggleTime)
+        }
+    }
+    torchHandler.postDelayed(torchToggleRunnable, initialDelayMs)
+    ```
+  * **Vorteile:** SystemClock-basierte Planung ist präziser als Thread.sleep(), effizienter als Spin-Wait, und respektiert System-Scheduling-Prioritäten.
+  
+* **Android 13+ Features:** Nutzen Sie die neue API `turnOnTorchWithStrengthLevel(String cameraId, int torchStrength)`. Dies erlaubt Helligkeitssteuerung.17  
+  * **⚠️ Experimenteller Ansatz für Rechteckwellen (Geräte-spezifisches Testing erforderlich):**
+    * **Problem:** `setTorchMode(false)` kann auf einigen Geräten langsam sein (20-100ms Latenz), da der Kameratreiber den Modus wechselt.
+    * **Mögliche Alternative:** `turnOnTorchWithStrengthLevel(cameraId, 1)` (minimale Helligkeit) als "AUS"-Zustand verwenden, falls das komplette Abschalten Latenz verursacht.
+    * **⚠️ KRITISCH - Geräte-spezifisches Testing erforderlich:**
+      * **Verifizieren Sie auf jedem Zielgerät:**
+        1. **True-Off-Verhalten:** Stellt `turnOnTorchWithStrengthLevel(id, 1)` wirklich einen ausreichend dunklen Zustand her, oder ist noch sichtbares Licht vorhanden? (Kontrastverlust)
+        2. **Thermische Auswirkungen:** Bleibt die LED auch bei minimaler Helligkeit (Level 1) aktiv und erzeugt Wärme? (Kann zu thermischem Throttling führen)
+        3. **Latenz-Vergleich:** Messen Sie die tatsächliche Latenz von `setTorchMode(false)` vs. `turnOnTorchWithStrengthLevel(id, 1)` auf jedem Gerät.
+      * **Nicht als Standard-Lösung empfehlen:** Dieser Ansatz sollte nur verwendet werden, wenn Messungen auf einem spezifischen Gerät zeigen, dass `setTorchMode(false)` unakzeptabel langsam ist (>50ms) UND die Verifizierung zeigt, dass Level 1 ausreichend dunkel ist.
+      * **Fallback:** Wenn Verifizierung fehlschlägt, verwenden Sie `setTorchMode(false)` trotz höherer Latenz für korrektes Off-Verhalten.
+  
 * **Native Modules (JNI):** Wenn Mindsync React Native nutzt (worauf der GitHub-Link hindeutet), ist die JavaScript-Bridge zu langsam für \>15 Hz Stroboskopie. Schreiben Sie ein **Native Module** (TurboModule in der neuen RN-Architektur), das die Timing-Schleife direkt in C++/Kotlin/Swift ausführt.18
 
 ### **4.3 Umgang mit Thermal Throttling**
@@ -205,11 +237,67 @@ Adaptiert aus dem Sporttraining 19 für neuronale Stimulation.
 
 * **Ziel:** Maximale visuelle Halluzinationen.  
 * **Dauer:** 15 Minuten.  
+* **⚠️ Sicherheitsgrenze:** Dieser Modus ist **strikt auf maximal 14 Hz begrenzt**, um die PSE-Gefahrenzone (15-25 Hz) zu vermeiden. Alle Frequenzwerte werden zur Laufzeit validiert und auf 14 Hz geklemmt (clamped).  
 * **Protokoll:**  
-  1. **Induktion (0-2 min):** Start bei 14 Hz (Beta). Linearer Ramp Down auf 10 Hz. Duty Cycle 30%. *Zweck: Abholen des Nutzers im Wachzustand.*  
+  1. **Induktion (0-2 min):** Start bei **12 Hz** (Alpha-Oberbereich). Linearer Ramp Down auf 10 Hz. Duty Cycle 30%. *Zweck: Abholen des Nutzers im Wachzustand, ohne die PSE-Gefahrenzone zu berühren.*  
+     * **Validierung:** Frequenz wird bei jedem Event generiert/aktualisiert mit `clamp(frequency, min: 4.0, max: 14.0)` validiert.
   2. **Immersion (2-10 min):** Oszillation um den Alpha-Peak. Wechsel alle 30 Sekunden zwischen 9 Hz, 10 Hz und 11 Hz. *Zweck: Vermeidung von Habituation (Troxler-Effekt). Das Gehirn bleibt "interessiert".*  
-  3. **Chaos-Injection (10-12 min):** Einführung von 10% Arrhythmie (Jitter). *Zweck: Aufbrechen der geometrischen Muster in organischere, traumartige Bilder.*  
-  4. **Re-Entry (12-15 min):** Ramp Up auf 18 Hz (Beta) und Helligkeit Fade-Out. *Zweck: Wach machen, klares Ende.*
+     * **Validierung:** Alle Frequenzwerte werden vor Verwendung auf maximal 14 Hz geklemmt.
+  3. **Chaos-Injection (10-12 min):** Einführung von **begrenztem Jitter-Algorithmus** (siehe Definition unten). *Zweck: Aufbrechen der geometrischen Muster in organischere, traumartige Bilder.*  
+     * **Präzise Jitter-Definition:**
+       * **Basis-Frequenz:** 10 Hz (Mittelpunkt des Alpha-Bands)
+       * **Jitter-Bereich:** ±1.0 Hz (maximale Abweichung: 9.0-11.0 Hz)
+       * **Rate-Limiter:** Maximale Frequenzänderung pro Sekunde: ±0.5 Hz/s (verhindert abrupte Sprünge)
+       * **Minimum Inter-Change-Intervall:** 2.0 Sekunden (Frequenz kann nicht öfter als alle 2 Sekunden geändert werden)
+       * **Algorithmus:**
+         ```swift
+         func applyBoundedJitter(baseFrequency: Double, timeSinceLastChange: TimeInterval) -> Double {
+             // Rate limiter: Max change per second
+             let maxChangePerSecond = 0.5 // Hz/s
+             let maxChange = min(1.0, maxChangePerSecond * timeSinceLastChange)
+             
+             // Generate random perturbation within bounds
+             let jitter = (Double.random(in: -1.0...1.0) * maxChange)
+             let perturbedFreq = baseFrequency + jitter
+             
+             // Clamp to safe range (9.0 - 11.0 Hz) and enforce hard upper bound
+             return min(max(perturbedFreq, 9.0), 11.0)
+         }
+         ```
+       * **Validierung:** Alle Jitter-perturbierten Frequenzen werden zusätzlich mit `min(frequency, 14.0)` geklemmt, um sicherzustellen, dass keine transienten Ausflüge über 14 Hz auftreten.
+  4. **Re-Entry (12-15 min):** Ramp Up auf **14 Hz** (maximal erlaubte Frequenz, unterhalb PSE-Gefahrenzone) und Helligkeit Fade-Out. *Zweck: Wach machen, klares Ende, ohne PSE-Risiko.*  
+     * **⚠️ Wichtig:** Die ursprünglich geplante Ramp auf 18 Hz wurde auf 14 Hz reduziert, um die PSE-Gefahrenzone zu vermeiden.
+     * **Validierung:** Ramp-Funktion muss sicherstellen, dass `finalFrequency = min(calculatedRampValue, 14.0)`.
+
+**Implementierungsanforderungen:**
+* **Frequenz-Validierung bei Modus-Parameter-Parsing:**
+  * Beim Laden/Initialisieren des "Deep Explorer" Modus: Alle Frequenzwerte aus dem Protokoll validieren
+  * Code-Beispiel:
+    ```swift
+    func validateDeepExplorerFrequencies() {
+        let maxAllowedFrequency = 14.0
+        // Validate all protocol frequencies
+        let inductionStart = min(12.0, maxAllowedFrequency) // ✓ 12 Hz
+        let immersionFrequencies = [9.0, 10.0, 11.0].map { min($0, maxAllowedFrequency) } // ✓ All safe
+        let reEntryTarget = min(14.0, maxAllowedFrequency) // ✓ 14 Hz (hard limit)
+    }
+    ```
+* **Runtime-Validierung bei Frequenz-Übergängen:**
+  * In `EntrainmentEngine.generateLightScript()`: Jede generierte Frequenz für "Deep Explorer" Modus validieren
+  * Code-Beispiel:
+    ```swift
+    func clampFrequencyForDeepExplorer(_ frequency: Double) -> Double {
+        let hardUpperBound = 14.0
+        if frequency > hardUpperBound {
+            logger.warning("Deep Explorer: Frequency \(frequency) Hz clamped to \(hardUpperBound) Hz (PSE safety)")
+            return hardUpperBound
+        }
+        return frequency
+    }
+    ```
+* **Jitter-Algorithmus-Validierung:**
+  * Der Jitter-Algorithmus muss sicherstellen, dass `perturbedFrequency <= 14.0` immer erfüllt ist
+  * Zusätzliche Validierung nach Jitter-Berechnung: `finalFrequency = min(perturbedFrequency, 14.0)`
 
 #### **Modus 2: "Sleep Onset" (Schlafhilfe)**
 
@@ -243,9 +331,127 @@ Die Implementierung von High-Power Stroboskopie erfordert strikte Sicherheitsma�
 
 Etwa 1 von 4000 Menschen leidet an PSE. Der kritischste Bereich liegt zwischen 15 Hz und 25 Hz.
 
-* **Warnung:** Ein unüberspringbarer Onboarding-Screen mit Warnhinweisen ist obligatorisch.21  
-* **Hard Limits:** Erwägen Sie, den Bereich 15-25 Hz standardmäßig zu überspringen oder nur mit expliziter Zustimmung ("Advanced Mode") freizuschalten.  
-* **Not-Aus:** Implementieren Sie eine Geste (z.B. Schütteln oder Finger vom Display nehmen), die das Licht *sofort* ausschaltet (Latenz \< 10ms).
+#### **6.1.1 Unüberspringbarer Onboarding-Screen mit Plattformspezifischen Warnungen**
+
+**Apple App Store Review Requirements:**
+* **Pflichtinhalt:** Der Onboarding-Screen muss explizit folgende Elemente enthalten:
+  * Warnsymbol (⚠️) in prominenter Position
+  * Klartext-Warnung: "Diese App verwendet stroboskopisches Licht, das bei Personen mit photosensitiver Epilepsie Anfälle auslösen kann."
+  * Explizite Erwähnung des kritischen Frequenzbereichs (15-25 Hz)
+  * Haftungsausschluss: "Die Nutzung erfolgt auf eigene Verantwortung. Bei bekannten Epilepsie-Erkrankungen oder anderen neurologischen Erkrankungen sollte diese App nicht verwendet werden."
+  * Checkbox mit Text: "Ich bestätige, dass ich die Warnung gelesen und verstanden habe und keine photosensitive Epilepsie habe."
+  * **Nicht überspringbar:** Der Screen muss vor dem ersten Zugriff auf Licht-Features angezeigt werden und kann nur durch explizite Bestätigung verlassen werden.
+
+**Google Play Store Review Requirements:**
+* Zusätzlich zu den Apple-Anforderungen:
+  * Explizite Erwähnung der Altersbeschränkung (siehe 6.1.2)
+  * Hinweis auf elterliche Zustimmung für Minderjährige
+  * Verlinkung zu Google Play's Content Rating Guidelines für stroboskopische Inhalte
+
+**Implementierungsanforderungen:**
+* Der Onboarding-Screen muss in der App-Architektur als **verpflichtender First-Run-Flow** implementiert werden
+* `UserPreferences.epilepsyDisclaimerAccepted` muss persistent gespeichert werden (UserDefaults/Keychain)
+* Timestamp der Zustimmung (`epilepsyDisclaimerAcceptedAt`) für Audit-Zwecke
+* Keine Möglichkeit, den Screen zu umgehen (kein "Skip"-Button, keine Back-Navigation)
+
+#### **6.1.2 Age-Gating Flow (Altersverifizierung + Elterliche Zustimmung)**
+
+**Altersverifizierung:**
+* **Pflichtfrage beim ersten Start:** "Wie alt bist du?" mit Datumspicker oder numerischer Eingabe
+* **Mindestalter:** 18 Jahre (empfohlen) oder 16 Jahre mit elterlicher Zustimmung
+* **Speicherung:** `UserPreferences.userAge` (optional, für Compliance) oder nur Boolean `isAgeVerified`
+
+**Elterliche Zustimmung für Minderjährige (16-17 Jahre):**
+* Wenn Alter < 18 Jahre: Zusätzlicher Screen mit:
+  * "Diese App erfordert die Zustimmung eines Elternteils oder Erziehungsberechtigten."
+  * Eingabefeld für E-Mail-Adresse oder Telefonnummer des Erziehungsberechtigten
+  * Checkbox: "Ich bestätige, dass ich ein Elternteil/Erziehungsberechtigter bin und der Nutzung zustimme."
+  * Optional: Verifizierung via E-Mail-Link oder SMS-Code (für höhere Compliance-Standards)
+* **Speicherung:** `UserPreferences.parentalConsentGiven` (Boolean) + `parentalConsentTimestamp` (Date)
+
+**Implementierungsanforderungen:**
+* Age-Gating-Flow muss **vor** dem Epilepsie-Disclaimer-Screen erscheinen
+* Wenn Alter < Mindestalter ohne elterliche Zustimmung: App-Zugriff blockieren
+* Integration mit OnboardingView: Sequenzieller Flow (Alter → Disclaimer → App-Zugriff)
+
+#### **6.1.3 Durchsetzbare Frequenz-Limits (15-25 Hz Blockierung)**
+
+**Standard-Verhalten (Default):**
+* **15-25 Hz Bereich ist standardmäßig BLOCKIERT** für alle Modi
+* Wenn eine Session eine Frequenz im Bereich 15.0-25.0 Hz generieren würde:
+  * **Automatische Frequenz-Anpassung:** Frequenz wird auf den nächstgelegenen sicheren Wert außerhalb des Bereichs angepasst
+    * Frequenzen < 15 Hz: Anpassung auf 14.0 Hz (oberhalb Theta-Band)
+    * Frequenzen > 25 Hz: Anpassung auf 25.5 Hz (unterhalb Gamma-Band)
+  * **User-Benachrichtigung:** "Die gewählte Frequenz wurde aus Sicherheitsgründen angepasst."
+
+**Advanced Mode (Explizite Zustimmung erforderlich):**
+* **Toggle in Settings:** "Advanced Mode: Erlaube Frequenzen 15-25 Hz (Nur für erfahrene Nutzer)"
+* **Zweistufige Zustimmung:**
+  1. Toggle aktivieren → Zusätzlicher Bestätigungs-Dialog erscheint
+  2. Dialog-Inhalt: "WARNUNG: Frequenzen zwischen 15-25 Hz haben das höchste Risiko für photosensitive Epilepsie. Nur aktivieren, wenn Sie sicher sind, dass Sie keine Epilepsie haben und die Risiken verstehen."
+  3. Checkbox: "Ich verstehe die Risiken und möchte Advanced Mode aktivieren."
+  4. Bestätigungs-Button: "Advanced Mode aktivieren"
+* **Speicherung:** `UserPreferences.advancedModeEnabled` (Boolean) + `advancedModeEnabledAt` (Date)
+* **Persistenz:** Einstellung bleibt aktiv, kann aber jederzeit in Settings deaktiviert werden
+
+**Implementierungsanforderungen:**
+* Frequenz-Validierung in `EntrainmentEngine.generateLightScript()`:
+  ```swift
+  func validateFrequency(_ frequency: Double, advancedModeEnabled: Bool) -> Double {
+      if frequency >= 15.0 && frequency <= 25.0 {
+          if !advancedModeEnabled {
+              // Auto-adjust to safe frequency
+              return frequency < 20.0 ? 14.0 : 25.5
+          }
+          // Advanced mode: allow but log warning
+          logger.warning("Advanced mode: Using frequency in PSE risk zone: \(frequency) Hz")
+      }
+      return frequency
+  }
+  ```
+* Runtime-Check in `FlashlightController.execute()`: Validierung vor Script-Execution
+* UI-Feedback: Wenn Frequenz angepasst wird, Toast/Banner anzeigen: "Frequenz aus Sicherheitsgründen angepasst"
+
+#### **6.1.4 Not-Aus (Emergency Stop) mit Gemessener Device-Capability-Check**
+
+**Geste-basierter Emergency Stop:**
+* **Primäre Geste:** Schütteln des Geräts (Shake-to-Stop)
+  * Implementierung via `UIResponder.motionEnded(_:with:)` oder `CoreMotion` für präzisere Erkennung
+* **Sekundäre Geste:** Finger vom Display nehmen (Touch-Up während Session)
+  * Implementierung via `onTouchUp` Event-Handler in SessionView
+* **Tertiäre Geste:** Doppeltippen auf Home-Button oder Side-Button (falls verfügbar)
+
+**Device-Capability-Check zur Laufzeit (statt fester "<10ms" Behauptung):**
+* **Latenz-Messung bei App-Start:**
+  ```swift
+  func measureEmergencyStopLatency() -> TimeInterval {
+      let startTime = mach_absolute_time()
+      // Simulate emergency stop: Turn off torch immediately
+      device.torchMode = .off
+      let endTime = mach_absolute_time()
+      // Convert mach time to seconds
+      let latency = convertMachTimeToSeconds(endTime - startTime)
+      return latency
+  }
+  ```
+* **Device-spezifische Latenz-Datenbank:**
+  * Bei erstem Start: Latenz messen und in `UserDefaults` speichern
+  * Key: `"emergencyStopLatency_\(deviceModel)"` (z.B. "emergencyStopLatency_iPhone15Pro")
+  * Fallback: Wenn Messung fehlschlägt, verwende konservative Schätzung (50ms für ältere Geräte, 20ms für neuere)
+* **Verifizierung und Dokumentation:**
+  * Latenz-Messung muss bei jedem App-Start durchgeführt werden (kann im Hintergrund laufen)
+  * Logging: `logger.info("Emergency stop latency measured: \(latency)ms on \(deviceModel)")`
+  * Dokumentation: Erstelle `docs/EMERGENCY_STOP_LATENCY_VERIFICATION.md` mit:
+    * Gemessene Latenzen pro Gerätemodell
+    * Test-Methodik (Anzahl Messungen, Durchschnitt, Standardabweichung)
+    * Validierung, dass Latenz < 100ms auf allen unterstützten Geräten
+
+**Implementierungsanforderungen:**
+* Emergency Stop muss **unabhängig vom aktuellen Modus** funktionieren
+* Sofortiges Abschalten der Taschenlampe: `device.torchMode = .off` (keine Fade-Out)
+* Session-Stopp: `SessionViewModel.stopSession()` aufrufen
+* UI-Feedback: Rotes Banner "Session gestoppt" für 2 Sekunden anzeigen
+* **Kritisch:** Emergency Stop muss auch funktionieren, wenn die App im Hintergrund ist (via Shake-Geste)
 
 ### **6.2 Augensicherheit**
 
