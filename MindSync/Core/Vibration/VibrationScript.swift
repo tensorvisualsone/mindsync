@@ -10,7 +10,7 @@ struct VibrationScript: Codable, Identifiable {
     let events: [VibrationEvent]
     let createdAt: Date
 
-    nonisolated init(
+    init(
         id: UUID = UUID(),
         trackId: UUID,
         mode: EntrainmentMode,
@@ -40,7 +40,7 @@ struct VibrationScript: Codable, Identifiable {
     
     // MARK: - Codable
     
-    nonisolated init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
         // Decode all properties

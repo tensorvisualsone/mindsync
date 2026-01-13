@@ -13,7 +13,7 @@ final class EntrainmentEngine {
     /// - Note: This is applied after user intensity (0.1-1.0) is multiplied by mode-specific multipliers.
     ///   For example, if a user sets intensity to 0.1 and the mode multiplier is 1.0, the result
     ///   would be 0.1, which is then clamped to this minimum (0.15).
-    nonisolated static let minVibrationIntensity: Float = 0.15
+    static let minVibrationIntensity: Float = 0.15
     
     /// Advances the PRNG seed without using the generated value.
     /// Used to keep light and vibration scripts synchronized when one script
@@ -31,7 +31,7 @@ final class EntrainmentEngine {
     ///   - duration: Total duration of Phase 3 in seconds
     ///   - interval: Fixed time interval between random value samples (e.g., 0.1 seconds)
     /// - Returns: Array of (frequency: Double, intensity: Float) pairs indexed by time step
-    nonisolated private static func generatePhase3RandomValues(
+    private static func generatePhase3RandomValues(
         seed: UInt64,
         duration: TimeInterval,
         interval: TimeInterval
