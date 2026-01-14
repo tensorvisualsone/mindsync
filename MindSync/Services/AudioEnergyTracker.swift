@@ -23,7 +23,13 @@ final class AudioEnergyTracker {
     private var averageEnergy: Float = 0.0
     private var averageSpectralFlux: Float = 0.0
     private let smoothingFactor: Float = 0.95  // 95% old, 5% new for RMS energy
-    private let fluxSmoothingFactor: Float = 0.85  // 85% old, 15% new for spectral flux (faster response)
+    /// Smoothing factor for spectral flux (cinematic mode beat detection)
+    /// REDUCED from 0.85 to 0.6 to improve beat responsiveness:
+    /// - 0.85 (previous): 85% old, 15% new - too slow, beats get smoothed out
+    /// - 0.6 (current): 60% old, 40% new - faster response while maintaining stability
+    /// This allows sharper peaks to pass through while still filtering noise.
+    /// Values below 0.5 may cause jittery light behavior from audio noise.
+    private let fluxSmoothingFactor: Float = 0.6  // 60% old, 40% new for spectral flux (much faster response)
     private let bufferSize: AVAudioFrameCount = 4096
     
     /// Current energy value (0.0 - 1.0) - RMS-based

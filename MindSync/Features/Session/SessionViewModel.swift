@@ -234,12 +234,21 @@ final class SessionViewModel: ObservableObject {
             return
         }
         
-        if let mixerNode = audioPlayback.getMainMixerNode() {
+        // CRITICAL: Use musicMixerNode (not mainMixerNode) for audio analysis
+        // The musicMixerNode contains ONLY the music audio, before it's mixed with isochronic tones.
+        // This ensures beat detection and spectral flux analysis respond to the actual music file,
+        // not the generated isochronic pulses that were previously dominating the analysis.
+        if let musicMixerNode = audioPlayback.getMusicMixerNode() {
             // Enable spectral flux for all modes
             // Provides dynamic audio-reactive intensity modulation for immersive experience
             audioEnergyTracker.useSpectralFlux = true
-            audioEnergyTracker.startTracking(mixerNode: mixerNode)
-            logger.info("[AUDIO-REACTIVE] Spectral flux enabled for \(mode.rawValue) mode")
+            audioEnergyTracker.startTracking(mixerNode: musicMixerNode)
+            logger.info("[AUDIO-REACTIVE] Spectral flux enabled for \(mode.rawValue) mode (using isolated music mixer)")
+        } else if let mainMixerNode = audioPlayback.getMainMixerNode() {
+            // Fallback to main mixer if music mixer not available (shouldn't happen normally)
+            audioEnergyTracker.useSpectralFlux = true
+            audioEnergyTracker.startTracking(mixerNode: mainMixerNode)
+            logger.warning("[AUDIO-REACTIVE] Music mixer not available, falling back to main mixer (may include isochronic tones)")
         } else {
             logger.error("[AUDIO-REACTIVE] FAILED to get mixer node - spectral flux will not work!")
         }
@@ -1348,8 +1357,19 @@ final class SessionViewModel: ObservableObject {
         affirmationTimer = nil
     }
     
-    /// Starts audio playback and light synchronization with Master Clock synchronization
-    /// Uses a "Future-Start" approach: All systems (Audio, Light, Vibration) synchronize to a common future time point
+    /// Starts audio playback and light synchronization with Master Clock synchronization.
+    ///
+    /// **Scientific Basis**: Perfect audio-visual synchronization is critical for multisensory
+    /// entrainment effectiveness. Research shows that when light flashes and audio beats occur
+    /// simultaneously (phase-synchronized), neurons in the visual and auditory cortex fire
+    /// simultaneously, leading to super-additive effects via multisensory integration areas
+    /// (e.g., Colliculus superior). Phase misalignment (>50ms) is perceived as "wrong" and
+    /// weakens the entrainment effect (cognitive dissonance). See "App-Entwicklung:
+    /// Lichtwellen-Analyse und Verbesserung.md" for detailed analysis.
+    ///
+    /// Uses a "Future-Start" approach: All systems (Audio, Light, Vibration) synchronize to a
+    /// common future time point (Master Clock) to ensure perfect phase alignment.
+    ///
     /// - Returns: The synchronized start time (future time point that all systems wait for)
     private func startPlaybackAndLight(url: URL, script: LightScript, startTime: Date) async throws -> Date {
         let modeString = self.currentSession?.mode.rawValue ?? "unknown"
@@ -1419,11 +1439,15 @@ final class SessionViewModel: ObservableObject {
             statusMessage = NSLocalizedString("status.light.failed", comment: "Light synchronization failed, continuing in audio-only mode")
         }
 
-        // If cinematic mode, attach isochronic audio to the playback engine for perfect sync
-        if currentSession?.mode == .cinematic, let engine = audioPlayback.getAudioEngine() {
-            IsochronicAudioService.shared.carrierFrequency = 150.0
-            IsochronicAudioService.shared.start(mode: currentSession!.mode, attachToEngine: engine)
-        }
+        // IMPORTANT: Cinematic mode does NOT use isochronic audio
+        // Cinematic mode is designed for pure music-reactive visuals where the flashlight
+        // responds to beats and transients in the user's music. Adding an isochronic tone
+        // would interfere with beat detection (the tone's 6.5 Hz pulse would dominate
+        // the spectral flux analysis) and distract from the music experience.
+        //
+        // Other modes (Alpha, Theta, Gamma) can optionally use isochronic audio for
+        // enhanced neural entrainment, but cinematic mode should remain music-only.
+        // The isochronic service is intentionally NOT started for cinematic mode.
         
         // Enable audio energy tracking for audio-reactive modes (not for fixed script modes)
         // Fixed script modes use frequencyOverride and don't need audio reactivity
@@ -1456,16 +1480,71 @@ final class SessionViewModel: ObservableObject {
         let synchronizedStartTime = futureStartTime
         logger.info("Master Clock: Synchronized start time reached (planned time: \(synchronizedStartTime), actual wake-up: \(Date()))")
 
-        if lightControllerStarted {
-            // Start LightScript execution synchronized to the future start time
-            lightController.execute(script: script, syncedTo: synchronizedStartTime)
-            logger.info("startPlaybackAndLight: light script execution started with Master Clock synchronization")
-        } else {
-            logger.info("startPlaybackAndLight: continuing in audio-only mode")
-        }
+        // CRITICAL: Wait for audio to actually start playing before starting light
+        // This ensures perfect synchronization. AVAudioPlayerNode.play(at:) may schedule
+        // playback but there can be a delay before audio actually starts rendering.
+        // For DMN-Shutdown mode, this is especially important as the script is synchronized
+        // to the audio timeline.
+        //
+        // UI Feedback: The wait time is typically < 100ms, so no loading indicator is shown.
+        // If audio initialization is slow, the user sees the session state remain in preparation.
+        // The 3-second timeout ensures we don't block indefinitely - if exceeded, we fall back
+        // gracefully and log the issue. Future enhancement: Consider showing a subtle progress
+        // indicator if wait exceeds 500ms, but this should be rare in normal operation.
+        logger.info("Waiting for audio playback to actually start...")
+        // Use default timeout (3s) - if audio hasn't started by then, something is wrong
+        let actualAudioStartTime = await audioPlayback.waitForPlaybackToStart()
         
-        // Return synchronized start time for vibration synchronization
-        return synchronizedStartTime
+        if let actualStartTime = actualAudioStartTime {
+            // Audio started successfully - use the actual hardware render start time
+            let delayFromPlanned = actualStartTime.timeIntervalSince(synchronizedStartTime)
+            logger.info("Audio playback confirmed started (delay from planned: \(delayFromPlanned)s)")
+            logger.info("Using actual audio render start time: \(actualStartTime) (was scheduled: \(synchronizedStartTime))")
+            
+            if lightControllerStarted {
+                // Start LightScript execution synchronized to the actual audio render start time
+                // This ensures perfect synchronization with audio hardware timing
+                lightController.execute(script: script, syncedTo: actualStartTime)
+                logger.info("startPlaybackAndLight: light script execution started with actual audio render start time synchronization")
+            } else {
+                logger.info("startPlaybackAndLight: continuing in audio-only mode")
+            }
+            
+            // Return actual audio render start time for vibration synchronization
+            return actualStartTime
+        } else {
+            // Audio did not start within timeout - this is unusual
+            // Check if audio is actually playing now (might have started just after timeout)
+            if audioPlayback.isPlaying {
+                // Audio is playing but we didn't get the start time - use fallback offset
+                let estimatedStartTime = Date().addingTimeInterval(-AudioPlaybackService.fallbackRenderTimeOffset)
+                logger.warning("Audio is playing but start time unavailable, using estimated start time: \(estimatedStartTime)")
+                
+                if lightControllerStarted {
+                    lightController.execute(script: script, syncedTo: estimatedStartTime)
+                    logger.info("startPlaybackAndLight: light script execution started with estimated audio start time")
+                }
+                
+                return estimatedStartTime
+            } else {
+                // Audio truly didn't start - use scheduled time as fallback
+                // The audio was scheduled precisely, so we use the scheduled time as the "truth"
+                logger.warning("Audio did not start within timeout, using scheduled time as fallback (may cause sync issues)")
+                
+                if lightControllerStarted {
+                    // Fallback: Start LightScript execution synchronized to the scheduled start time
+                    // The audio hardware should have started at futureStartTime (scheduled via schedulePlayback)
+                    // Any delay is already accounted for in the scheduling
+                    lightController.execute(script: script, syncedTo: synchronizedStartTime)
+                    logger.info("startPlaybackAndLight: light script execution started with Master Clock synchronization (fallback)")
+                } else {
+                    logger.info("startPlaybackAndLight: continuing in audio-only mode")
+                }
+                
+                // Return scheduled start time for vibration synchronization
+                return synchronizedStartTime
+            }
+        }
     }
 
     /// Typed timeout error for better type safety

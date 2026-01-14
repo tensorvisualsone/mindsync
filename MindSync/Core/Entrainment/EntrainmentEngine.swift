@@ -420,6 +420,16 @@ final class EntrainmentEngine {
         // The FlashlightController modulates light intensity directly from audio energy in real-time
         // We generate a single long event for script validation, but the controller doesn't use it
         if mode == .cinematic {
+            // **Cinematic Mode**: Peak-based hard flashes synchronized to audio beats
+            // The FlashlightController uses real-time peak detection (spectral flux) to create
+            // hard square-wave-like flashes on beats, completely ignoring this event's waveform.
+            // This event is only for script validation - the actual light output is dynamically
+            // generated from audio energy in FlashlightController.updateLight().
+            //
+            // The waveform (.sine) is irrelevant here since the controller generates hard flashes
+            // based on peak detection, not waveform calculation. The controller creates sharp
+            // on/off transitions (effectively square waves) synchronized to music beats.
+            //
             // Create a single event spanning the full track duration for validation purposes
             // The actual light intensity is calculated from real-time audio modulation
             // Base intensity is set to 0.5 (50%) - this value is not used by the controller,
@@ -429,7 +439,7 @@ final class EntrainmentEngine {
                 timestamp: 0.0,
                 intensity: cinematicBaseIntensity,
                 duration: trackDuration,
-                waveform: .sine,
+                waveform: .sine,  // Irrelevant - controller uses peak detection for hard flashes
                 color: nil,
                 frequencyOverride: nil
             )
@@ -450,14 +460,19 @@ final class EntrainmentEngine {
         let eventColor: LightEvent.LightColor? = nil
         
         // Waveform selector based on mode
+        // **Scientific Basis**: Square waves (hard on/off transitions) are significantly more effective
+        // for neural entrainment than sine waves. SSVEP studies show 90.8% success rate with square waves
+        // vs 75% with sine waves. Square waves maximize transient steepness (dI/dt), activating the
+        // magnocellular pathway and maximizing cortical evoked potentials. See "App-Entwicklung:
+        // Lichtwellen-Analyse und Verbesserung.md" for detailed analysis.
         let waveformSelector: (EntrainmentMode) -> LightEvent.Waveform = { mode in
             switch mode {
-            case .alpha: return .square   // Changed from .sine for visual patterns (Phosphene)
-            case .theta: return .square   // Changed from .sine for visual patterns (Phosphene)
-            case .gamma: return .square   // Hard for focus
-            case .cinematic: return .sine // Keep sine for cinematic (dynamically modulated at runtime)
-            case .dmnShutdown: return .square // Default (overridden by script)
-            case .beliefRewiring: return .square // Default (overridden by script)
+            case .alpha: return .square   // Hard square waves for maximum neural entrainment (90.8% vs 75% SSVEP success rate)
+            case .theta: return .square   // Hard square waves for optimal SIVH (stroboscopically induced visual hallucinations)
+            case .gamma: return .square   // Hard square waves for maximum focus and gamma synchronization
+            case .cinematic: return .sine // Keep sine for cinematic (dynamically modulated at runtime via peak detection)
+            case .dmnShutdown: return .square // Default (overridden by script phases)
+            case .beliefRewiring: return .square // Default (overridden by script phases)
             }
         }
         
@@ -533,13 +548,15 @@ final class EntrainmentEngine {
         let eventColor: LightEvent.LightColor? = nil
 
         // Waveform selector for fallback based on mode
+        // **Scientific Basis**: Square waves provide maximum neural entrainment effectiveness.
+        // See waveformSelector above for detailed scientific justification.
         let waveformSelector: (EntrainmentMode) -> LightEvent.Waveform = { mode in
             switch mode {
-            case .alpha, .theta: return .square  // Changed from .sine for visual patterns
-            case .gamma: return .square
-            case .cinematic: return .sine
-            case .dmnShutdown: return .square // Default (overridden by script)
-            case .beliefRewiring: return .square // Default (overridden by script)
+            case .alpha, .theta: return .square  // Hard square waves for optimal entrainment and SIVH
+            case .gamma: return .square  // Hard square waves for gamma synchronization
+            case .cinematic: return .sine  // Keep sine for cinematic (dynamically modulated at runtime)
+            case .dmnShutdown: return .square // Default (overridden by script phases)
+            case .beliefRewiring: return .square // Default (overridden by script phases)
             }
         }
         
@@ -942,16 +959,20 @@ extension EntrainmentEngine {
         // --- PHASE 1: ENTRY (0-3 Min) ---
         // 10 Hz Alpha, soft sine waves for gentle entry
         // "Let everything go..." - calms the body immediately
+        // **Waveform Choice**: Sine waves are intentionally used here for gentle transitions.
+        // While square waves are more effective for neural entrainment (90.8% vs 75% SSVEP),
+        // the entry phase requires smooth, non-jarring transitions to help users relax and
+        // prepare for deeper states. Square waves would be too abrupt for this therapeutic phase.
         let phase1Duration: TimeInterval = 180 // 3 minutes
         let p1Frequency = 10.0 // 10 Hz Alpha
         
         // 1-second events with sine waves for gentle, organic feeling
-        for i in 0..<Int(phase1Duration) {
+        for _ in 0..<Int(phase1Duration) {
             events.append(LightEvent(
                 timestamp: currentTime,
                 intensity: 0.4, // Gentle start
                 duration: 1.0,
-                waveform: .sine, // Soft sine waves (changed from Square)
+                waveform: .sine, // Soft sine waves for gentle entry (intentional, not square)
                 color: .blue,
                 frequencyOverride: p1Frequency
             ))
@@ -962,6 +983,10 @@ extension EntrainmentEngine {
         // 4.5 Hz Theta - "underwater feeling"
         // IMPORTANT: No black pauses (0.0), instead dim down to 0.1
         // This keeps the visual cortex minimally active for therapeutic effect.
+        // **Waveform Choice**: Sine waves are used here to create a "breathing" effect with
+        // gradual intensity changes. The smooth oscillation through lower values (0.35 to 0.1)
+        // creates a therapeutic, non-jarring experience that supports dissociation. Square waves
+        // would create abrupt transitions that could disrupt the meditative state.
         // Note: Sine waveform naturally oscillates through lower values, achieving a breathing effect.
         let phase2Duration: TimeInterval = 540 // 9 minutes (3-12 Min)
         let p2Frequency = 4.5 // 4.5 Hz Theta
@@ -1017,7 +1042,7 @@ extension EntrainmentEngine {
                 timestamp: currentTime + phase3Time,
                 intensity: variedIntensity,
                 duration: variedDuration,
-                waveform: .sine, // Soft waves for organic dissociation
+                waveform: .sine, // Soft waves for organic dissociation (intentional - smooth transitions support therapeutic dissociation)
                 color: .purple,
                 frequencyOverride: variedFrequency
             ))
@@ -1050,12 +1075,16 @@ extension EntrainmentEngine {
         // --- PHASE 4: THE VOID / UNIVERSE (20.5-29 Min) ---
         // 40 Hz Gamma Burst - maximum brightness (with safety limit)
         // "Body sleeps, mind is awake" - total stillness in the body, only light in the mind
+        // **Waveform Choice**: Square waves are essential here for maximum gamma entrainment effectiveness.
+        // Research shows 90.8% SSVEP success rate with square waves vs 75% with sine waves. The hard
+        // on/off transitions maximize transient steepness (dI/dt), activating the magnocellular pathway
+        // and creating optimal conditions for gamma synchronization at 40 Hz.
         let phase4Duration: TimeInterval = 510 // 8.5 minutes (starts at 20.5 min, ends at 29 min)
         events.append(LightEvent(
             timestamp: currentTime,
             intensity: 0.9, // Maximum brightness (with safety limit)
             duration: phase4Duration,
-            waveform: .square, // Square wave is gold standard for Gamma sync
+            waveform: .square, // Square wave is gold standard for Gamma sync (90.8% vs 75% SSVEP success rate)
             color: .white,
             frequencyOverride: 40.0
         ))
@@ -1064,6 +1093,10 @@ extension EntrainmentEngine {
         // --- PHASE 5: REINTEGRATION COOLDOWN (29-30 Min) ---
         // Gradual ramp-down from high Gamma to help users transition back safely
         // Prevents jarring abrupt ending at maximum intensity
+        // **Waveform Choice**: Sine waves are used here for gentle reintegration. After intense
+        // gamma stimulation, users need smooth transitions back to normal consciousness. Square waves
+        // would create abrupt changes that could be disorienting or uncomfortable during this
+        // critical reintegration phase.
         let cooldownDuration: TimeInterval = 60 // 1 minute cooldown
         let cooldownStartFreq = 40.0
         let cooldownEndFreq = 10.0 // Return to Alpha for gentle landing
@@ -1078,7 +1111,7 @@ extension EntrainmentEngine {
                 timestamp: currentTime,
                 intensity: currentIntensity,
                 duration: 1.0,
-                waveform: .sine, // Sine wave for gentle reintegration
+                waveform: .sine, // Sine wave for gentle reintegration (intentional - smooth transitions support safe return)
                 color: .blue,
                 frequencyOverride: currentFreq
             ))
@@ -1111,7 +1144,7 @@ extension EntrainmentEngine {
     ///   - intensity: User preference for vibration intensity (0.1 - 1.0)
     /// - Returns: A VibrationScript synchronized with the light script
     /// - Throws: VibrationScriptError if validation fails
-    nonisolated static func generateDMNShutdownVibrationScript(intensity: Float) throws -> VibrationScript {
+    static func generateDMNShutdownVibrationScript(intensity: Float) throws -> VibrationScript {
         var events: [VibrationEvent] = []
         var currentTime: TimeInterval = 0.0
         
@@ -1143,7 +1176,6 @@ extension EntrainmentEngine {
         // Instead of blunt events, we use many small events with sine waveform,
         // which together create a continuous, swelling vibration
         let phase2Duration: TimeInterval = 540 // 9 minutes (3-12 Min)
-        let phase2Frequency = 4.5 // 4.5 Hz Theta
         
         // Create many small events (0.1s) with sine waveform for fluid modulation
         // The intensity is automatically calculated by VibrationController based on sine waveform
@@ -1286,7 +1318,9 @@ extension EntrainmentEngine {
         // --- PHASE 1: THE SOFT-OPEN (4 Min) ---
         // We start at 12Hz (Alpha) and gently pull consciousness down to 8Hz (Alpha/Theta border).
         // This softens the critical mind and prepares for subconscious access.
-        // Sine waves for gentle, organic transition.
+        // **Waveform Choice**: Sine waves are intentionally used here for gentle, organic transitions.
+        // While square waves are more effective for neural entrainment, the soft-open phase requires
+        // smooth, non-jarring transitions to help users relax and prepare for subconscious access.
         let phase1Duration: TimeInterval = 240 // 4 minutes
         let p1StartFreq = 12.0
         let p1EndFreq = 8.0
@@ -1312,7 +1346,10 @@ extension EntrainmentEngine {
         // --- PHASE 2: ROOT-IDENTIFICATION (10 Min) ---
         // Deep theta oscillation at 5 Hz.
         // Here we open the gate to the subconscious to identify the limiting belief.
-        // Square waves for visual clarity and maximum contrast.
+        // **Waveform Choice**: Square waves are used here for visual clarity and maximum contrast.
+        // Research shows 90.8% SSVEP success rate with square waves vs 75% with sine waves. The hard
+        // on/off transitions (complete darkness between pulses) maximize contrast and support deep
+        // introspection during subconscious access.
         let phase2Duration: TimeInterval = 600 // 10 minutes
         let p2Frequency = 5.0
         
@@ -1361,13 +1398,17 @@ extension EntrainmentEngine {
         // --- PHASE 3: THE REWIRE-BURST (8 Min) ---
         // 40Hz Gamma-Burst for burning in the new neural pathway.
         // This is where we imprint the new belief with maximum synchronization.
-        // Square waves are the gold standard for gamma synchronization.
+        // **Waveform Choice**: Square waves are essential here for maximum gamma entrainment effectiveness.
+        // Research shows 90.8% SSVEP success rate with square waves vs 75% with sine waves. The hard
+        // on/off transitions maximize transient steepness (dI/dt), activating the magnocellular pathway
+        // and creating optimal conditions for gamma synchronization at 40 Hz - critical for neural
+        // pathway rewiring.
         let phase3Duration: TimeInterval = 480 // 8 minutes
         events.append(LightEvent(
             timestamp: currentTime,
             intensity: 0.7, // High intensity (70%) for maximum effect, but not overwhelming
             duration: phase3Duration, // Full duration - NOT period/2.0!
-            waveform: .square, // Square wave is gold standard for gamma sync
+            waveform: .square, // Square wave is gold standard for gamma sync (90.8% vs 75% SSVEP success rate)
             color: .white,
             frequencyOverride: 40.0
         ))
@@ -1376,12 +1417,16 @@ extension EntrainmentEngine {
         // --- PHASE 4: INTEGRATION (8 Min) ---
         // Schumann Resonance (7.83Hz) for peaceful grounding and integration.
         // This allows the new neural pathway to settle and integrate.
+        // **Waveform Choice**: Sine waves are used here for gentle grounding and integration.
+        // After intense gamma stimulation, users need smooth transitions to help the new neural
+        // pathway settle. Square waves would create abrupt changes that could disrupt the
+        // integration process during this critical phase.
         let phase4Duration: TimeInterval = 480 // 8 minutes
         events.append(LightEvent(
             timestamp: currentTime,
             intensity: 0.4,
             duration: phase4Duration, // Full duration - NOT period/2.0!
-            waveform: .sine, // Sine for gentle grounding and integration
+            waveform: .sine, // Sine for gentle grounding and integration (intentional - smooth transitions support neural pathway integration)
             color: .green,
             frequencyOverride: 7.83
         ))

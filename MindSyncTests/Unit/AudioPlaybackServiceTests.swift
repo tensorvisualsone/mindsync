@@ -83,5 +83,54 @@ final class AudioPlaybackServiceTests: XCTestCase {
     // 1. A real audio file
     // 2. Waiting for playback to complete
     // This is better suited for integration tests
+    
+    // MARK: - Audio Synchronization Tests
+    
+    func testWaitForPlaybackToStart_WhenNotPlaying_TimesOut() async {
+        // Given: Service is not playing
+        XCTAssertFalse(service.isPlaying)
+        
+        // When: Waiting for playback to start with very short timeout
+        let timeout: TimeInterval = 0.1
+        let startTime = Date()
+        let actualStartTime = await service.waitForPlaybackToStart(timeout: timeout)
+        let elapsed = Date().timeIntervalSince(startTime)
+        
+        // Then: Should timeout and return nil
+        XCTAssertNil(actualStartTime, "Should return nil when audio doesn't start")
+        XCTAssertGreaterThanOrEqual(elapsed, timeout, "Should wait at least the timeout duration")
+        // Allow up to 2x timeout for system scheduling variance
+        XCTAssertLessThan(elapsed, timeout * 2.0, "Should not wait significantly longer than timeout")
+    }
+    
+    func testWaitForPlaybackToStart_WithZeroTimeout_ReturnsImmediately() async {
+        // Given: Service is not playing
+        XCTAssertFalse(service.isPlaying)
+        
+        // When: Waiting with zero timeout
+        let startTime = Date()
+        let actualStartTime = await service.waitForPlaybackToStart(timeout: 0.0)
+        let elapsed = Date().timeIntervalSince(startTime)
+        
+        // Then: Should return immediately
+        XCTAssertNil(actualStartTime, "Should return nil immediately")
+        XCTAssertLessThan(elapsed, 0.1, "Should return very quickly with zero timeout")
+    }
+    
+    func testIsScheduled_InitiallyFalse() {
+        // Given: Newly initialized service
+        // When: Checking scheduled state
+        let scheduled = service.isScheduled
+        
+        // Then: Should not be scheduled initially
+        XCTAssertFalse(scheduled, "Should not be scheduled initially")
+    }
+    
+    // Note: Testing actual audio rendering requires:
+    // 1. A real audio file to be prepared and played
+    // 2. Access to AVAudioPlayerNode's timing information
+    // 3. Proper audio session configuration
+    // These scenarios are better covered by integration tests that use actual audio files
+    // and can verify the synchronization behavior in a real playback context.
 }
 

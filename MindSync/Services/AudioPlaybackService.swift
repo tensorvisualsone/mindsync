@@ -1,10 +1,33 @@
 import Foundation
 import AVFoundation
 import os.log
+import Darwin
 
 @MainActor
 final class AudioPlaybackService: NSObject {
     private let logger = Logger(subsystem: "com.mindsync", category: "AudioPlaybackService")
+    
+    // MARK: - Constants
+    
+    /// Maximum time to wait for audio playback to start before falling back (in seconds)
+    /// Reduced from 10s to 3s for better user experience - if audio hasn't started
+    /// within 3 seconds, something is likely wrong and waiting longer frustrates users
+    private static let playbackStartTimeout: TimeInterval = 3.0
+    
+    /// Fallback time offset when hardware render time is unavailable (in seconds)
+    /// Assumes audio started approximately 100ms ago when we detect it's rendering
+    /// but can't get precise hardware timing
+    static let fallbackRenderTimeOffset: TimeInterval = 0.1
+    
+    /// Minimum time audio must be rendering stably before we trust the timing (in seconds)
+    /// This prevents using timestamps when audio just started but isn't stable yet
+    /// Used by both AudioPlaybackService and BaseLightController for consistency
+    static let minimumStableAudioTime: TimeInterval = 0.1 // 100ms
+    
+    /// Polling interval for checking if audio has started rendering (in nanoseconds)
+    /// 50ms provides good responsiveness while limiting CPU usage
+    /// Calculation: 50 milliseconds * 1,000,000 nanoseconds/millisecond = 50,000,000 nanoseconds
+    private static let renderCheckPollingInterval: UInt64 = 50 * 1_000_000
     
     /// Playback state to distinguish between scheduled and actually playing
     private enum PlaybackState {
@@ -16,24 +39,28 @@ final class AudioPlaybackService: NSObject {
     
     private var audioEngine: AVAudioEngine?
     private var playerNode: AVAudioPlayerNode?
+    private var musicMixerNode: AVAudioMixerNode?  // Dedicated mixer for music-only audio (before isochronic mixing)
     private var audioFile: AVAudioFile?
     private var playbackTimer: Timer?
     
-    // Thread-safe state management using NSLock
+    // Thread-safe state management using OSAllocatedUnfairLock (heap-allocated, memory-safe)
     // Note: All state access is now protected by stateLock to prevent race conditions
     // between UI thread, timer callbacks, and audio render thread
-    private let stateLock = NSLock()
-    private var _playbackState: PlaybackState = .idle
+    // OSAllocatedUnfairLock is heap-allocated and maintains a stable memory address,
+    // making it safe to use in a class (unlike os_unfair_lock_s which is memory-unsafe)
+    private let stateLock = OSAllocatedUnfairLock(initialState: PlaybackState.idle)
     private var playbackState: PlaybackState {
         get {
-            stateLock.lock()
-            defer { stateLock.unlock() }
-            return _playbackState
+            stateLock.withLock { $0 }
         }
         set {
-            stateLock.lock()
-            defer { stateLock.unlock() }
-            _playbackState = newValue
+            stateLock.withLock { state in
+                let oldValue = state
+                if oldValue != newValue {
+                    logger.debug("PlaybackState transition: \(String(describing: oldValue)) → \(String(describing: newValue))")
+                }
+                state = newValue
+            }
         }
     }
     
@@ -53,6 +80,14 @@ final class AudioPlaybackService: NSObject {
     /// - Returns: The main mixer node of the audio engine, or nil if engine is not initialized
     func getMainMixerNode() -> AVAudioMixerNode? {
         return audioEngine?.mainMixerNode
+    }
+    
+    /// Returns the dedicated music mixer node for audio analysis (spectral flux, beat detection)
+    /// This node contains ONLY the music audio, before it's mixed with isochronic tones.
+    /// Use this for AudioEnergyTracker to ensure beat detection responds to music, not generated tones.
+    /// - Returns: The music-only mixer node, or nil if engine is not initialized
+    func getMusicMixerNode() -> AVAudioMixerNode? {
+        return musicMixerNode
     }
 
     /// Returns the internal AVAudioEngine instance if available. Useful for attaching
@@ -78,15 +113,26 @@ final class AudioPlaybackService: NSObject {
         let engine = AVAudioEngine()
         let node = AVAudioPlayerNode()
         
-        // Attach player node to engine
+        // Create dedicated music mixer node for isolated audio analysis
+        // This node will contain ONLY the music audio, allowing AudioEnergyTracker
+        // to analyze music beats without interference from isochronic tones
+        let musicMixer = AVAudioMixerNode()
+        
+        // Attach nodes to engine
         engine.attach(node)
+        engine.attach(musicMixer)
         
         // Load audio file
         let file = try AVAudioFile(forReading: url)
         audioFile = file
         
-        // Connect player node to main mixer
-        engine.connect(node, to: engine.mainMixerNode, format: file.processingFormat)
+        // Connect player node → music mixer → main mixer
+        // This routing allows:
+        // - AudioEnergyTracker to tap musicMixer (music only, no isochronic tone)
+        // - IsochronicAudioService to connect directly to mainMixer
+        // - Final output through mainMixer with both music and isochronic tone
+        engine.connect(node, to: musicMixer, format: file.processingFormat)
+        engine.connect(musicMixer, to: engine.mainMixerNode, format: file.processingFormat)
         
         // Schedule file for playback (but don't start yet)
         node.scheduleFile(file, at: nil) { [weak self] in
@@ -101,8 +147,9 @@ final class AudioPlaybackService: NSObject {
         // Store references
         audioEngine = engine
         playerNode = node
+        musicMixerNode = musicMixer
         
-        logger.info("Audio prepared for playback: \(url.lastPathComponent, privacy: .public)")
+        logger.info("Audio prepared for playback: \(url.lastPathComponent, privacy: .public) (with dedicated music mixer for analysis)")
     }
     
     /// Plays an audio file immediately
@@ -230,14 +277,21 @@ final class AudioPlaybackService: NSObject {
         playerNode?.stop()
         
         // Disconnect and detach nodes before stopping engine
-        if let engine = audioEngine, let node = playerNode {
-            engine.disconnectNodeInput(node)
-            engine.detach(node)
+        if let engine = audioEngine {
+            if let node = playerNode {
+                engine.disconnectNodeInput(node)
+                engine.detach(node)
+            }
+            if let musicMixer = musicMixerNode {
+                engine.disconnectNodeInput(musicMixer)
+                engine.detach(musicMixer)
+            }
         }
         
         audioEngine?.stop()
         audioEngine = nil
         playerNode = nil
+        musicMixerNode = nil
         audioFile = nil
         
         // Reset timing tracking
@@ -339,23 +393,24 @@ final class AudioPlaybackService: NSObject {
         let now = Date()
         
         // Thread-safe check and update of playback state
-        stateLock.lock()
-        let currentState = _playbackState
-        
-        // If scheduled, check if the start time has been reached
-        if currentState == .scheduled {
-            if now >= startTime {
-                // Start time reached, transition to playing state
-                _playbackState = .playing
-                stateLock.unlock()
-                logger.info("Audio playback transitioned from scheduled to playing at: \(now)")
-            } else {
-                stateLock.unlock()
-                // Still waiting for start time
-                return 0
+        let currentState = stateLock.withLock { state -> PlaybackState in
+            // If scheduled, check if the start time has been reached
+            if state == .scheduled {
+                if now >= startTime {
+                    // Start time reached, transition to playing state
+                    state = .playing
+                    logger.info("Audio playback transitioned from scheduled to playing at: \(now)")
+                } else {
+                    // Still waiting for start time
+                    return .scheduled
+                }
             }
-        } else {
-            stateLock.unlock()
+            return state
+        }
+        
+        // If still scheduled, return 0 (waiting for start time)
+        if currentState == .scheduled {
+            return 0
         }
         
         let elapsed = now.timeIntervalSince(startTime)
@@ -393,13 +448,11 @@ final class AudioPlaybackService: NSObject {
         }
         
         // If we have render time, audio is actually playing - update state if needed
-        stateLock.lock()
-        if _playbackState == .scheduled {
-            _playbackState = .playing
-            stateLock.unlock()
-            logger.info("Audio playback transitioned from scheduled to playing (detected via render time)")
-        } else {
-            stateLock.unlock()
+        stateLock.withLock { state in
+            if state == .scheduled {
+                state = .playing
+                logger.info("Audio playback transitioned from scheduled to playing (detected via render time)")
+            }
         }
         
         // Time elapsed in current segment (Samples / Rate)
@@ -449,6 +502,216 @@ final class AudioPlaybackService: NSObject {
     /// Is playback scheduled to start in the future?
     var isScheduled: Bool {
         return playbackState == .scheduled
+    }
+    
+    /// Gets the actual audio render start time from AVAudioPlayerNode's lastRenderTime
+    /// Converts the audio hardware render time to a Date using mach timebase conversion
+    /// Uses playerTime.sampleTime and elapsed time to calculate when playback actually started
+    /// - Returns: The actual audio render start time as Date, or nil if not available
+    private func getActualAudioRenderStartTime() -> Date? {
+        guard let node = playerNode,
+              let nodeTime = node.lastRenderTime,
+              let playerTime = node.playerTime(forNodeTime: nodeTime) else {
+            return nil
+        }
+        
+        // Convert hostTime (mach_absolute_time) to Date
+        // hostTime is in mach time units, need to convert to nanoseconds then to Date
+        var timebaseInfo = mach_timebase_info_data_t()
+        mach_timebase_info(&timebaseInfo)
+        
+        // Calculate when playback actually started
+        // playerTime.sampleTime is the number of samples that have been rendered
+        // If sampleTime is small (e.g., < 0.1 seconds worth), playback just started
+        let samplesElapsed = Double(playerTime.sampleTime)
+        let secondsElapsed = samplesElapsed / playerTime.sampleRate
+        
+        // Convert the hostTime to Date
+        let nanoseconds = (Double(nodeTime.hostTime) * Double(timebaseInfo.numer)) / Double(timebaseInfo.denom)
+        
+        // Convert nanoseconds to Date
+        // Note: mach_absolute_time() provides nanosecond precision, but systemUptime
+        // is in seconds (TimeInterval/Double). This conversion may lose sub-millisecond
+        // precision in the final Date. For audio sync purposes, millisecond-level
+        // precision is generally sufficient (human perception ~20ms). If sub-millisecond
+        // precision becomes critical, consider using mach times throughout instead of Date.
+        // mach_absolute_time() is relative to boot time, so we need to add boot time offset
+        let bootTime = Date(timeIntervalSinceNow: -ProcessInfo.processInfo.systemUptime)
+        let renderTime = bootTime.addingTimeInterval(nanoseconds / 1_000_000_000.0)
+        
+        // Subtract the elapsed playback time to get the actual start time
+        let actualStartTime = renderTime.addingTimeInterval(-secondsElapsed)
+        
+        return actualStartTime
+    }
+    
+    /// Helper function to safely update playback state from async context
+    /// Since we're @MainActor, we can use a Task with MainActor isolation
+    /// to safely update state without deadlocks
+    private func updatePlaybackStateIfScheduled() {
+        // Update state using heap-allocated OSAllocatedUnfairLock (memory-safe)
+        stateLock.withLock { state in
+            if state == .scheduled {
+                state = .playing
+                logger.info("Audio playback transitioned from scheduled to playing (detected via render time)")
+            }
+        }
+    }
+    
+    /// Checks if audio has actually started rendering by checking lastRenderTime
+    /// This is more reliable than checking isPlaying state, which may lag behind
+    /// Validates that we have valid timing information from the audio hardware
+    /// - Returns: True if audio is rendering with valid timing data, false otherwise
+    private func isAudioActuallyRendering() -> Bool {
+        guard let node = playerNode,
+              let nodeTime = node.lastRenderTime,
+              let playerTime = node.playerTime(forNodeTime: nodeTime) else {
+            return false
+        }
+        
+        // Audio is rendering if we have a valid playerTime
+        // Check that sampleTime is reasonable (not negative and not too large)
+        return playerTime.sampleTime >= 0 && playerTime.sampleTime < Int64.max / 2
+    }
+    
+    /// Waits for audio to actually start playing after being scheduled
+    /// This is necessary because AVAudioPlayerNode.play(at:) may not start immediately
+    /// Uses direct checking of lastRenderTime for more reliable detection
+    /// 
+    /// ## Polling Strategy
+    /// This method uses a polling approach with 50ms intervals (configurable via `renderCheckPollingInterval`).
+    /// While polling is not the most efficient mechanism, it was chosen because:
+    /// - AVAudioPlayerNode does not provide KVO or notifications for render state changes
+    /// - The polling interval (50ms) balances responsiveness with CPU efficiency
+    /// - Polling duration is limited by timeout (default 3s), minimizing battery impact
+    /// - Task.sleep yields control, preventing UI blocking
+    /// 
+    /// ## Future Improvements
+    /// If AVFoundation adds notification support for render events, consider migrating to:
+    /// - KVO on AVAudioPlayerNode.lastRenderTime
+    /// - NotificationCenter observers for render state changes
+    /// - Completion handlers or Combine publishers for render events
+    /// 
+    /// For now, polling provides the most reliable cross-iOS-version compatibility.
+    /// 
+    /// ## Stability Check
+    /// This method now waits for audio to render for at least 100ms before returning the start time.
+    /// This ensures that the calculated start time is stable and accurate, preventing synchronization
+    /// issues where the light script starts before audio is actually playing.
+    /// 
+    /// - Parameter timeout: Maximum time to wait in seconds (default: 3.0 for better UX)
+    /// - Returns: The actual audio render start time (from hardware) if audio started, nil if timeout
+    @MainActor
+    func waitForPlaybackToStart(timeout: TimeInterval? = nil) async -> Date? {
+        let actualTimeout = timeout ?? AudioPlaybackService.playbackStartTimeout
+        let waitStartTime = Date()
+        
+        var firstRenderDetectedTime: Date?
+        var firstRenderStartTime: Date?
+        
+        // Poll until audio is rendering stably or timeout
+        while Date().timeIntervalSince(waitStartTime) < actualTimeout {
+            // Check if audio has actually started rendering by checking lastRenderTime directly
+            // This is more reliable than checking isPlaying state
+            if isAudioActuallyRendering() {
+                // Update state if needed (using synchronous helper to avoid async locking issues)
+                updatePlaybackStateIfScheduled()
+                
+                // Get the current precise audio time to check if it's stable
+                let currentPreciseTime = preciseAudioTime
+                
+                // If this is the first time we detect rendering, record it
+                if firstRenderDetectedTime == nil {
+                    firstRenderDetectedTime = Date()
+                    // Try to get the actual start time, but we'll validate it after stability check
+                    firstRenderStartTime = getActualAudioRenderStartTime()
+                    logger.info("Audio rendering detected for the first time at: \(firstRenderDetectedTime!), preciseAudioTime: \(currentPreciseTime)s")
+                }
+                
+                // Wait for audio to render for at least minimumStableAudioTime before returning
+                // This ensures the start time calculation is stable and accurate
+                if let firstDetected = firstRenderDetectedTime {
+                    let renderDuration = Date().timeIntervalSince(firstDetected)
+                    if renderDuration >= Self.minimumStableAudioTime {
+                        // Audio has been rendering stably - return the start time
+                        if let startTime = checkStableAudioAndReturnStartTime(
+                            firstDetected: firstDetected,
+                            firstRenderStartTime: firstRenderStartTime,
+                            renderDuration: renderDuration,
+                            waitStartTime: waitStartTime
+                        ) {
+                            return startTime
+                        }
+                    } else {
+                        // Audio is rendering but not stable yet, continue waiting
+                        logger.debug("Audio rendering detected but not yet stable (duration: \(renderDuration)s, need: \(Self.minimumStableAudioTime)s)")
+                    }
+                }
+            }
+            
+            // Check if state changed (backup check)
+            if isPlaying {
+                // State says playing, but lastRenderTime might not be available yet
+                // Wait a bit more and check again
+                try? await Task.sleep(nanoseconds: Self.renderCheckPollingInterval)
+                if isAudioActuallyRendering() {
+                    // Re-check stability if we already detected rendering
+                    if let firstDetected = firstRenderDetectedTime {
+                        let renderDuration = Date().timeIntervalSince(firstDetected)
+                        if renderDuration >= Self.minimumStableAudioTime {
+                            if let startTime = checkStableAudioAndReturnStartTime(
+                                firstDetected: firstDetected,
+                                firstRenderStartTime: firstRenderStartTime,
+                                renderDuration: renderDuration,
+                                waitStartTime: waitStartTime
+                            ) {
+                                return startTime
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Wait a short time before checking again (using configured polling interval)
+            try? await Task.sleep(nanoseconds: Self.renderCheckPollingInterval)
+        }
+        
+        // Final check after timeout
+        if isAudioActuallyRendering(), let firstDetected = firstRenderDetectedTime {
+            let renderDuration = Date().timeIntervalSince(firstDetected)
+            if renderDuration >= Self.minimumStableAudioTime {
+                if let actualStartTime = firstRenderStartTime ?? getActualAudioRenderStartTime() {
+                    let waitDuration = Date().timeIntervalSince(waitStartTime)
+                    logger.info("Audio playback confirmed started and stable after \(waitDuration)s wait (timeout reached, stable for \(renderDuration)s), actual render start: \(actualStartTime)")
+                    return actualStartTime
+                }
+            }
+        }
+        
+        logger.warning("Audio playback did not start within \(actualTimeout)s timeout")
+        return nil
+    }
+    
+    /// Helper method to check if audio is stable and return the start time
+    /// Extracts common logic for returning audio start time once stability is confirmed
+    private func checkStableAudioAndReturnStartTime(
+        firstDetected: Date,
+        firstRenderStartTime: Date?,
+        renderDuration: TimeInterval,
+        waitStartTime: Date
+    ) -> Date? {
+        // Audio has been rendering stably for at least minimumStableAudioTime
+        // Now we can confidently return the start time
+        if let actualStartTime = firstRenderStartTime ?? getActualAudioRenderStartTime() {
+            let waitDuration = Date().timeIntervalSince(waitStartTime)
+            logger.info("Audio playback confirmed started and stable after \(waitDuration)s wait (stable for \(renderDuration)s), actual render start: \(actualStartTime)")
+            return actualStartTime
+        } else {
+            // Fallback: use first detected time minus a small offset
+            let fallbackTime = firstDetected.addingTimeInterval(-Self.fallbackRenderTimeOffset)
+            logger.info("Audio playback confirmed stable but hardware time unavailable, using fallback: \(fallbackTime)")
+            return fallbackTime
+        }
     }
     
     /// Total duration of the currently loaded file
