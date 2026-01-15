@@ -1445,10 +1445,16 @@ final class SessionViewModel: ObservableObject {
             
             // Find the two map points we're between
             if mapIndex >= frequencyMap.count - 1 {
-                // We're past the last map point, use the last frequency
+                // We're at or past the last map point, use the last frequency
                 let lastPoint = frequencyMap[frequencyMap.count - 1]
                 currentFreq = lastPoint.freq
                 currentIntensity = lastPoint.intensity
+                
+                // Guard against division by zero
+                guard currentFreq > 0 else {
+                    logger.warning("Frequency is 0 at last map point, ending vibration generation")
+                    break
+                }
             } else {
                 let point1 = frequencyMap[mapIndex]
                 let point2 = frequencyMap[mapIndex + 1]
@@ -1467,20 +1473,15 @@ final class SessionViewModel: ObservableObject {
                 let smoothProgress = MathHelpers.smoothstep(segmentProgress)
                 currentFreq = point1.freq + (point2.freq - point1.freq) * smoothProgress
                 currentIntensity = point1.intensity + (point2.intensity - point1.intensity) * Float(smoothProgress)
-            }
-            
-            // Guard against division by zero
-            guard currentFreq > 0 else {
-                logger.warning("Frequency is 0 at time \(currentTime), skipping to next map point")
-                // Skip to the next frequency map point instead of incrementing by small intervals
-                if mapIndex < frequencyMap.count - 1 {
-                    currentTime = frequencyMap[mapIndex + 1].time
+                
+                // Guard against division by zero
+                guard currentFreq > 0 else {
+                    logger.warning("Frequency is 0 at time \(currentTime), skipping to next map point")
+                    // Skip to the next frequency map point instead of incrementing by small intervals
+                    currentTime = point2.time
                     mapIndex += 1
-                } else {
-                    // No more map points, exit loop
-                    break
+                    continue
                 }
-                continue
             }
             
             let period = 1.0 / currentFreq

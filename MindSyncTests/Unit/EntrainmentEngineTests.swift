@@ -663,9 +663,11 @@ final class EntrainmentEngineTests: XCTestCase {
             XCTAssertEqual(firstEvent.color, .blue)
             XCTAssertEqual(firstEvent.duration, 1.0)
             // Frequency should be near 15 Hz at start
-            let firstFreq = firstEvent.frequencyOverride ?? 0
-            XCTAssertGreaterThan(firstFreq, 14.0)
-            XCTAssertLessThan(firstFreq, 16.0)
+            XCTAssertNotNil(firstEvent.frequencyOverride, "First event should have frequency override")
+            if let firstFreq = firstEvent.frequencyOverride {
+                XCTAssertGreaterThan(firstFreq, 14.0)
+                XCTAssertLessThan(firstFreq, 16.0)
+            }
             // Intensity should be near 0.3 at start
             XCTAssertLessThan(firstEvent.intensity, 0.35)
         }
@@ -674,9 +676,11 @@ final class EntrainmentEngineTests: XCTestCase {
         if let lastEvent = phase1Events.last {
             XCTAssertEqual(lastEvent.waveform, .square)
             // Frequency should be near 10 Hz at end
-            let lastFreq = lastEvent.frequencyOverride ?? 0
-            XCTAssertGreaterThan(lastFreq, 9.5)
-            XCTAssertLessThan(lastFreq, 10.5)
+            XCTAssertNotNil(lastEvent.frequencyOverride, "Last event should have frequency override")
+            if let lastFreq = lastEvent.frequencyOverride {
+                XCTAssertGreaterThan(lastFreq, 9.5)
+                XCTAssertLessThan(lastFreq, 10.5)
+            }
             // Intensity should be near 0.4 at end
             XCTAssertGreaterThan(lastEvent.intensity, 0.35)
         }

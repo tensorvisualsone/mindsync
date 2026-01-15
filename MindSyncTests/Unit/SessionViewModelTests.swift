@@ -321,7 +321,7 @@ final class SessionViewModelTests: XCTestCase {
         }
         
         // Give it a moment to transition to analyzing
-        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
         
         // State should be analyzing or beyond
         XCTAssertNotEqual(viewModel.state, .idle)
@@ -339,7 +339,7 @@ final class SessionViewModelTests: XCTestCase {
         }
         
         // Give it a moment to start processing
-        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
         
         // Should have transitioned from idle
         XCTAssertNotEqual(viewModel.state, .idle)
@@ -347,14 +347,14 @@ final class SessionViewModelTests: XCTestCase {
         task.cancel()
     }
     
-    func testStartFixedSession_Gamma_GeneratesScript() async {
+    func testStartFixedSession_Gamma_GeneratesScript() async throws {
         let viewModel = SessionViewModel(historyService: mockHistoryService)
         
         let task = Task {
             await viewModel.startFixedSession(mode: .gamma)
         }
         
-        try? await Task.sleep(nanoseconds: 100_000_000)
+        try await Task.sleep(nanoseconds: 100_000_000)
         
         XCTAssertNotEqual(viewModel.state, .idle)
         
@@ -397,14 +397,14 @@ final class SessionViewModelTests: XCTestCase {
             await viewModel.startFixedSession(mode: .dmnShutdown)
         }
         
-        try? await Task.sleep(nanoseconds: 100_000_000)
+        try await Task.sleep(nanoseconds: 100_000_000)
         
         XCTAssertNotEqual(viewModel.state, .idle)
         
         task.cancel()
     }
     
-    func testStartFixedSession_BeliefRewiring_UsesFixedScript() async {
+    func testStartFixedSession_BeliefRewiring_UsesFixedScript() async throws {
         let viewModel = SessionViewModel(historyService: mockHistoryService)
         
         // Verify Belief-Rewiring is a fixed-script mode
@@ -414,7 +414,7 @@ final class SessionViewModelTests: XCTestCase {
             await viewModel.startFixedSession(mode: .beliefRewiring)
         }
         
-        try? await Task.sleep(nanoseconds: 100_000_000)
+        try await Task.sleep(nanoseconds: 100_000_000)
         
         XCTAssertNotEqual(viewModel.state, .idle)
         
