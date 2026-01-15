@@ -50,6 +50,19 @@ enum SessionCatalog {
     /// Threshold for detecting significant intensity changes when extracting frequency maps (0.0-1.0)
     private static let intensityChangeThreshold: Float = 0.05
     
+    /// Checks if a new point should be added to the frequency map based on significant changes
+    private static func shouldAddMapPoint(
+        freq: Double,
+        intensity: Float,
+        lastFreq: Double,
+        lastIntensity: Float,
+        isEmpty: Bool
+    ) -> Bool {
+        return isEmpty ||
+               abs(freq - lastFreq) > frequencyChangeThreshold ||
+               abs(intensity - lastIntensity) > intensityChangeThreshold
+    }
+    
     /// Extracts a simplified frequency map from a LightScript
     /// Samples the script at key transition points to create a representative frequency map
     /// - Parameter script: The LightScript to extract from
@@ -67,9 +80,7 @@ enum SessionCatalog {
             let intensity = event.intensity
             
             // Add entry if this is a new phase (frequency or intensity changed significantly)
-            if frequencyMap.isEmpty ||
-               abs(freq - lastFreq) > Self.frequencyChangeThreshold ||
-               abs(intensity - lastIntensity) > Self.intensityChangeThreshold {
+            if shouldAddMapPoint(freq: freq, intensity: intensity, lastFreq: lastFreq, lastIntensity: lastIntensity, isEmpty: frequencyMap.isEmpty) {
                 frequencyMap.append((time: event.timestamp, freq: freq, intensity: intensity))
                 lastFreq = freq
                 lastIntensity = intensity
@@ -80,9 +91,10 @@ enum SessionCatalog {
         if let lastEvent = script.events.last {
             let freq = lastEvent.frequencyOverride ?? script.targetFrequency
             let endTime = lastEvent.timestamp + lastEvent.duration
-            // Only add if not already at the end
-            let lastMapTime = frequencyMap.last?.time ?? 0
-            if lastMapTime != endTime {
+            // Only add if not already at the end (cache last element to avoid repeated access)
+            if let lastMapEntry = frequencyMap.last, lastMapEntry.time != endTime {
+                frequencyMap.append((time: endTime, freq: freq, intensity: lastEvent.intensity))
+            } else if frequencyMap.isEmpty {
                 frequencyMap.append((time: endTime, freq: freq, intensity: lastEvent.intensity))
             }
         }

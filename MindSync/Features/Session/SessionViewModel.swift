@@ -1433,10 +1433,15 @@ final class SessionViewModel: ObservableObject {
         
         // Generate vibration events following the frequency map
         let frequencyMap = session.frequencyMap
+        guard !frequencyMap.isEmpty else {
+            logger.warning("Frequency map is empty for mode \(mode.rawValue)")
+            return []
+        }
         
         // Iterate through time, interpolating frequency between map points
         var currentTime: TimeInterval = 0
         var mapIndex = 0
+        let lastMapIndex = frequencyMap.count - 1
         
         while currentTime < duration {
             // Find the current frequency by interpolating between map points
@@ -1444,9 +1449,9 @@ final class SessionViewModel: ObservableObject {
             let currentIntensity: Float
             
             // Find the two map points we're between
-            if mapIndex >= frequencyMap.count - 1 {
+            if mapIndex >= lastMapIndex {
                 // We're at or past the last map point, use the last frequency
-                let lastPoint = frequencyMap[frequencyMap.count - 1]
+                let lastPoint = frequencyMap[lastMapIndex]
                 currentFreq = lastPoint.freq
                 currentIntensity = lastPoint.intensity
                 
@@ -1462,6 +1467,10 @@ final class SessionViewModel: ObservableObject {
                 // Check if we've moved to the next segment
                 if currentTime >= point2.time {
                     mapIndex += 1
+                    // Ensure we make progress even if times are equal
+                    if currentTime == point2.time {
+                        currentTime += 0.001 // Small epsilon to ensure progress
+                    }
                     continue
                 }
                 
