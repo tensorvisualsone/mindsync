@@ -12,11 +12,11 @@ This script safely adds the new extension file to project.pbxproj by:
 
 import re
 import sys
+import secrets
 from pathlib import Path
 
 def generate_xcode_id():
     """Generate a unique 24-character uppercase hex ID for Xcode."""
-    import secrets
     # Use cryptographically secure random generator for uniqueness
     return secrets.token_hex(12).upper()
 

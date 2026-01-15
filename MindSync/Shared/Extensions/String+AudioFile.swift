@@ -10,6 +10,9 @@ extension String {
     /// "alpha_audio".withoutMP3Extension     // "alpha_audio"
     /// ```
     var withoutMP3Extension: String {
-        replacingOccurrences(of: ".mp3", with: "")
+        if hasSuffix(".mp3") {
+            return String(dropLast(4))
+        }
+        return self
     }
 }
