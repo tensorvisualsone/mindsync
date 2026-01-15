@@ -924,7 +924,7 @@ final class SessionViewModel: ObservableObject {
         do {
             // Generate Awakening Script (no audio analysis needed)
             logger.info("Generating Awakening Flow script")
-            let script = EntrainmentEngine.generateAwakeningScript()
+            let script = SessionCatalog.generateAwakeningScript()
             currentScript = script
             logger.info("Awakening Flow script generated")
             
@@ -1058,7 +1058,7 @@ final class SessionViewModel: ObservableObject {
             
             // Generate DMN-Shutdown Script (no audio analysis needed - script is fixed)
             logger.info("Generating DMN-Shutdown script")
-            let script = EntrainmentEngine.generateDMNShutdownScript()
+            let script = SessionCatalog.generateDMNShutdownScript()
             currentScript = script
             logger.info("DMN-Shutdown script generated")
             

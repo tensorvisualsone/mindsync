@@ -363,7 +363,7 @@ final class EntrainmentEngineTests: XCTestCase {
     // MARK: - DMN-Shutdown Mode Tests
     
     func testGenerateDMNShutdownScript_StructureAndDuration() {
-        let script = EntrainmentEngine.generateDMNShutdownScript()
+        let script = SessionCatalog.generateDMNShutdownScript()
         
         // Verify script properties
         XCTAssertEqual(script.mode, .dmnShutdown)
@@ -378,7 +378,7 @@ final class EntrainmentEngineTests: XCTestCase {
     }
     
     func testGenerateDMNShutdownScript_Phase1Structure() {
-        let script = EntrainmentEngine.generateDMNShutdownScript()
+        let script = SessionCatalog.generateDMNShutdownScript()
         
         // Phase 1: ENTRY (0-180 seconds = 3 minutes)
         // 180 events at 1-second intervals at constant 10Hz with sine waves
@@ -408,7 +408,7 @@ final class EntrainmentEngineTests: XCTestCase {
     }
     
     func testGenerateDMNShutdownScript_Phase2Structure() {
-        let script = EntrainmentEngine.generateDMNShutdownScript()
+        let script = SessionCatalog.generateDMNShutdownScript()
         
         // Phase 2: THE ABYSS (180-720 seconds = 9 minutes)
         // 270 events at 2-second intervals at 4.5Hz
@@ -436,7 +436,7 @@ final class EntrainmentEngineTests: XCTestCase {
     }
     
     func testGenerateDMNShutdownScript_Phase3Structure() {
-        let script = EntrainmentEngine.generateDMNShutdownScript()
+        let script = SessionCatalog.generateDMNShutdownScript()
         
         // Phase 3: DISSOLUTION (720-1200 seconds = 8 minutes)
         // Randomized events with varying frequency, intensity, and duration
@@ -472,7 +472,7 @@ final class EntrainmentEngineTests: XCTestCase {
     }
     
     func testGenerateDMNShutdownScript_TransitionRampStructure() {
-        let script = EntrainmentEngine.generateDMNShutdownScript()
+        let script = SessionCatalog.generateDMNShutdownScript()
         
         // Transition Ramp (1200-1230 seconds = 30 seconds)
         // Smooth transition from Theta to Gamma
@@ -496,7 +496,7 @@ final class EntrainmentEngineTests: XCTestCase {
     }
     
     func testGenerateDMNShutdownScript_Phase4Structure() {
-        let script = EntrainmentEngine.generateDMNShutdownScript()
+        let script = SessionCatalog.generateDMNShutdownScript()
         
         // Phase 4: THE VOID (1230-1740 seconds = 8.5 minutes = 510 seconds, reduced to allow for cooldown)
         // Single long event at 40Hz with maximum intensity
@@ -516,7 +516,7 @@ final class EntrainmentEngineTests: XCTestCase {
     }
     
     func testGenerateDMNShutdownScript_Phase5CooldownStructure() {
-        let script = EntrainmentEngine.generateDMNShutdownScript()
+        let script = SessionCatalog.generateDMNShutdownScript()
         
         // Phase 5: REINTEGRATION COOLDOWN (1740-1800 seconds = 1 minute)
         // Gradual ramp-down from high Gamma to Alpha for safe transition
@@ -555,7 +555,7 @@ final class EntrainmentEngineTests: XCTestCase {
     }
     
     func testGenerateDMNShutdownScript_AllEventsHaveFrequencyOverride() {
-        let script = EntrainmentEngine.generateDMNShutdownScript()
+        let script = SessionCatalog.generateDMNShutdownScript()
         
         // All events should have frequencyOverride set (not relying on audio BPM)
         for event in script.events {
@@ -564,7 +564,7 @@ final class EntrainmentEngineTests: XCTestCase {
     }
     
     func testGenerateDMNShutdownScript_EventTimestampsContinuous() {
-        let script = EntrainmentEngine.generateDMNShutdownScript()
+        let script = SessionCatalog.generateDMNShutdownScript()
         
         // Events should have continuous timestamps (no gaps)
         for i in 0..<script.events.count - 1 {

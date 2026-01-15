@@ -294,7 +294,7 @@ final class SessionViewModelTests: XCTestCase {
         let viewModel = SessionViewModel(historyService: mockHistoryService)
         
         // Verify that the DMN-Shutdown script generation creates the expected structure
-        let script = EntrainmentEngine.generateDMNShutdownScript()
+        let script = SessionCatalog.generateDMNShutdownScript()
         
         XCTAssertEqual(script.mode, .dmnShutdown)
         XCTAssertEqual(script.targetFrequency, 40.0)

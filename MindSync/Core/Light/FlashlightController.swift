@@ -362,30 +362,14 @@ final class FlashlightController: BaseLightController, LightControlling {
             return
         }
         
-        // Apply mode-specific gamma correction for optimal entrainment effectiveness.
-        // Most modes use raw intensity (gamma 1.0) to maximize LED power for SSVEP entrainment,
-        // ensuring sharp on/off transitions that drive cortical evoked potentials. Alpha mode uses
-        // gamma 1.2 for gentler transitions during relaxation. Safety limits (thermal management,
-        // duty cycle control) remain active regardless of gamma setting.
-        // See docs/entrainment-gamma-correction.md for detailed scientific rationale.
-        let gammaValue: Float
-        if let mode = currentScript?.mode {
-            switch mode {
-            case .gamma, .theta:
-                gammaValue = 1.0 // Raw mode for maximum entrainment power
-            case .alpha:
-                gammaValue = 1.2 // Slight correction for gentler relaxation
-            case .dmnShutdown, .beliefRewiring:
-                gammaValue = 1.0 // Raw mode for intense experiences
-            case .cinematic:
-                gammaValue = 1.0 // Raw mode for beat-synchronized flashes
-            }
-        } else {
-            // Fallback: Use raw mode if no script is active
-            gammaValue = 1.0
-        }
-        
-        let perceptionCorrected = pow(intensity, gammaValue)
+        // RAW POWER MODE: Direct intensity mapping for maximum neuronal impact (SSVEP entrainment).
+        // No gamma correction - we want 1:1 power mapping to maximize contrast and neural synchronization.
+        // The brain needs maximum contrast-shock for entrainment, not "eye-friendly" perceptual linearity.
+        // Safety limits (thermal management, duty cycle control) remain active.
+        // 
+        // Note: Gamma correction can be made optional in settings for users who prefer gentler transitions,
+        // but the default for "trips" (DMN-Shutdown, Belief-Rewiring, etc.) must be 1:1 raw power.
+        let perceptionCorrected = intensity
         
         // Apply thermal limits
         let maxIntensity = thermalManager.maxFlashlightIntensity
