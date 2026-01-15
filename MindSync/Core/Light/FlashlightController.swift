@@ -362,33 +362,12 @@ final class FlashlightController: BaseLightController, LightControlling {
             return
         }
         
-        // Apply mode-specific gamma correction for optimal entrainment effectiveness
-        //
-        // **Mode-Specific Gamma Values**:
-        // - Gamma/Theta: 1.0 (raw, no correction) - Maximum LED power for "hardcore" entrainment
-        // - Alpha: 1.2 (slight correction) - Balanced for relaxation
-        // - Other modes: 1.0 (raw) - Default to maximum power
-        //
-        // **Rationale for Raw Mode (1.0)**:
-        // For true neural entrainment (Brainwave Entrainment), we want the "shock effect" for the
-        // optic nerve. Gamma correction reduces LED power in the mid-range (e.g., 0.5 → 0.28 with
-        // gamma 1.8), which weakens the entrainment effect. Raw mode (gamma 1.0) uses full LED
-        // power for maximum SSVEP (Steady-State Visual Evoked Potentials) effectiveness.
-        //
-        // **Scientific Basis**:
-        // - Square waves with hard on/off transitions maximize transient steepness (dI/dt)
-        // - Raw intensity ensures maximum contrast ratio for optimal cortical evoked potentials
-        // - The brain needs machine-precise, constant frequency for SSVEP resonance
-        // - Reduced gamma correction preserves the "hard edges" needed for effective entrainment
-        //
-        // **Safety Considerations**:
-        // - ThermalManager still applies maxFlashlightIntensity limits (0.6-0.9)
-        // - Duty cycle control (30% standard) prevents sustained max brightness
-        // - All safety features (warnings, emergency stop) remain active
-        //
-        // **Alpha Mode Exception (1.2)**:
-        // Alpha mode uses slightly higher gamma (1.2) for gentler transitions during relaxation,
-        // while still maintaining significantly more power than the old 1.8 gamma.
+        // Apply mode-specific gamma correction for optimal entrainment effectiveness.
+        // Most modes use raw intensity (gamma 1.0) to maximize LED power for SSVEP entrainment,
+        // ensuring sharp on/off transitions that drive cortical evoked potentials. Alpha mode uses
+        // gamma 1.2 for gentler transitions during relaxation. Safety limits (thermal management,
+        // duty cycle control) remain active regardless of gamma setting.
+        // See docs/entrainment-gamma-correction.md for detailed scientific rationale.
         let gammaValue: Float
         if let mode = currentScript?.mode {
             switch mode {

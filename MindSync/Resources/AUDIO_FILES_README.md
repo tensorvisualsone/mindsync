@@ -1,51 +1,52 @@
-# Audio Files für feste Sessions
+# Audio Files for Fixed Sessions
 
-Diese Datei dokumentiert die benötigten Audiodateien für die festen Entrainment-Sessions.
+This file documents the required audio files for the fixed entrainment sessions.
 
-## Benötigte Audiodateien
+## Required Audio Files
 
-Die folgenden Audiodateien müssen im `MindSync/Resources/` Verzeichnis abgelegt werden:
+The following audio files must be placed in the `MindSync/Resources/` directory:
 
-1. **alpha_audio.mp3** - Alpha Relaxation Session (15 Minuten)
-   - Drone/Atmosphere Sound für Entspannung
-   - Optional: Subtile 10 Hz Impulse für Frequenz-Sync
-   - Format: MP3, 44.1kHz, Mono/Stereo
+1. **alpha_audio.mp3** – Alpha Relaxation Session (15 minutes)
+   - Drone/atmosphere sound for relaxation
+   - Optional: Subtle 10 Hz pulses for frequency sync
+   - Format: MP3, 44.1 kHz, mono/stereo
 
-2. **theta_audio.mp3** - Theta Deep Dive Session (20 Minuten)
-   - Deep Atmosphere für Meditation
-   - Optional: Subtile 6 Hz Impulse für Frequenz-Sync
-   - Format: MP3, 44.1kHz, Mono/Stereo
+2. **theta_audio.mp3** – Theta Deep Dive Session (20 minutes)
+   - Deep atmosphere for meditation
+   - Optional: Subtle 6 Hz pulses for frequency sync
+   - Format: MP3, 44.1 kHz, mono/stereo
 
-3. **gamma_audio.mp3** - Gamma Focus Session (10 Minuten)
-   - Energetischer Drone für Fokus
-   - Optional: Subtile 40 Hz Impulse für Frequenz-Sync
-   - Format: MP3, 44.1kHz, Mono/Stereo
+3. **gamma_audio.mp3** – Gamma Focus Session (10 minutes)
+   - Energetic drone for focus
+   - Optional: Subtle 40 Hz pulses for frequency sync
+   - Format: MP3, 44.1 kHz, mono/stereo
 
-4. **void_master.mp3** - DMN-Shutdown Session (30 Minuten)
-   - **Kanonischer Dateiname**: `void_master.mp3` (bereits im Projekt vorhanden)
-   - Brown/Pink Noise mit isochronen Tönen
-   - **Hinweis**: Der Code referenziert `void_master.mp3` direkt. Keine Alias- oder Umbenennung erforderlich.
+4. **void_master.mp3** – DMN shutdown session (30 minutes)
+   - **Canonical file name**: `void_master.mp3` (already present in the project)
+   - Brown/pink noise with isochronic tones
+   - **Note**: The code references `void_master.mp3` directly. No aliasing or renaming is required.
 
-5. **belief_rewiring_audio.mp3** - Belief-Rewiring Session (30 Minuten)
-   - Drone/Atmosphere für Unterbewusstseins-Zugang
-   - Optional: Frequenz-Sync mit Script-Phasen
-   - Format: MP3, 44.1kHz, Mono/Stereo
+5. **belief_rewiring_audio.mp3** – Belief rewiring session (30 minutes)
+   - Drone/atmosphere sound for subconscious access
+   - Optional: Frequency sync aligned with script phases
+   - Format: MP3, 44.1 kHz, mono/stereo
 
-## Hinweise zur Audio-Produktion
+## Notes on Audio Production
 
-- **Drone-Sounds**: Pink Noise, OM-Chants, Isochrone Töne
-- **Frequenz-Sync**: Audio sollte subtile Impulse bei der Lichtfrequenz haben
-- **Dauer**: Entspricht Session-Dauer (10-30 Minuten)
-- **Lautstärke**: Moderate Lautstärke, nicht zu laut (kann Entrainment stören)
+- **Drone sounds**: Pink noise, OM chants, isochronic tones
+- **Frequency sync**: Audio should contain subtle pulses at the light frequency
+- **Duration**: Must match session duration (10–30 minutes)
+- **Volume**: Moderate volume, not too loud (excessive loudness can disrupt entrainment)
 
-## Xcode-Projekt Integration
+## Xcode Project Integration
 
-Die Audiodateien müssen im Xcode-Projekt registriert werden:
-1. Dateien zu `MindSync/Resources/` hinzufügen
-2. Im Xcode-Projekt unter "Copy Bundle Resources" registrieren
-3. Sicherstellen, dass sie im App-Bundle enthalten sind
+The audio files must be registered in the Xcode project:
+1. Add the files to `MindSync/Resources/`
+2. Register them under "Copy Bundle Resources" in the Xcode target settings
+3. Ensure they are included in the app bundle
 
-## Fallback-Verhalten
+## Fallback Behavior
 
-Wenn eine Audiodatei fehlt, startet die Session ohne Audio (nur Licht).
-Dies ist ein gültiger Fallback und beeinträchtigt die Entrainment-Wirkung nicht.
+If an audio file is missing, the session starts without audio (light only).
+This is a valid fallback and does not impair the effectiveness of the entrainment.
+

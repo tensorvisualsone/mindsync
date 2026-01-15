@@ -1229,7 +1229,7 @@ final class SessionViewModel: ObservableObject {
             // Try to load fixed audio file from bundle (optional - session works without audio)
             var audioURL: URL? = nil
             if let audioFileName = mode.defaultAudioFileName {
-                audioURL = Bundle.main.url(forResource: audioFileName.replacingOccurrences(of: ".mp3", with: ""), withExtension: "mp3")
+                audioURL = Bundle.main.url(forResource: audioFileName.withoutMP3Extension, withExtension: "mp3")
                 if audioURL != nil {
                     logger.info("Fixed audio file loaded: \(audioFileName)")
                 } else {
@@ -1387,7 +1387,26 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
-    /// Epsilon value to ensure loop progress when timestamps are equal (in seconds)
+    /// Small time delta used to guarantee forward progress in time-based loops (in seconds).
+    ///
+    /// **Why this is needed:**
+    /// - Some loops advance `currentTime` based on the timestamp of the last generated event.
+    /// - Due to floating-point rounding, timestamp quantization, or reused timestamps from the
+    ///   underlying audio/scheduling engine, two consecutive timestamps can occasionally be equal.
+    /// - If the loop only advances when `nextTimestamp > currentTime`, equal timestamps could
+    ///   cause the loop to stall or run many extra iterations without making progress.
+    ///
+    /// **Why 1 ms (0.001 s):**
+    /// - 1 ms is large enough to reliably move `currentTime` past any rounding noise encountered
+    ///   in typical scheduling ranges (tens of minutes at audio-rate precision).
+    /// - Small enough to be perceptually negligible for entrainment timing and vibration/light
+    ///   synchronization, far below the temporal resolution users can detect.
+    /// - This epsilon is only applied in rare edge cases where timestamps are equal; it does not
+    ///   accumulate to meaningful timing drift over a session.
+    ///
+    /// **Usage:**
+    /// - Added to `currentTime` when the next computed timestamp is not strictly greater than
+    ///   the previous one, ensuring the loop continues to progress forward in time.
     private static let timeProgressEpsilon: TimeInterval = 0.001
     
     /// Generates vibration events for a fixed session mode
@@ -1465,13 +1484,12 @@ final class SessionViewModel: ObservableObject {
                 let point1 = frequencyMap[mapIndex]
                 let point2 = frequencyMap[mapIndex + 1]
                 
-                // Check if we've moved to the next segment
+                // Check if we've moved to the next segment.
+                // When `currentTime` reaches or passes `point2.time`, advance the map index.
+                // `currentTime` continues to be advanced by `period` later in the loop, avoiding
+                // direct time adjustments that could create subtle coupling with loop invariants.
                 if currentTime >= point2.time {
                     mapIndex += 1
-                    // Ensure we make progress even if times are equal
-                    if currentTime == point2.time {
-                        currentTime += Self.timeProgressEpsilon
-                    }
                     continue
                 }
                 

@@ -7,7 +7,7 @@ struct SessionView: View {
     
     let mediaItem: MPMediaItem?
     let audioFileURL: URL?
-    let dmnShutdown: Bool
+    let fixedScript: Bool
     
     /// Height of the status banner including padding (used for offset calculations)
     /// Calculated from: top padding (8) + banner vertical padding (sm + xs = 12) + content height (icon ~24 or text ~20)
@@ -23,10 +23,10 @@ struct SessionView: View {
         return topPadding + bannerVerticalPadding + contentHeight // 8 + 12 + 24 = 44
     }
     
-    init(song: MPMediaItem? = nil, audioFileURL: URL? = nil, dmnShutdown: Bool = false) {
+    init(song: MPMediaItem? = nil, audioFileURL: URL? = nil, fixedScript: Bool = false) {
         self.mediaItem = song
         self.audioFileURL = audioFileURL
-        self.dmnShutdown = dmnShutdown
+        self.fixedScript = fixedScript
     }
     
     var body: some View {
@@ -104,10 +104,13 @@ struct SessionView: View {
             guard viewModel.state == .idle else { return }
             
             Task { @MainActor in
-                // dmnShutdown flag takes precedence over preferences
-                if dmnShutdown {
-                    // DMN-Shutdown mode: Start automatically without audio selection
-                    await viewModel.startDMNShutdownSession()
+                // fixedScript flag takes precedence and starts based on user preferences
+                if fixedScript {
+                    let preferences = UserPreferences.load()
+                    let mode = preferences.preferredMode
+                    
+                    // Start fixed-script session based on preferred mode
+                    await viewModel.startFixedSession(mode: mode)
                 } else {
                     // Check if we should start a fixed session based on preferred mode
                     let preferences = UserPreferences.load()
