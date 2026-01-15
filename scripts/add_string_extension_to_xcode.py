@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 """
-Script to add String+AudioFile.swift to the Xcode project.
+One-time migration script to add String+AudioFile.swift to the Xcode project.
 
-This script safely adds the new extension file to project.pbxproj by:
+NOTE: This script has already been executed for the MindSync project and is
+kept here only for historical/archival purposes. It is NOT part of the normal
+development workflow and should generally NOT be run again, as it directly
+modifies MindSync.xcodeproj/project.pbxproj.
+
+For reference, the script safely adds the new extension file to project.pbxproj by:
 1. Generating unique IDs for Xcode references
 2. Adding PBXBuildFile entry
 3. Adding PBXFileReference entry

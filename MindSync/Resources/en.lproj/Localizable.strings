@@ -224,6 +224,7 @@
 "error.vibration.scriptGenerationFailed" = "Failed to generate vibration script. Please try again.";
 "error.vibrationScript.invalidTargetFrequency" = "Invalid target frequency: %f Hz. Frequency must be finite and greater than zero.";
 "error.vibrationScript.invalidMultiplier" = "Invalid multiplier: %d. Multiplier must be greater than zero.";
+"error.session.modeNotSupported" = "This mode does not support fixed sessions. Please choose audio for cinematic mode.";
 
 // MARK: - Frequency Validation
 "frequency.tooLow" = "Frequency too low (minimum: %d Hz)";

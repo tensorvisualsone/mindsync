@@ -104,18 +104,16 @@ struct SessionView: View {
             guard viewModel.state == .idle else { return }
             
             Task { @MainActor in
+                // Load preferences once for both branches
+                let preferences = UserPreferences.load()
+                let mode = preferences.preferredMode
+                
                 // fixedScript flag takes precedence and starts based on user preferences
                 if fixedScript {
-                    let preferences = UserPreferences.load()
-                    let mode = preferences.preferredMode
-                    
                     // Start fixed-script session based on preferred mode
                     await viewModel.startFixedSession(mode: mode)
                 } else {
                     // Check if we should start a fixed session based on preferred mode
-                    let preferences = UserPreferences.load()
-                    let mode = preferences.preferredMode
-                    
                     if mode.usesFixedScript {
                         // Fixed-script modes: Start automatically without audio selection
                         await viewModel.startFixedSession(mode: mode)
