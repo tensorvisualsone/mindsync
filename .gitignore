@@ -201,3 +201,4 @@ SessionHistory/
 
 # Research files
 research/gemini:plan.md
+*.pbxproj.backup

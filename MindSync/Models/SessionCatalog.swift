@@ -37,7 +37,7 @@ struct EntrainmentSession: Identifiable {
         if let url = audioFileURL {
             self.audioFileURL = url
         } else {
-            self.audioFileURL = Bundle.main.url(forResource: backgroundAudioFile.replacingOccurrences(of: ".mp3", with: ""), withExtension: "mp3")
+            self.audioFileURL = Bundle.main.url(forResource: backgroundAudioFile.withoutMP3Extension, withExtension: "mp3")
         }
     }
 }
