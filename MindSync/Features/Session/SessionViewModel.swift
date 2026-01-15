@@ -1442,7 +1442,7 @@ final class SessionViewModel: ObservableObject {
         // Iterate through time, interpolating frequency between map points
         var currentTime: TimeInterval = 0
         var mapIndex = 0
-        // Cache last index to avoid repeated count calculations (safe since we checked map is non-empty above)
+        // Store last valid index for readability (safe since we checked the map is non-empty above)
         let lastMapIndex = frequencyMap.count - 1
         
         while currentTime < duration {
