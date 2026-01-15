@@ -35,6 +35,7 @@
 		BA06812A2EFB013D0035F5B8 /* SessionHistoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681072EFB013D0035F5B8 /* SessionHistoryService.swift */; };
 		BA06812B2EFB013D0035F5B8 /* LargeButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681092EFB013D0035F5B8 /* LargeButton.swift */; };
 		BA06812C2EFB013D0035F5B8 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681002EFB013D0035F5B8 /* Session.swift */; };
+		BA06814D2EFB013D0035F5B8 /* SessionCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA06814C2EFB013D0035F5B8 /* SessionCatalog.swift */; };
 		BA06812D2EFB013D0035F5B8 /* SessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680F82EFB013D0035F5B8 /* SessionViewModel.swift */; };
 		BA06812E2EFB013D0035F5B8 /* AudioPlaybackService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0681032EFB013D0035F5B8 /* AudioPlaybackService.swift */; };
 		BA06812F2EFB013D0035F5B8 /* SessionControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680F62EFB013D0035F5B8 /* SessionControlsView.swift */; };
@@ -120,6 +121,7 @@
 		BA0680FE2EFB013D0035F5B8 /* AudioTrack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioTrack.swift; sourceTree = "<group>"; };
 		BA0680FF2EFB013D0035F5B8 /* EntrainmentMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntrainmentMode.swift; sourceTree = "<group>"; };
 		BA0681002EFB013D0035F5B8 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
+		BA06814C2EFB013D0035F5B8 /* SessionCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCatalog.swift; sourceTree = "<group>"; };
 		BA0681012EFB013D0035F5B8 /* UserPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPreferences.swift; sourceTree = "<group>"; };
 		BA0681032EFB013D0035F5B8 /* AudioPlaybackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackService.swift; sourceTree = "<group>"; };
 		BA0681042EFB013D0035F5B8 /* MediaLibraryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaLibraryService.swift; sourceTree = "<group>"; };
@@ -337,6 +339,7 @@
 				BA0680FE2EFB013D0035F5B8 /* AudioTrack.swift */,
 				BA0680FF2EFB013D0035F5B8 /* EntrainmentMode.swift */,
 				BA0681002EFB013D0035F5B8 /* Session.swift */,
+				BA06814C2EFB013D0035F5B8 /* SessionCatalog.swift */,
 				BA0681012EFB013D0035F5B8 /* UserPreferences.swift */,
 			);
 			path = Models;
@@ -599,6 +602,7 @@
 				BA06812A2EFB013D0035F5B8 /* SessionHistoryService.swift in Sources */,
 				BA06812B2EFB013D0035F5B8 /* LargeButton.swift in Sources */,
 				BA06812C2EFB013D0035F5B8 /* Session.swift in Sources */,
+				BA06814D2EFB013D0035F5B8 /* SessionCatalog.swift in Sources */,
 				BA06812D2EFB013D0035F5B8 /* SessionViewModel.swift in Sources */,
 				BA06812E2EFB013D0035F5B8 /* AudioPlaybackService.swift in Sources */,
 				BA06813F2EFB013D0035F5B8 /* AffirmationOverlayService.swift in Sources */,
