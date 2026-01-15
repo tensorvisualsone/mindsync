@@ -1387,14 +1387,17 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
+    /// Epsilon value to ensure loop progress when timestamps are equal (in seconds)
+    private static let timeProgressEpsilon: TimeInterval = 0.001
+    
     /// Generates vibration events for a fixed session mode
     /// - Parameters:
     ///   - mode: The entrainment mode
     ///   - duration: Total session duration
     ///   - intensity: Vibration intensity
     /// - Returns: Array of vibration events
-    /// - Note: Memory usage: For a 30-minute session at 10 Hz, this generates ~18,000 VibrationEvent objects.
-    ///   This is acceptable as VibrationEvent is a small struct (~32 bytes), resulting in ~576 KB total.
+    /// - Note: This method generates vibration events that follow the same frequency map as the light script,
+    ///   ensuring synchronized visual and haptic entrainment.
     private func generateVibrationEventsForFixedSession(
         mode: EntrainmentMode,
         duration: TimeInterval,
@@ -1403,22 +1406,102 @@ final class SessionViewModel: ObservableObject {
         var events: [VibrationEvent] = []
         let baseIntensity = max(EntrainmentEngine.minVibrationIntensity, intensity)
         
-        // Generate simple vibration events matching the light script frequency
-        let targetFreq = mode.targetFrequency
+        // Get the frequency map from the session catalog to follow the same frequency changes as light
+        guard let session = SessionCatalog.session(for: mode) else {
+            logger.warning("No session found for mode \(mode.rawValue), falling back to target frequency")
+            // Fallback to constant frequency if no session found
+            let targetFreq = mode.targetFrequency
+            guard targetFreq > 0 else {
+                logger.warning("Target frequency is 0 for mode \(mode.rawValue), skipping vibration events")
+                return []
+            }
+            
+            let period = 1.0 / targetFreq
+            var currentTime: TimeInterval = 0
+            
+            while currentTime < duration {
+                events.append(try VibrationEvent(
+                    timestamp: currentTime,
+                    intensity: baseIntensity,
+                    duration: period,
+                    waveform: .sine
+                ))
+                currentTime += period
+            }
+            return events
+        }
         
-        // Guard against division by zero: If targetFrequency is 0, skip vibration events
-        guard targetFreq > 0 else {
-            logger.warning("Target frequency is 0 for mode \(mode.rawValue), skipping vibration events")
+        // Generate vibration events following the frequency map
+        let frequencyMap = session.frequencyMap
+        guard !frequencyMap.isEmpty else {
+            logger.warning("Frequency map is empty for mode \(mode.rawValue)")
             return []
         }
         
-        let period = 1.0 / targetFreq
+        // Iterate through time, interpolating frequency between map points
         var currentTime: TimeInterval = 0
+        var mapIndex = 0
+        // Cache last index to avoid repeated count calculations (safe since we checked map is non-empty above)
+        let lastMapIndex = frequencyMap.count - 1
         
         while currentTime < duration {
+            // Find the current frequency by interpolating between map points
+            let currentFreq: Double
+            let currentIntensity: Float
+            
+            // Find the two map points we're between
+            if mapIndex >= lastMapIndex {
+                // We're at or past the last map point, use the last frequency
+                let lastPoint = frequencyMap[lastMapIndex]
+                currentFreq = lastPoint.freq
+                currentIntensity = lastPoint.intensity
+                
+                // Guard against division by zero
+                guard currentFreq > 0 else {
+                    logger.warning("Frequency is 0 at last map point, ending vibration generation")
+                    break
+                }
+            } else {
+                let point1 = frequencyMap[mapIndex]
+                let point2 = frequencyMap[mapIndex + 1]
+                
+                // Check if we've moved to the next segment
+                if currentTime >= point2.time {
+                    mapIndex += 1
+                    // Ensure we make progress even if times are equal
+                    if currentTime == point2.time {
+                        currentTime += Self.timeProgressEpsilon
+                    }
+                    continue
+                }
+                
+                // Interpolate frequency between the two points
+                let segmentDuration = point2.time - point1.time
+                let segmentProgress = (currentTime - point1.time) / segmentDuration
+                
+                // Smooth interpolation using smoothstep
+                let smoothProgress = MathHelpers.smoothstep(segmentProgress)
+                currentFreq = point1.freq + (point2.freq - point1.freq) * smoothProgress
+                currentIntensity = point1.intensity + (point2.intensity - point1.intensity) * Float(smoothProgress)
+                
+                // Guard against division by zero
+                guard currentFreq > 0 else {
+                    logger.warning("Frequency is 0 at time \(currentTime), skipping to next map point")
+                    // Skip to the next frequency map point instead of incrementing by small intervals
+                    currentTime = point2.time
+                    mapIndex += 1
+                    continue
+                }
+            }
+            
+            let period = 1.0 / currentFreq
+            
+            // Scale intensity by user preference (baseIntensity already includes this)
+            let scaledIntensity = max(EntrainmentEngine.minVibrationIntensity, baseIntensity * currentIntensity)
+            
             events.append(try VibrationEvent(
                 timestamp: currentTime,
-                intensity: baseIntensity,
+                intensity: scaledIntensity,
                 duration: period,
                 waveform: .sine
             ))

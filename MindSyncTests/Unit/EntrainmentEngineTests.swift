@@ -629,5 +629,360 @@ final class EntrainmentEngineTests: XCTestCase {
             XCTAssertLessThan(lowEvent.intensity, highEvent.intensity)
         }
     }
+    
+    // MARK: - Alpha Script Tests
+    
+    func testGenerateAlphaScript_Duration() {
+        let script = EntrainmentEngine.generateAlphaScript()
+        
+        // Verify script properties
+        XCTAssertEqual(script.mode, .alpha)
+        XCTAssertEqual(script.targetFrequency, 10.0) // Alpha peak frequency
+        
+        // Total duration: Phase 1 (120s) + Phase 2 (600s) + Phase 3 (180s) = 900s (15 minutes)
+        if let lastEvent = script.events.last {
+            let totalDuration = lastEvent.timestamp + lastEvent.duration
+            XCTAssertEqual(totalDuration, 900.0, accuracy: 1.0)
+        }
+        
+        XCTAssertGreaterThan(script.events.count, 0)
+    }
+    
+    func testGenerateAlphaScript_Phase1EntryRamp() {
+        let script = EntrainmentEngine.generateAlphaScript()
+        
+        // Phase 1: Entry (0-120 seconds) - 15 Hz → 10 Hz ramp
+        let phase1Events = script.events.filter { $0.timestamp < 120 }
+        
+        XCTAssertEqual(phase1Events.count, 120) // 120 1-second events
+        
+        // Verify first event
+        if let firstEvent = phase1Events.first {
+            XCTAssertEqual(firstEvent.timestamp, 0.0)
+            XCTAssertEqual(firstEvent.waveform, .square)
+            XCTAssertEqual(firstEvent.color, .blue)
+            XCTAssertEqual(firstEvent.duration, 1.0)
+            // Frequency should be near 15 Hz at start
+            XCTAssertNotNil(firstEvent.frequencyOverride, "First event should have frequency override")
+            if let firstFreq = firstEvent.frequencyOverride {
+                XCTAssertGreaterThan(firstFreq, 14.0)
+                XCTAssertLessThan(firstFreq, 16.0)
+            }
+            // Intensity should be near 0.3 at start
+            XCTAssertLessThan(firstEvent.intensity, 0.35)
+        }
+        
+        // Verify last event of phase 1
+        if let lastEvent = phase1Events.last {
+            XCTAssertEqual(lastEvent.waveform, .square)
+            // Frequency should be near 10 Hz at end
+            XCTAssertNotNil(lastEvent.frequencyOverride, "Last event should have frequency override")
+            if let lastFreq = lastEvent.frequencyOverride {
+                XCTAssertGreaterThan(lastFreq, 9.5)
+                XCTAssertLessThan(lastFreq, 10.5)
+            }
+            // Intensity should be near 0.4 at end
+            XCTAssertGreaterThan(lastEvent.intensity, 0.35)
+        }
+    }
+    
+    func testGenerateAlphaScript_Phase2DeepAlpha() {
+        let script = EntrainmentEngine.generateAlphaScript()
+        
+        // Phase 2: Deep Alpha (120-720 seconds) - Constant 10 Hz
+        let phase2Events = script.events.filter { $0.timestamp >= 120 && $0.timestamp < 720 }
+        
+        XCTAssertEqual(phase2Events.count, 1) // Single long event
+        
+        if let event = phase2Events.first {
+            XCTAssertEqual(event.timestamp, 120.0)
+            XCTAssertEqual(event.waveform, .square)
+            XCTAssertEqual(event.intensity, 0.4, accuracy: 0.01)
+            XCTAssertEqual(event.duration, 600.0, accuracy: 1.0) // 10 minutes
+            XCTAssertEqual(event.color, .blue)
+            XCTAssertEqual(event.frequencyOverride ?? 0, 10.0, accuracy: 0.01)
+        }
+    }
+    
+    func testGenerateAlphaScript_Phase3ExitRamp() {
+        let script = EntrainmentEngine.generateAlphaScript()
+        
+        // Phase 3: Exit (720-900 seconds) - 10 Hz → 12 Hz ramp
+        let phase3Events = script.events.filter { $0.timestamp >= 720 }
+        
+        XCTAssertEqual(phase3Events.count, 180) // 180 1-second events
+        
+        // Verify first event of phase 3
+        if let firstEvent = phase3Events.first {
+            XCTAssertEqual(firstEvent.waveform, .square)
+            // Frequency should be near 10 Hz at start
+            let firstFreq = firstEvent.frequencyOverride ?? 0
+            XCTAssertGreaterThan(firstFreq, 9.5)
+            XCTAssertLessThan(firstFreq, 10.5)
+            // Intensity should be near 0.4 at start
+            XCTAssertGreaterThan(firstEvent.intensity, 0.35)
+        }
+        
+        // Verify last event
+        if let lastEvent = phase3Events.last {
+            XCTAssertEqual(lastEvent.waveform, .square)
+            // Frequency should be near 12 Hz at end
+            let lastFreq = lastEvent.frequencyOverride ?? 0
+            XCTAssertGreaterThan(lastFreq, 11.5)
+            XCTAssertLessThan(lastFreq, 12.5)
+            // Intensity should fade to ~0.3
+            XCTAssertLessThan(lastEvent.intensity, 0.35)
+        }
+    }
+    
+    func testGenerateAlphaScript_AllEventsHaveFrequencyOverride() {
+        let script = EntrainmentEngine.generateAlphaScript()
+        
+        for event in script.events {
+            XCTAssertNotNil(event.frequencyOverride, "Event at \(event.timestamp) missing frequency override")
+        }
+    }
+    
+    // MARK: - Theta Script Tests
+    
+    func testGenerateThetaScript_Duration() {
+        let script = EntrainmentEngine.generateThetaScript()
+        
+        XCTAssertEqual(script.mode, .theta)
+        XCTAssertEqual(script.targetFrequency, 6.0) // Theta peak frequency
+        
+        // Total duration: Phase 1 (180s) + Phase 2 (840s) + Phase 3 (180s) = 1200s (20 minutes)
+        if let lastEvent = script.events.last {
+            let totalDuration = lastEvent.timestamp + lastEvent.duration
+            XCTAssertEqual(totalDuration, 1200.0, accuracy: 1.0)
+        }
+        
+        XCTAssertGreaterThan(script.events.count, 0)
+    }
+    
+    func testGenerateThetaScript_Phase1EntryRamp() {
+        let script = EntrainmentEngine.generateThetaScript()
+        
+        // Phase 1: Entry (0-180 seconds) - 12 Hz → 6 Hz ramp
+        let phase1Events = script.events.filter { $0.timestamp < 180 }
+        
+        XCTAssertEqual(phase1Events.count, 180) // 180 1-second events
+        
+        if let firstEvent = phase1Events.first {
+            XCTAssertEqual(firstEvent.waveform, .square)
+            XCTAssertEqual(firstEvent.color, .purple)
+            let firstFreq = firstEvent.frequencyOverride ?? 0
+            XCTAssertGreaterThan(firstFreq, 11.0)
+            XCTAssertLessThan(firstFreq, 13.0)
+        }
+        
+        if let lastEvent = phase1Events.last {
+            let lastFreq = lastEvent.frequencyOverride ?? 0
+            XCTAssertGreaterThan(lastFreq, 5.5)
+            XCTAssertLessThan(lastFreq, 6.5)
+        }
+    }
+    
+    func testGenerateThetaScript_Phase2DeepTheta() {
+        let script = EntrainmentEngine.generateThetaScript()
+        
+        // Phase 2: Deep Theta (180-1020 seconds) - Constant 6 Hz
+        let phase2Events = script.events.filter { $0.timestamp >= 180 && $0.timestamp < 1020 }
+        
+        XCTAssertEqual(phase2Events.count, 1) // Single long event
+        
+        if let event = phase2Events.first {
+            XCTAssertEqual(event.timestamp, 180.0)
+            XCTAssertEqual(event.waveform, .square)
+            XCTAssertEqual(event.intensity, 0.5, accuracy: 0.01)
+            XCTAssertEqual(event.duration, 840.0, accuracy: 1.0) // 14 minutes
+            XCTAssertEqual(event.color, .purple)
+            XCTAssertEqual(event.frequencyOverride ?? 0, 6.0, accuracy: 0.01)
+        }
+    }
+    
+    func testGenerateThetaScript_Phase3ExitRamp() {
+        let script = EntrainmentEngine.generateThetaScript()
+        
+        // Phase 3: Exit (1020-1200 seconds) - 6 Hz → 8 Hz ramp
+        let phase3Events = script.events.filter { $0.timestamp >= 1020 }
+        
+        XCTAssertEqual(phase3Events.count, 180) // 180 1-second events
+        
+        if let firstEvent = phase3Events.first {
+            let firstFreq = firstEvent.frequencyOverride ?? 0
+            XCTAssertGreaterThan(firstFreq, 5.5)
+            XCTAssertLessThan(firstFreq, 6.5)
+        }
+        
+        if let lastEvent = phase3Events.last {
+            let lastFreq = lastEvent.frequencyOverride ?? 0
+            XCTAssertGreaterThan(lastFreq, 7.5)
+            XCTAssertLessThan(lastFreq, 8.5)
+        }
+    }
+    
+    func testGenerateThetaScript_AllEventsHaveFrequencyOverride() {
+        let script = EntrainmentEngine.generateThetaScript()
+        
+        for event in script.events {
+            XCTAssertNotNil(event.frequencyOverride, "Event at \(event.timestamp) missing frequency override")
+        }
+    }
+    
+    // MARK: - Gamma Script Tests
+    
+    func testGenerateGammaScript_Duration() {
+        let script = EntrainmentEngine.generateGammaScript()
+        
+        XCTAssertEqual(script.mode, .gamma)
+        XCTAssertEqual(script.targetFrequency, 40.0) // Gamma peak frequency
+        
+        // Total duration: Phase 1 (60s) + Transition (60s) + Phase 2 (480s) + Phase 3 (60s) = 660s (11 minutes)
+        if let lastEvent = script.events.last {
+            let totalDuration = lastEvent.timestamp + lastEvent.duration
+            XCTAssertEqual(totalDuration, 660.0, accuracy: 1.0)
+        }
+        
+        XCTAssertGreaterThan(script.events.count, 0)
+    }
+    
+    func testGenerateGammaScript_Phase1EntryRamp() {
+        let script = EntrainmentEngine.generateGammaScript()
+        
+        // Phase 1: Entry (0-60 seconds) - 20 Hz → 35 Hz ramp
+        let phase1Events = script.events.filter { $0.timestamp < 60 }
+        
+        XCTAssertEqual(phase1Events.count, 60) // 60 1-second events
+        
+        if let firstEvent = phase1Events.first {
+            XCTAssertEqual(firstEvent.waveform, .square)
+            XCTAssertEqual(firstEvent.color, .orange)
+            let firstFreq = firstEvent.frequencyOverride ?? 0
+            XCTAssertGreaterThan(firstFreq, 19.0)
+            XCTAssertLessThan(firstFreq, 21.0)
+        }
+        
+        if let lastEvent = phase1Events.last {
+            let lastFreq = lastEvent.frequencyOverride ?? 0
+            XCTAssertGreaterThan(lastFreq, 34.0)
+            XCTAssertLessThan(lastFreq, 36.0)
+        }
+    }
+    
+    func testGenerateGammaScript_TransitionToPeak() {
+        let script = EntrainmentEngine.generateGammaScript()
+        
+        // Transition (60-120 seconds) - 35 Hz → 40 Hz ramp
+        let transitionEvents = script.events.filter { $0.timestamp >= 60 && $0.timestamp < 120 }
+        
+        XCTAssertEqual(transitionEvents.count, 60) // 60 1-second events
+        
+        if let firstEvent = transitionEvents.first {
+            XCTAssertEqual(firstEvent.waveform, .square)
+            XCTAssertEqual(firstEvent.color, .white)
+            let firstFreq = firstEvent.frequencyOverride ?? 0
+            XCTAssertGreaterThan(firstFreq, 34.0)
+            XCTAssertLessThan(firstFreq, 36.0)
+        }
+        
+        if let lastEvent = transitionEvents.last {
+            let lastFreq = lastEvent.frequencyOverride ?? 0
+            XCTAssertGreaterThan(lastFreq, 39.0)
+            XCTAssertLessThan(lastFreq, 41.0)
+        }
+    }
+    
+    func testGenerateGammaScript_Phase2PeakGamma() {
+        let script = EntrainmentEngine.generateGammaScript()
+        
+        // Phase 2: Peak Gamma (120-600 seconds) - Constant 40 Hz
+        let phase2Events = script.events.filter { $0.timestamp >= 120 && $0.timestamp < 600 }
+        
+        XCTAssertEqual(phase2Events.count, 1) // Single long event
+        
+        if let event = phase2Events.first {
+            XCTAssertEqual(event.timestamp, 120.0)
+            XCTAssertEqual(event.waveform, .square)
+            XCTAssertEqual(event.intensity, 0.8, accuracy: 0.01)
+            XCTAssertEqual(event.duration, 480.0, accuracy: 1.0) // 8 minutes
+            XCTAssertEqual(event.color, .white)
+            XCTAssertEqual(event.frequencyOverride ?? 0, 40.0, accuracy: 0.01)
+        }
+    }
+    
+    func testGenerateGammaScript_Phase3ExitRamp() {
+        let script = EntrainmentEngine.generateGammaScript()
+        
+        // Phase 3: Exit (600-660 seconds) - 40 Hz → 30 Hz ramp
+        let phase3Events = script.events.filter { $0.timestamp >= 600 }
+        
+        XCTAssertEqual(phase3Events.count, 60) // 60 1-second events
+        
+        if let firstEvent = phase3Events.first {
+            let firstFreq = firstEvent.frequencyOverride ?? 0
+            XCTAssertGreaterThan(firstFreq, 39.0)
+            XCTAssertLessThan(firstFreq, 41.0)
+        }
+        
+        if let lastEvent = phase3Events.last {
+            let lastFreq = lastEvent.frequencyOverride ?? 0
+            XCTAssertGreaterThan(lastFreq, 29.0)
+            XCTAssertLessThan(lastFreq, 31.0)
+        }
+    }
+    
+    func testGenerateGammaScript_AllEventsHaveFrequencyOverride() {
+        let script = EntrainmentEngine.generateGammaScript()
+        
+        for event in script.events {
+            XCTAssertNotNil(event.frequencyOverride, "Event at \(event.timestamp) missing frequency override")
+        }
+    }
+    
+    // MARK: - generateFixedSessionScript Tests
+    
+    func testGenerateFixedSessionScript_Alpha() {
+        let engine = EntrainmentEngine()
+        let script = engine.generateFixedSessionScript(mode: .alpha)
+        
+        XCTAssertEqual(script.mode, .alpha)
+        XCTAssertEqual(script.targetFrequency, 10.0)
+        XCTAssertGreaterThan(script.events.count, 0)
+    }
+    
+    func testGenerateFixedSessionScript_Theta() {
+        let engine = EntrainmentEngine()
+        let script = engine.generateFixedSessionScript(mode: .theta)
+        
+        XCTAssertEqual(script.mode, .theta)
+        XCTAssertEqual(script.targetFrequency, 6.0)
+        XCTAssertGreaterThan(script.events.count, 0)
+    }
+    
+    func testGenerateFixedSessionScript_Gamma() {
+        let engine = EntrainmentEngine()
+        let script = engine.generateFixedSessionScript(mode: .gamma)
+        
+        XCTAssertEqual(script.mode, .gamma)
+        XCTAssertEqual(script.targetFrequency, 40.0)
+        XCTAssertGreaterThan(script.events.count, 0)
+    }
+    
+    func testGenerateFixedSessionScript_DMNShutdown() {
+        let engine = EntrainmentEngine()
+        let script = engine.generateFixedSessionScript(mode: .dmnShutdown)
+        
+        XCTAssertEqual(script.mode, .dmnShutdown)
+        XCTAssertGreaterThan(script.events.count, 0)
+    }
+    
+    func testGenerateFixedSessionScript_BeliefRewiring() {
+        let engine = EntrainmentEngine()
+        let script = engine.generateFixedSessionScript(mode: .beliefRewiring)
+        
+        XCTAssertEqual(script.mode, .beliefRewiring)
+        XCTAssertGreaterThan(script.events.count, 0)
+    }
 }
 

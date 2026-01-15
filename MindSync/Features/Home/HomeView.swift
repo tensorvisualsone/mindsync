@@ -45,9 +45,10 @@ struct HomeView: View {
                         // Fixed-script modes start automatically without audio selection
                         // Only cinematic mode requires user-selected audio
                         if preferences.preferredMode.usesFixedScript {
-                            // For fixed sessions, we use a generic session type
-                            // The SessionView will handle starting the fixed session
-                            sessionToStart = .dmnShutdown // Reuse this case for all fixed sessions
+                            // For fixed-script sessions, we reuse `.dmnShutdown` as a sentinel value
+                            // meaning "start the current preferred fixed session"; SessionView resolves
+                            // the actual fixed mode based on `preferences.preferredMode`.
+                            sessionToStart = .dmnShutdown
                         } else {
                             // Cinematic mode requires audio selection
                             showingSourceSelection = true
