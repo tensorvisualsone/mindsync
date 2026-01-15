@@ -308,5 +308,117 @@ final class SessionViewModelTests: XCTestCase {
         XCTAssertEqual(EntrainmentMode.dmnShutdown.startFrequency, 10.0)
         XCTAssertEqual(EntrainmentMode.dmnShutdown.rampDuration, 240.0)
     }
+    
+    // MARK: - startFixedSession Tests
+    
+    func testStartFixedSession_Alpha_SetsAnalyzingState() async {
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
+        XCTAssertEqual(viewModel.state, .idle)
+        
+        // Start the task but don't await completion
+        let task = Task {
+            await viewModel.startFixedSession(mode: .alpha)
+        }
+        
+        // Give it a moment to transition to analyzing
+        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        
+        // State should be analyzing or beyond
+        XCTAssertNotEqual(viewModel.state, .idle)
+        
+        // Cancel the task to clean up
+        task.cancel()
+    }
+    
+    func testStartFixedSession_Theta_GeneratesScript() async {
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
+        
+        // Start fixed session
+        let task = Task {
+            await viewModel.startFixedSession(mode: .theta)
+        }
+        
+        // Give it a moment to start processing
+        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        
+        // Should have transitioned from idle
+        XCTAssertNotEqual(viewModel.state, .idle)
+        
+        task.cancel()
+    }
+    
+    func testStartFixedSession_Gamma_GeneratesScript() async {
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
+        
+        let task = Task {
+            await viewModel.startFixedSession(mode: .gamma)
+        }
+        
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        
+        XCTAssertNotEqual(viewModel.state, .idle)
+        
+        task.cancel()
+    }
+    
+    func testStartFixedSession_CinematicMode_SetsError() async {
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
+        XCTAssertEqual(viewModel.state, .idle)
+        
+        // Cinematic mode should not work with fixed sessions
+        await viewModel.startFixedSession(mode: .cinematic)
+        
+        // Should be in error state
+        XCTAssertEqual(viewModel.state, .error)
+        XCTAssertNotNil(viewModel.errorMessage)
+        XCTAssertTrue(viewModel.errorMessage?.contains("fixed") ?? false)
+    }
+    
+    func testStartFixedSession_WhileRunning_DoesNothing() async {
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
+        
+        // Set state to running
+        viewModel.state = .running
+        
+        // Try to start a fixed session
+        await viewModel.startFixedSession(mode: .alpha)
+        
+        // State should still be running (not restarted)
+        XCTAssertEqual(viewModel.state, .running)
+    }
+    
+    func testStartFixedSession_DMNShutdown_UsesFixedScript() async {
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
+        
+        // Verify DMN-Shutdown is a fixed-script mode
+        XCTAssertTrue(EntrainmentMode.dmnShutdown.usesFixedScript)
+        
+        let task = Task {
+            await viewModel.startFixedSession(mode: .dmnShutdown)
+        }
+        
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        
+        XCTAssertNotEqual(viewModel.state, .idle)
+        
+        task.cancel()
+    }
+    
+    func testStartFixedSession_BeliefRewiring_UsesFixedScript() async {
+        let viewModel = SessionViewModel(historyService: mockHistoryService)
+        
+        // Verify Belief-Rewiring is a fixed-script mode
+        XCTAssertTrue(EntrainmentMode.beliefRewiring.usesFixedScript)
+        
+        let task = Task {
+            await viewModel.startFixedSession(mode: .beliefRewiring)
+        }
+        
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        
+        XCTAssertNotEqual(viewModel.state, .idle)
+        
+        task.cancel()
+    }
 }
 
