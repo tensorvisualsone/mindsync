@@ -1387,6 +1387,9 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
+    /// Time interval to skip ahead when frequency is zero (in seconds)
+    private static let timeSkipInterval: TimeInterval = 0.1
+    
     /// Generates vibration events for a fixed session mode
     /// - Parameters:
     ///   - mode: The entrainment mode
@@ -1469,7 +1472,7 @@ final class SessionViewModel: ObservableObject {
             // Guard against division by zero
             guard currentFreq > 0 else {
                 logger.warning("Frequency is 0 at time \(currentTime), skipping")
-                currentTime += 0.1 // Skip ahead
+                currentTime += Self.timeSkipInterval // Skip ahead
                 continue
             }
             

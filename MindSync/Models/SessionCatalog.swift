@@ -44,6 +44,12 @@ struct EntrainmentSession: Identifiable {
 
 /// Catalog of available fixed entrainment sessions
 enum SessionCatalog {
+    /// Threshold for detecting significant frequency changes when extracting frequency maps (in Hz)
+    private static let frequencyChangeThreshold: Double = 0.5
+    
+    /// Threshold for detecting significant intensity changes when extracting frequency maps (0.0-1.0)
+    private static let intensityChangeThreshold: Float = 0.05
+    
     /// Extracts a simplified frequency map from a LightScript
     /// Samples the script at key transition points to create a representative frequency map
     /// - Parameter script: The LightScript to extract from
@@ -62,8 +68,8 @@ enum SessionCatalog {
             
             // Add entry if this is a new phase (frequency or intensity changed significantly)
             if frequencyMap.isEmpty ||
-               abs(freq - lastFreq) > 0.5 ||
-               abs(intensity - lastIntensity) > 0.05 {
+               abs(freq - lastFreq) > Self.frequencyChangeThreshold ||
+               abs(intensity - lastIntensity) > Self.intensityChangeThreshold {
                 frequencyMap.append((time: event.timestamp, freq: freq, intensity: intensity))
                 lastFreq = freq
                 lastIntensity = intensity
