@@ -16,8 +16,9 @@ from pathlib import Path
 
 def generate_xcode_id():
     """Generate a unique 24-character uppercase hex ID for Xcode."""
-    import random
-    return ''.join(random.choices('0123456789ABCDEF', k=24))
+    import secrets
+    # Use cryptographically secure random generator for uniqueness
+    return secrets.token_hex(12).upper()
 
 def add_file_to_project(pbxproj_path: Path, filename: str):
     """Add the file to the Xcode project."""

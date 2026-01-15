@@ -200,4 +200,5 @@ LightScriptCache/
 SessionHistory/
 
 # Research files
-research/gemini:plan.md*.pbxproj.backup
+research/gemini:plan.md
+*.pbxproj.backup
