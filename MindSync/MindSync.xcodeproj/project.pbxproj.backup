@@ -20,7 +20,6 @@
 		BA06811B2EFB013D0035F5B8 /* AudioAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680D92EFB013D0035F5B8 /* AudioAnalyzer.swift */; };
 		BA06811C2EFB013D0035F5B8 /* LightScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680E12EFB013D0035F5B8 /* LightScript.swift */; };
 		BA06811D2EFB013D0035F5B8 /* Color+MindSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA06810D2EFB013D0035F5B8 /* Color+MindSync.swift */; };
-		80221E3E9978B2D837EF74D1 /* String+AudioFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057549E8E4E830856DFBDC38 /* String+AudioFile.swift */; };
 		BA06811F2EFB013D0035F5B8 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680ED2EFB013D0035F5B8 /* HomeView.swift */; };
 		BA0681202EFB013D0035F5B8 /* SourceSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680EF2EFB013D0035F5B8 /* SourceSelectionView.swift */; };
 		BA0681212EFB013D0035F5B8 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0680F22EFB013D0035F5B8 /* OnboardingView.swift */; };
@@ -131,7 +130,6 @@
 		BA06810B2EFB013D0035F5B8 /* SafetyBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafetyBanner.swift; sourceTree = "<group>"; };
 		BA06810D2EFB013D0035F5B8 /* Color+MindSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+MindSync.swift"; sourceTree = "<group>"; };
 		BA06810E2EFB013D0035F5B8 /* View+Gestures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Gestures.swift"; sourceTree = "<group>"; };
-		057549E8E4E830856DFBDC38 /* String+AudioFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+AudioFile.swift"; sourceTree = "<group>"; };
 		BA0681102EFB013D0035F5B8 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		BA0681402EFB013D0035F5B8 /* BaseLightController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseLightController.swift; sourceTree = "<group>"; };
 		BA0681412EFB013D0035F5B8 /* AffirmationOverlayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AffirmationOverlayService.swift; sourceTree = "<group>"; };
@@ -370,7 +368,6 @@
 			isa = PBXGroup;
 			children = (
 				BA06810D2EFB013D0035F5B8 /* Color+MindSync.swift */,
-				057549E8E4E830856DFBDC38 /* String+AudioFile.swift */,
 				BA06810E2EFB013D0035F5B8 /* View+Gestures.swift */,
 			);
 			path = Extensions;
@@ -595,7 +592,6 @@
 				BA0681272EFB013D0035F5B8 /* LightController.swift in Sources */,
 				BA0681282EFB013D0035F5B8 /* AppState.swift in Sources */,
 				BA0681292EFB013D0035F5B8 /* View+Gestures.swift in Sources */,
-				80221E3E9978B2D837EF74D1 /* String+AudioFile.swift in Sources */,
 				BA06812A2EFB013D0035F5B8 /* SessionHistoryService.swift in Sources */,
 				BA06812B2EFB013D0035F5B8 /* LargeButton.swift in Sources */,
 				BA06812C2EFB013D0035F5B8 /* Session.swift in Sources */,
