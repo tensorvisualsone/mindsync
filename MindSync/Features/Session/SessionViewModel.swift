@@ -1482,6 +1482,11 @@ final class SessionViewModel: ObservableObject {
                     mapIndex += 1
                     continue
                 }
+                guard segmentDuration > 0 else {
+                    logger.warning("Zero or negative segment duration between map points at index \(mapIndex), skipping segment")
+                    mapIndex += 1
+                    continue
+                }
                 
                 let segmentProgress = (currentTime - point1.time) / segmentDuration
                 
