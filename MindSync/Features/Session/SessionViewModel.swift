@@ -1197,7 +1197,10 @@ final class SessionViewModel: ObservableObject {
         // Only allow fixed-script modes
         guard mode.usesFixedScript else {
             logger.error("Mode \(mode.rawValue) does not use fixed scripts")
-            errorMessage = "Mode does not support fixed sessions"
+            errorMessage = NSLocalizedString(
+                "error.session.modeNotSupported",
+                comment: "Error shown when the selected entrainment mode cannot be used with fixed sessions"
+            )
             state = .error
             return
         }
@@ -1387,27 +1390,6 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
-    /// Small time delta used to guarantee forward progress in time-based loops (in seconds).
-    ///
-    /// **Why this is needed:**
-    /// - Some loops advance `currentTime` based on the timestamp of the last generated event.
-    /// - Due to floating-point rounding, timestamp quantization, or reused timestamps from the
-    ///   underlying audio/scheduling engine, two consecutive timestamps can occasionally be equal.
-    /// - If the loop only advances when `nextTimestamp > currentTime`, equal timestamps could
-    ///   cause the loop to stall or run many extra iterations without making progress.
-    ///
-    /// **Why 1 ms (0.001 s):**
-    /// - 1 ms is large enough to reliably move `currentTime` past any rounding noise encountered
-    ///   in typical scheduling ranges (tens of minutes at audio-rate precision).
-    /// - Small enough to be perceptually negligible for entrainment timing and vibration/light
-    ///   synchronization, far below the temporal resolution users can detect.
-    /// - This epsilon is only applied in rare edge cases where timestamps are equal; it does not
-    ///   accumulate to meaningful timing drift over a session.
-    ///
-    /// **Usage:**
-    /// - Added to `currentTime` when the next computed timestamp is not strictly greater than
-    ///   the previous one, ensuring the loop continues to progress forward in time.
-    private static let timeProgressEpsilon: TimeInterval = 0.001
     
     /// Generates vibration events for a fixed session mode
     /// - Parameters:
@@ -1495,6 +1477,12 @@ final class SessionViewModel: ObservableObject {
                 
                 // Interpolate frequency between the two points
                 let segmentDuration = point2.time - point1.time
+                guard segmentDuration > 0 else {
+                    logger.warning("Zero or negative segment duration between map points at index \(mapIndex), skipping segment")
+                    mapIndex += 1
+                    continue
+                }
+                
                 let segmentProgress = (currentTime - point1.time) / segmentDuration
                 
                 // Smooth interpolation using smoothstep

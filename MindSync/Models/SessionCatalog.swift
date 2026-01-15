@@ -124,65 +124,60 @@ enum SessionCatalog {
     
     /// Alpha (Relax) session: 15 minutes, 8-12 Hz Alpha band
     private static let alphaSession: EntrainmentSession = {
-        let script = EntrainmentEngine.generateAlphaScript()
         return EntrainmentSession(
             title: "Alpha Relaxation",
             description: "Deep relaxation and calm focus",
             duration: 900, // 15 minutes
             targetState: .alpha,
-            frequencyMap: extractFrequencyMap(from: script),
+            frequencyMap: extractFrequencyMap(from: EntrainmentEngine.generateAlphaScript()),
             backgroundAudioFile: "alpha_audio.mp3"
         )
     }()
     
     /// Theta (Deep Dive) session: 20 minutes, 4-8 Hz Theta band with peak at 6 Hz
     private static let thetaSession: EntrainmentSession = {
-        let script = EntrainmentEngine.generateThetaScript()
         return EntrainmentSession(
             title: "Theta Deep Dive",
             description: "Deep meditation and inner exploration",
             duration: 1200, // 20 minutes
             targetState: .theta,
-            frequencyMap: extractFrequencyMap(from: script),
+            frequencyMap: extractFrequencyMap(from: EntrainmentEngine.generateThetaScript()),
             backgroundAudioFile: "theta_audio.mp3"
         )
     }()
     
     /// Gamma (Focus) session: 11 minutes, 30-40 Hz Gamma band
     private static let gammaSession: EntrainmentSession = {
-        let script = EntrainmentEngine.generateGammaScript()
         return EntrainmentSession(
             title: "Gamma Focus",
             description: "Enhanced focus and cognitive performance",
             duration: 660, // 11 minutes (matches generateGammaScript)
             targetState: .gamma,
-            frequencyMap: extractFrequencyMap(from: script),
+            frequencyMap: extractFrequencyMap(from: EntrainmentEngine.generateGammaScript()),
             backgroundAudioFile: "gamma_audio.mp3"
         )
     }()
     
     /// DMN-Shutdown session: Uses existing script from EntrainmentEngine
     private static let dmnShutdownSession: EntrainmentSession = {
-        let script = EntrainmentEngine.generateDMNShutdownScript()
         return EntrainmentSession(
             title: "DMN Shutdown",
             description: "Ego-dissolution and transcendent states",
             duration: 1800, // 30 minutes (matches generateDMNShutdownScript)
             targetState: .dmnShutdown,
-            frequencyMap: extractFrequencyMap(from: script),
+            frequencyMap: extractFrequencyMap(from: EntrainmentEngine.generateDMNShutdownScript()),
             backgroundAudioFile: "void_master.mp3"
         )
     }()
     
     /// Belief-Rewiring session: Uses existing script from EntrainmentEngine
     private static let beliefRewiringSession: EntrainmentSession = {
-        let script = EntrainmentEngine.generateBeliefRewiringScript()
         return EntrainmentSession(
             title: "Belief Rewiring",
             description: "Subconscious reprogramming and neural pathway rewiring",
             duration: 1800, // 30 minutes (matches generateBeliefRewiringScript)
             targetState: .beliefRewiring,
-            frequencyMap: extractFrequencyMap(from: script),
+            frequencyMap: extractFrequencyMap(from: EntrainmentEngine.generateBeliefRewiringScript()),
             backgroundAudioFile: "belief_rewiring_audio.mp3"
         )
     }()

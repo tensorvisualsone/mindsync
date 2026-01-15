@@ -235,6 +235,7 @@
 "error.vibration.scriptGenerationFailed" = "Vibrationsskript konnte nicht erstellt werden. Bitte versuche es erneut.";
 "error.vibrationScript.invalidTargetFrequency" = "Ungültige Zielfrequenz: %f Hz. Die Frequenz muss endlich und größer als null sein.";
 "error.vibrationScript.invalidMultiplier" = "Ungültiger Multiplikator: %d. Der Multiplikator muss größer als null sein.";
+"error.session.modeNotSupported" = "Dieser Modus unterstützt keine festen Sessions. Bitte wähle Audio für den Kino-Modus.";
 
 // MARK: - Frequency Validation
 "frequency.tooLow" = "Frequenz zu niedrig (Minimum: %d Hz)";

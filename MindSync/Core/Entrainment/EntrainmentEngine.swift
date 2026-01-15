@@ -1468,7 +1468,7 @@ extension EntrainmentEngine {
     /// 
     /// Phases:
     /// - Phase 1: Entry (2 Min) - 15 Hz → 10 Hz Ramp
-    /// - Phase 2: Deep Alpha (10 Min) - 10 Hz konstant
+    /// - Phase 2: Deep Alpha (10 Min) - 10 Hz constant
     /// - Phase 3: Exit (3 Min) - 10 Hz → 12 Hz Ramp
     static func generateAlphaScript() -> LightScript {
         var events: [LightEvent] = []
@@ -1546,7 +1546,7 @@ extension EntrainmentEngine {
     /// 
     /// Phases:
     /// - Phase 1: Entry (3 Min) - 12 Hz → 6 Hz Ramp
-    /// - Phase 2: Deep Theta (14 Min) - 6 Hz konstant (peak experience)
+    /// - Phase 2: Deep Theta (14 Min) - 6 Hz constant (peak experience)
     /// - Phase 3: Exit (3 Min) - 6 Hz → 8 Hz Ramp
     static func generateThetaScript() -> LightScript {
         var events: [LightEvent] = []
@@ -1625,7 +1625,7 @@ extension EntrainmentEngine {
     /// Phases:
     /// - Phase 1: Entry (0-1 Min) - 20 Hz → 35 Hz Ramp
     /// - Transition: (1-2 Min) - 35 Hz → 40 Hz Ramp to peak
-    /// - Phase 2: Peak Gamma (2-10 Min) - 40 Hz konstant
+    /// - Phase 2: Peak Gamma (2-10 Min) - 40 Hz constant
     /// - Phase 3: Exit (10-11 Min) - 40 Hz → 30 Hz Ramp
     /// Total duration: 11 minutes (660 seconds)
     static func generateGammaScript() -> LightScript {
