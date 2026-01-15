@@ -42,10 +42,14 @@ struct HomeView: View {
                         style: .filled(.mindSyncAccent)
                     ) {
                         HapticFeedback.light()
-                        // Special case: DMN-Shutdown mode starts automatically without audio selection
-                        if preferences.preferredMode == .dmnShutdown {
-                            sessionToStart = .dmnShutdown
+                        // Fixed-script modes start automatically without audio selection
+                        // Only cinematic mode requires user-selected audio
+                        if preferences.preferredMode.usesFixedScript {
+                            // For fixed sessions, we use a generic session type
+                            // The SessionView will handle starting the fixed session
+                            sessionToStart = .dmnShutdown // Reuse this case for all fixed sessions
                         } else {
+                            // Cinematic mode requires audio selection
                             showingSourceSelection = true
                         }
                     }

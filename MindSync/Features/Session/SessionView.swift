@@ -104,12 +104,24 @@ struct SessionView: View {
             guard viewModel.state == .idle else { return }
             
             Task { @MainActor in
-                if dmnShutdown {
-                    // DMN-Shutdown mode: Start automatically without audio selection
-                    await viewModel.startDMNShutdownSession()
+                // Check if we should start a fixed session
+                let preferences = UserPreferences.load()
+                let mode = preferences.preferredMode
+                
+                if dmnShutdown || mode.usesFixedScript {
+                    // Fixed-script modes: Start automatically without audio selection
+                    if mode == .dmnShutdown {
+                        // Use existing DMN-Shutdown method for backward compatibility
+                        await viewModel.startDMNShutdownSession()
+                    } else {
+                        // Use new generic fixed session method for other modes
+                        await viewModel.startFixedSession(mode: mode)
+                    }
                 } else if let mediaItem = mediaItem {
+                    // Cinematic mode with media item
                     await viewModel.startSession(with: mediaItem)
                 } else if let audioFileURL = audioFileURL {
+                    // Cinematic mode with audio file
                     await viewModel.startSession(with: audioFileURL)
                 } else {
                     // No media item or file URL - show error
@@ -257,12 +269,12 @@ private struct SessionTrackInfoView: View {
             return false
         }
         
-        // For DMN-Shutdown mode, always show frequency
-        if session.mode == .dmnShutdown {
+        // For fixed-script modes, always show frequency (they use frequency overrides)
+        if session.mode.usesFixedScript {
             return true
         }
         
-        // For other modes, only show if it differs significantly from BPM (indicating ramping)
+        // For other modes (cinematic), only show if it differs significantly from BPM (indicating ramping)
         if let bpm = track?.bpm {
             return abs(Int(bpm) - Int(currentFrequency)) >= 2
         }

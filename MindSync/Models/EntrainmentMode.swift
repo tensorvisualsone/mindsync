@@ -95,10 +95,29 @@ enum EntrainmentMode: String, Codable, CaseIterable, Identifiable {
     /// Fixed-script modes don't need audio reactivity (spectral flux tracking).
     var usesFixedScript: Bool {
         switch self {
-        case .dmnShutdown, .beliefRewiring:
+        case .alpha, .theta, .gamma, .dmnShutdown, .beliefRewiring:
             return true
-        case .alpha, .theta, .gamma, .cinematic:
+        case .cinematic:
             return false
+        }
+    }
+    
+    /// Returns the default audio file name for fixed-script modes.
+    /// Returns nil for modes that require user-selected audio (e.g., cinematic).
+    var defaultAudioFileName: String? {
+        switch self {
+        case .alpha:
+            return "alpha_audio.mp3"
+        case .theta:
+            return "theta_audio.mp3"
+        case .gamma:
+            return "gamma_audio.mp3"
+        case .dmnShutdown:
+            return "dmn_shutdown_audio.mp3"
+        case .beliefRewiring:
+            return "belief_rewiring_audio.mp3"
+        case .cinematic:
+            return nil // Requires user-selected audio
         }
     }
 }

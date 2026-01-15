@@ -179,27 +179,27 @@ final class EntrainmentEngine {
     
     /// Generates a LightScript from an AudioTrack and EntrainmentMode
     /// - Parameters:
-    ///   - track: The analyzed AudioTrack with beat timestamps
+    ///   - track: The analyzed AudioTrack with beat timestamps (optional for fixed sessions)
     ///   - mode: The selected EntrainmentMode (Alpha/Theta/Gamma)
     ///   - lightSource: The selected light source (for frequency limits)
     /// - Returns: A LightScript with synchronized light events
     func generateLightScript(
-        from track: AudioTrack,
+        from track: AudioTrack?,
         mode: EntrainmentMode,
         lightSource: LightSource
     ) -> LightScript {
-        // SPECIAL CASE: DMN-Shutdown mode uses fixed script without audio analysis
-        if mode == .dmnShutdown {
-            return EntrainmentEngine.generateDMNShutdownScript()
-        }
-        
-        // SPECIAL CASE: Belief-Rewiring mode uses fixed script without audio analysis
-        if mode == .beliefRewiring {
-            return EntrainmentEngine.generateBeliefRewiringScript()
+        // SPECIAL CASE: Fixed-script modes use predefined frequency maps without audio analysis
+        if mode.usesFixedScript {
+            return generateFixedSessionScript(mode: mode)
         }
         
         // SPECIAL CASE: Cinematic mode uses fixed target frequency for photo diving
-        // instead of BPM-derived frequency
+        // instead of BPM-derived frequency, but still requires audio track
+        guard let track = track else {
+            // Fallback: If no track provided and mode doesn't use fixed script, use fixed script anyway
+            return generateFixedSessionScript(mode: mode)
+        }
+        
         let targetFrequency: Double
         let multiplier: Int
         
@@ -235,6 +235,28 @@ final class EntrainmentEngine {
             multiplier: multiplier,
             events: events
         )
+    }
+    
+    /// Generates a fixed session script for a given mode (without audio analysis)
+    /// - Parameter mode: The entrainment mode
+    /// - Returns: A LightScript with predefined frequency map
+    func generateFixedSessionScript(mode: EntrainmentMode) -> LightScript {
+        switch mode {
+        case .alpha:
+            return EntrainmentEngine.generateAlphaScript()
+        case .theta:
+            return EntrainmentEngine.generateThetaScript()
+        case .gamma:
+            return EntrainmentEngine.generateGammaScript()
+        case .dmnShutdown:
+            return EntrainmentEngine.generateDMNShutdownScript()
+        case .beliefRewiring:
+            return EntrainmentEngine.generateBeliefRewiringScript()
+        case .cinematic:
+            // Cinematic mode should not use fixed script
+            // This is a fallback - should not be called
+            preconditionFailure("Cinematic mode does not use fixed scripts")
+        }
     }
     
     /// Calculates the multiplier N for BPM-to-Hz mapping
@@ -1435,6 +1457,263 @@ extension EntrainmentEngine {
         return LightScript(
             trackId: UUID(),
             mode: .beliefRewiring, // Uses the new Belief-Rewiring mode
+            targetFrequency: 40.0,
+            multiplier: 1,
+            events: events
+        )
+    }
+    
+    /// Generates the "Alpha Relaxation" script for deep relaxation and calm focus.
+    /// This creates a fixed 15-minute sequence through the Alpha band (8-12 Hz).
+    /// 
+    /// Phases:
+    /// - Phase 1: Entry (2 Min) - 15 Hz → 10 Hz Ramp
+    /// - Phase 2: Deep Alpha (10 Min) - 10 Hz konstant
+    /// - Phase 3: Exit (3 Min) - 10 Hz → 12 Hz Ramp
+    static func generateAlphaScript() -> LightScript {
+        var events: [LightEvent] = []
+        var currentTime: TimeInterval = 0.0
+        
+        // --- PHASE 1: ENTRY (0-2 Min) ---
+        // Ramp from 15 Hz (Beta) down to 10 Hz (Alpha) for gentle entry
+        let phase1Duration: TimeInterval = 120 // 2 minutes
+        let p1StartFreq = 15.0
+        let p1EndFreq = 10.0
+        
+        for i in 0..<Int(phase1Duration) {
+            let progress = Double(i) / phase1Duration
+            let smoothProgress = MathHelpers.smoothstep(progress)
+            let currentFreq = p1StartFreq + (p1EndFreq - p1StartFreq) * smoothProgress
+            
+            events.append(LightEvent(
+                timestamp: currentTime,
+                intensity: 0.3 + (0.1 * Float(smoothProgress)), // Ramp intensity from 0.3 to 0.4
+                duration: 1.0,
+                waveform: .square, // Square waves for optimal entrainment (90.8% vs 75% SSVEP success rate)
+                color: .blue,
+                frequencyOverride: currentFreq
+            ))
+            currentTime += 1.0
+        }
+        
+        // --- PHASE 2: DEEP ALPHA (2-12 Min) ---
+        // Constant 10 Hz Alpha for deep relaxation
+        let phase2Duration: TimeInterval = 600 // 10 minutes
+        events.append(LightEvent(
+            timestamp: currentTime,
+            intensity: 0.4, // Optimal intensity for relaxation
+            duration: phase2Duration,
+            waveform: .square, // Square waves for maximum neural entrainment effectiveness
+            color: .blue,
+            frequencyOverride: 10.0
+        ))
+        currentTime += phase2Duration
+        
+        // --- PHASE 3: EXIT (12-15 Min) ---
+        // Ramp from 10 Hz back to 12 Hz for gentle awakening
+        let phase3Duration: TimeInterval = 180 // 3 minutes
+        let p3StartFreq = 10.0
+        let p3EndFreq = 12.0
+        
+        for i in 0..<Int(phase3Duration) {
+            let progress = Double(i) / phase3Duration
+            let smoothProgress = MathHelpers.smoothstep(progress)
+            let currentFreq = p3StartFreq + (p3EndFreq - p3StartFreq) * smoothProgress
+            let currentIntensity = 0.4 - (0.1 * Float(smoothProgress)) // Fade from 0.4 to 0.3
+            
+            events.append(LightEvent(
+                timestamp: currentTime,
+                intensity: currentIntensity,
+                duration: 1.0,
+                waveform: .square,
+                color: .blue,
+                frequencyOverride: currentFreq
+            ))
+            currentTime += 1.0
+        }
+        
+        return LightScript(
+            trackId: UUID(),
+            mode: .alpha,
+            targetFrequency: 10.0,
+            multiplier: 1,
+            events: events
+        )
+    }
+    
+    /// Generates the "Theta Deep Dive" script for deep meditation and inner exploration.
+    /// This creates a fixed 20-minute sequence through the Theta band (4-8 Hz) with peak at 6 Hz.
+    /// 
+    /// Phases:
+    /// - Phase 1: Entry (3 Min) - 12 Hz → 6 Hz Ramp
+    /// - Phase 2: Deep Theta (14 Min) - 6 Hz konstant (peak experience)
+    /// - Phase 3: Exit (3 Min) - 6 Hz → 8 Hz Ramp
+    static func generateThetaScript() -> LightScript {
+        var events: [LightEvent] = []
+        var currentTime: TimeInterval = 0.0
+        
+        // --- PHASE 1: ENTRY (0-3 Min) ---
+        // Ramp from 12 Hz (Alpha) down to 6 Hz (Theta) for deep entry
+        let phase1Duration: TimeInterval = 180 // 3 minutes
+        let p1StartFreq = 12.0
+        let p1EndFreq = 6.0
+        
+        for i in 0..<Int(phase1Duration) {
+            let progress = Double(i) / phase1Duration
+            let smoothProgress = MathHelpers.smoothstep(progress)
+            let currentFreq = p1StartFreq + (p1EndFreq - p1StartFreq) * smoothProgress
+            
+            events.append(LightEvent(
+                timestamp: currentTime,
+                intensity: 0.3 + (0.2 * Float(smoothProgress)), // Ramp intensity from 0.3 to 0.5
+                duration: 1.0,
+                waveform: .square, // Square waves for optimal SIVH (stroboscopically induced visual hallucinations)
+                color: .purple,
+                frequencyOverride: currentFreq
+            ))
+            currentTime += 1.0
+        }
+        
+        // --- PHASE 2: DEEP THETA (3-17 Min) ---
+        // Constant 6 Hz Theta for peak experience
+        let phase2Duration: TimeInterval = 840 // 14 minutes
+        events.append(LightEvent(
+            timestamp: currentTime,
+            intensity: 0.5, // Optimal intensity for deep theta state
+            duration: phase2Duration,
+            waveform: .square, // Square waves for maximum visual pattern generation (Phosphene)
+            color: .purple,
+            frequencyOverride: 6.0
+        ))
+        currentTime += phase2Duration
+        
+        // --- PHASE 3: EXIT (17-20 Min) ---
+        // Ramp from 6 Hz back to 8 Hz for gentle awakening
+        let phase3Duration: TimeInterval = 180 // 3 minutes
+        let p3StartFreq = 6.0
+        let p3EndFreq = 8.0
+        
+        for i in 0..<Int(phase3Duration) {
+            let progress = Double(i) / phase3Duration
+            let smoothProgress = MathHelpers.smoothstep(progress)
+            let currentFreq = p3StartFreq + (p3EndFreq - p3StartFreq) * smoothProgress
+            let currentIntensity = 0.5 - (0.2 * Float(smoothProgress)) // Fade from 0.5 to 0.3
+            
+            events.append(LightEvent(
+                timestamp: currentTime,
+                intensity: currentIntensity,
+                duration: 1.0,
+                waveform: .square,
+                color: .purple,
+                frequencyOverride: currentFreq
+            ))
+            currentTime += 1.0
+        }
+        
+        return LightScript(
+            trackId: UUID(),
+            mode: .theta,
+            targetFrequency: 6.0,
+            multiplier: 1,
+            events: events
+        )
+    }
+    
+    /// Generates the "Gamma Focus" script for enhanced focus and cognitive performance.
+    /// This creates a fixed 10-minute sequence through the Gamma band (30-40 Hz).
+    /// 
+    /// Phases:
+    /// - Phase 1: Entry (1 Min) - 20 Hz → 35 Hz Ramp
+    /// - Phase 2: Peak Gamma (8 Min) - 40 Hz konstant
+    /// - Phase 3: Exit (1 Min) - 40 Hz → 30 Hz Ramp
+    static func generateGammaScript() -> LightScript {
+        var events: [LightEvent] = []
+        var currentTime: TimeInterval = 0.0
+        
+        // --- PHASE 1: ENTRY (0-1 Min) ---
+        // Ramp from 20 Hz (Beta) up to 35 Hz (Gamma) for activation
+        let phase1Duration: TimeInterval = 60 // 1 minute
+        let p1StartFreq = 20.0
+        let p1EndFreq = 35.0
+        
+        for i in 0..<Int(phase1Duration) {
+            let progress = Double(i) / phase1Duration
+            let smoothProgress = MathHelpers.smoothstep(progress)
+            let currentFreq = p1StartFreq + (p1EndFreq - p1StartFreq) * smoothProgress
+            
+            events.append(LightEvent(
+                timestamp: currentTime,
+                intensity: 0.5 + (0.2 * Float(smoothProgress)), // Ramp intensity from 0.5 to 0.7
+                duration: 1.0,
+                waveform: .square, // Square waves for maximum gamma synchronization (90.8% vs 75% SSVEP success rate)
+                color: .orange,
+                frequencyOverride: currentFreq
+            ))
+            currentTime += 1.0
+        }
+        
+        // --- TRANSITION TO PEAK (1-2 Min) ---
+        // Quick ramp to 40 Hz peak
+        let transitionDuration: TimeInterval = 60 // 1 minute
+        let transitionStartFreq = 35.0
+        let transitionEndFreq = 40.0
+        
+        for i in 0..<Int(transitionDuration) {
+            let progress = Double(i) / transitionDuration
+            let smoothProgress = MathHelpers.smoothstep(progress)
+            let currentFreq = transitionStartFreq + (transitionEndFreq - transitionStartFreq) * smoothProgress
+            let currentIntensity = 0.7 + (0.1 * Float(smoothProgress)) // Ramp intensity from 0.7 to 0.8
+            
+            events.append(LightEvent(
+                timestamp: currentTime,
+                intensity: currentIntensity,
+                duration: 1.0,
+                waveform: .square,
+                color: .white,
+                frequencyOverride: currentFreq
+            ))
+            currentTime += 1.0
+        }
+        
+        // --- PHASE 2: PEAK GAMMA (2-10 Min) ---
+        // Constant 40 Hz Gamma for maximum focus
+        let phase2Duration: TimeInterval = 480 // 8 minutes
+        events.append(LightEvent(
+            timestamp: currentTime,
+            intensity: 0.8, // High intensity for maximum gamma synchronization
+            duration: phase2Duration,
+            waveform: .square, // Square wave is gold standard for gamma sync (90.8% vs 75% SSVEP success rate)
+            color: .white,
+            frequencyOverride: 40.0
+        ))
+        currentTime += phase2Duration
+        
+        // --- PHASE 3: EXIT (10 Min) ---
+        // Ramp from 40 Hz down to 30 Hz for gentle transition
+        let phase3Duration: TimeInterval = 60 // 1 minute
+        let p3StartFreq = 40.0
+        let p3EndFreq = 30.0
+        
+        for i in 0..<Int(phase3Duration) {
+            let progress = Double(i) / phase3Duration
+            let smoothProgress = MathHelpers.smoothstep(progress)
+            let currentFreq = p3StartFreq + (p3EndFreq - p3StartFreq) * smoothProgress
+            let currentIntensity = 0.8 - (0.3 * Float(smoothProgress)) // Fade from 0.8 to 0.5
+            
+            events.append(LightEvent(
+                timestamp: currentTime,
+                intensity: currentIntensity,
+                duration: 1.0,
+                waveform: .square,
+                color: .orange,
+                frequencyOverride: currentFreq
+            ))
+            currentTime += 1.0
+        }
+        
+        return LightScript(
+            trackId: UUID(),
+            mode: .gamma,
             targetFrequency: 40.0,
             multiplier: 1,
             events: events
