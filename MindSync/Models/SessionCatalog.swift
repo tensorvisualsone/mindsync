@@ -91,7 +91,7 @@ enum SessionCatalog {
         if let lastEvent = script.events.last {
             let freq = lastEvent.frequencyOverride ?? script.targetFrequency
             let endTime = lastEvent.timestamp + lastEvent.duration
-            // Only add if not already at the end (cache last element to avoid repeated access)
+            // Only add if not already at the end (check cached last element to avoid duplicate entries)
             if let lastMapEntry = frequencyMap.last, lastMapEntry.time != endTime {
                 frequencyMap.append((time: endTime, freq: freq, intensity: lastEvent.intensity))
             } else if frequencyMap.isEmpty {
