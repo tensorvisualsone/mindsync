@@ -501,8 +501,8 @@ final class SessionViewModel: ObservableObject {
         let elapsed = Date().timeIntervalSince(startTime) - totalPauseDuration
         let mode = session.mode
         
-        // SPECIAL CASE: DMN-Shutdown mode uses fixed script with frequency overrides per phase
-        if mode == .dmnShutdown {
+        // SPECIAL CASE: Fixed-script modes use frequency overrides per phase
+        if mode.usesFixedScript {
             // Find the current event based on elapsed time
             // This gives us the correct frequency from the script's frequencyOverride
             let currentEvent = script.events.first { event in
@@ -1180,6 +1180,346 @@ final class SessionViewModel: ObservableObject {
             stopPlaybackProgressUpdates()
             UIApplication.shared.isIdleTimerDisabled = false
         }
+    }
+    
+    /// Starts a fixed session for a given mode (alpha, theta, gamma, beliefRewiring)
+    /// This session uses a pre-generated script with fixed frequency maps and loads
+    /// a fixed audio file from the App Bundle if available.
+    /// - Parameter mode: The entrainment mode to start
+    func startFixedSession(mode: EntrainmentMode) async {
+        logger.info("Starting fixed session for mode: \(mode.rawValue) - BEGIN")
+        
+        guard state == .idle else {
+            logger.warning("Attempted to start fixed session while state is \(String(describing: self.state))")
+            return
+        }
+        
+        // Only allow fixed-script modes
+        guard mode.usesFixedScript else {
+            logger.error("Mode \(mode.rawValue) does not use fixed scripts")
+            errorMessage = NSLocalizedString(
+                "error.session.modeNotSupported",
+                comment: "Error shown when the selected entrainment mode cannot be used with fixed sessions"
+            )
+            state = .error
+            return
+        }
+        
+        logger.info("Setting state to analyzing")
+        state = .analyzing
+        analysisProgress = AnalysisProgress(phase: .loading, progress: 0.0, message: NSLocalizedString("analysis.loading", comment: ""))
+        stopPlaybackProgressUpdates()
+        
+        // Refresh cached preferences
+        logger.info("Loading cached preferences")
+        cachedPreferences = UserPreferences.load()
+        
+        // Set the light controller
+        logger.info("Setting light controller")
+        lightController = services.flashlightController
+        
+        // Pre-warm flashlight if needed
+        logger.info("Pre-warming flashlight if needed")
+        await prewarmFlashlightIfNeeded()
+        
+        do {
+            // Generate fixed script for the mode
+            logger.info("Generating fixed script for mode: \(mode.rawValue)")
+            let script = entrainmentEngine.generateFixedSessionScript(mode: mode)
+            currentScript = script
+            logger.info("Fixed script generated")
+            
+            // Try to load fixed audio file from bundle (optional - session works without audio)
+            var audioURL: URL? = nil
+            if let audioFileName = mode.defaultAudioFileName {
+                audioURL = Bundle.main.url(forResource: audioFileName.withoutMP3Extension, withExtension: "mp3")
+                if audioURL != nil {
+                    logger.info("Fixed audio file loaded: \(audioFileName)")
+                } else {
+                    logger.warning("Fixed audio file not found: \(audioFileName) - session will run without audio")
+                }
+            }
+            
+            // Create a dummy AudioTrack for display purposes
+            let track = AudioTrack(
+                id: UUID(),
+                title: mode.displayName,
+                artist: "MindSync",
+                duration: script.duration,
+                bpm: 0, // Not applicable for fixed script
+                beatTimestamps: []
+            )
+            currentTrack = track
+            logger.info("AudioTrack created for fixed session")
+            
+            // Create session
+            logger.info("Creating fixed session object")
+            let session = Session(
+                mode: mode,
+                lightSource: cachedPreferences.preferredLightSource,
+                audioSource: .localFile,
+                trackTitle: track.title,
+                trackArtist: track.artist,
+                trackBPM: track.bpm
+            )
+            currentSession = session
+            updateAffirmationStatusForCurrentPreferences()
+            
+            // Apply audio latency offset from user preferences
+            if let baseController = lightController as? BaseLightController {
+                baseController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+                baseController.audioPlayback = audioPlayback
+            }
+            
+            // Start light controller
+            logger.info("Starting light controller")
+            try await lightController?.start()
+            
+            // Start audio playback if audio file is available
+            let actualStartTime: Date
+            if let audioURL = audioURL {
+                logger.info("Starting audio playback")
+                try audioPlayback.prepare(url: audioURL)
+                let futureStartTime = Date().addingTimeInterval(0.1) // Small delay for sync
+                try audioPlayback.schedulePlayback(at: futureStartTime)
+                
+                // Wait for audio to actually start
+                if let audioStartTime = await audioPlayback.waitForPlaybackToStart() {
+                    actualStartTime = audioStartTime
+                } else {
+                    logger.warning("Audio did not start in time, using scheduled time")
+                    actualStartTime = futureStartTime
+                }
+            } else {
+                // No audio file - start immediately
+                logger.info("No audio file - starting light only")
+                actualStartTime = Date()
+            }
+            
+            // Execute light script
+            logger.info("Executing light script")
+            lightController?.execute(script: script, syncedTo: actualStartTime)
+            sessionStartTime = actualStartTime
+            updateCurrentFrequency()
+            startFrequencyUpdates()
+            
+            // Start playback progress updates
+            startPlaybackProgressUpdates(for: script.duration)
+            
+            // Generate and start vibration if enabled
+            if cachedPreferences.vibrationEnabled {
+                logger.info("Generating vibration script")
+                do {
+                    // For fixed sessions, we need to generate vibration script without audio track
+                    // Use a dummy track or generate directly from mode
+                    let vibrationScript: VibrationScript
+                    if mode == .dmnShutdown {
+                        vibrationScript = try EntrainmentEngine.generateDMNShutdownVibrationScript(intensity: cachedPreferences.vibrationIntensity)
+                    } else {
+                        // For other modes, create a simple vibration script matching the light script duration
+                        // This is a simplified version - in production, you might want mode-specific vibration scripts
+                        let vibrationEvents = try generateVibrationEventsForFixedSession(mode: mode, duration: script.duration, intensity: cachedPreferences.vibrationIntensity)
+                        vibrationScript = try VibrationScript(
+                            trackId: UUID(),
+                            mode: mode,
+                            targetFrequency: script.targetFrequency,
+                            multiplier: 1,
+                            events: vibrationEvents
+                        )
+                    }
+                    currentVibrationScript = vibrationScript
+                    vibrationController = services.vibrationController
+                    
+                    if let vibrationController = vibrationController {
+                        vibrationController.audioLatencyOffset = cachedPreferences.audioLatencyOffset
+                        vibrationController.audioPlayback = audioPlayback
+                        try await vibrationController.start()
+                        vibrationController.execute(script: vibrationScript, syncedTo: actualStartTime)
+                    }
+                    logger.info("Vibration script generated and started")
+                } catch {
+                    logger.error("Failed to generate vibration script: \(error.localizedDescription, privacy: .public)")
+                    vibrationController = nil
+                    currentVibrationScript = nil
+                    statusMessage = NSLocalizedString("status.vibration.unavailable", comment: "")
+                }
+            } else {
+                vibrationController = nil
+                currentVibrationScript = nil
+            }
+            
+            // Start Bluetooth latency monitoring
+            setupBluetoothLatencyMonitoring()
+            
+            // Prevent screen from turning off
+            UIApplication.shared.isIdleTimerDisabled = true
+            
+            state = .running
+            affirmationPlayed = false
+            
+            // Start observing for affirmation trigger
+            startAffirmationObserver()
+            
+            // Haptic feedback
+            if cachedPreferences.hapticFeedbackEnabled {
+                HapticFeedback.medium()
+            }
+            
+            logger.info("Fixed session started successfully - END")
+            
+        } catch is CancellationError {
+            logger.info("Fixed session start cancelled")
+            lightController?.stop()
+            vibrationController?.stop()
+            audioPlayback.stop()
+            stopPlaybackProgressUpdates()
+            bluetoothLatencyMonitor.stopMonitoring()
+            UIApplication.shared.isIdleTimerDisabled = false
+            state = .idle
+        } catch {
+            logger.error("Fixed session start failed: \(error.localizedDescription, privacy: .public)")
+            errorMessage = error.localizedDescription
+            state = .error
+            
+            lightController?.stop()
+            vibrationController?.stop()
+            audioPlayback.stop()
+            stopPlaybackProgressUpdates()
+            bluetoothLatencyMonitor.stopMonitoring()
+            UIApplication.shared.isIdleTimerDisabled = false
+        }
+    }
+    
+    
+    /// Generates vibration events for a fixed session mode
+    /// - Parameters:
+    ///   - mode: The entrainment mode
+    ///   - duration: Total session duration
+    ///   - intensity: Vibration intensity
+    /// - Returns: Array of vibration events
+    /// - Note: This method generates vibration events that follow the same frequency map as the light script,
+    ///   ensuring synchronized visual and haptic entrainment.
+    private func generateVibrationEventsForFixedSession(
+        mode: EntrainmentMode,
+        duration: TimeInterval,
+        intensity: Float
+    ) throws -> [VibrationEvent] {
+        var events: [VibrationEvent] = []
+        let baseIntensity = max(EntrainmentEngine.minVibrationIntensity, intensity)
+        
+        // Get the frequency map from the session catalog to follow the same frequency changes as light
+        guard let session = SessionCatalog.session(for: mode) else {
+            logger.warning("No session found for mode \(mode.rawValue), falling back to target frequency")
+            // Fallback to constant frequency if no session found
+            let targetFreq = mode.targetFrequency
+            guard targetFreq > 0 else {
+                logger.warning("Target frequency is 0 for mode \(mode.rawValue), skipping vibration events")
+                return []
+            }
+            
+            let period = 1.0 / targetFreq
+            var currentTime: TimeInterval = 0
+            
+            while currentTime < duration {
+                events.append(try VibrationEvent(
+                    timestamp: currentTime,
+                    intensity: baseIntensity,
+                    duration: period,
+                    waveform: .sine
+                ))
+                currentTime += period
+            }
+            return events
+        }
+        
+        // Generate vibration events following the frequency map
+        let frequencyMap = session.frequencyMap
+        guard !frequencyMap.isEmpty else {
+            logger.warning("Frequency map is empty for mode \(mode.rawValue)")
+            return []
+        }
+        
+        // Iterate through time, interpolating frequency between map points
+        var currentTime: TimeInterval = 0
+        var mapIndex = 0
+        // Store last valid index for readability (safe since we checked the map is non-empty above)
+        let lastMapIndex = frequencyMap.count - 1
+        
+        while currentTime < duration {
+            // Find the current frequency by interpolating between map points
+            let currentFreq: Double
+            let currentIntensity: Float
+            
+            // Find the two map points we're between
+            if mapIndex >= lastMapIndex {
+                // We're at or past the last map point, use the last frequency
+                let lastPoint = frequencyMap[lastMapIndex]
+                currentFreq = lastPoint.freq
+                currentIntensity = lastPoint.intensity
+                
+                // Guard against division by zero
+                guard currentFreq > 0 else {
+                    logger.warning("Frequency is 0 at last map point, ending vibration generation")
+                    break
+                }
+            } else {
+                let point1 = frequencyMap[mapIndex]
+                let point2 = frequencyMap[mapIndex + 1]
+                
+                // Check if we've moved to the next segment.
+                // When `currentTime` reaches or passes `point2.time`, advance the map index.
+                // `currentTime` continues to be advanced by `period` later in the loop, avoiding
+                // direct time adjustments that could create subtle coupling with loop invariants.
+                if currentTime >= point2.time {
+                    mapIndex += 1
+                    continue
+                }
+                
+                // Interpolate frequency between the two points
+                let segmentDuration = point2.time - point1.time
+                guard segmentDuration > 0 else {
+                    logger.warning("Zero or negative segment duration between map points at index \(mapIndex), skipping segment")
+                    mapIndex += 1
+                    continue
+                }
+                guard segmentDuration > 0 else {
+                    logger.warning("Zero or negative segment duration between map points at index \(mapIndex), skipping segment")
+                    mapIndex += 1
+                    continue
+                }
+                
+                let segmentProgress = (currentTime - point1.time) / segmentDuration
+                
+                // Smooth interpolation using smoothstep
+                let smoothProgress = MathHelpers.smoothstep(segmentProgress)
+                currentFreq = point1.freq + (point2.freq - point1.freq) * smoothProgress
+                currentIntensity = point1.intensity + (point2.intensity - point1.intensity) * Float(smoothProgress)
+                
+                // Guard against division by zero
+                guard currentFreq > 0 else {
+                    logger.warning("Frequency is 0 at time \(currentTime), skipping to next map point")
+                    // Skip to the next frequency map point instead of incrementing by small intervals
+                    currentTime = point2.time
+                    mapIndex += 1
+                    continue
+                }
+            }
+            
+            let period = 1.0 / currentFreq
+            
+            // Scale intensity by user preference (baseIntensity already includes this)
+            let scaledIntensity = max(EntrainmentEngine.minVibrationIntensity, baseIntensity * currentIntensity)
+            
+            events.append(try VibrationEvent(
+                timestamp: currentTime,
+                intensity: scaledIntensity,
+                duration: period,
+                waveform: .sine
+            ))
+            currentTime += period
+        }
+        
+        return events
     }
     
     /// Pauses the current session

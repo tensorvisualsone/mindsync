@@ -7,7 +7,7 @@ struct SessionView: View {
     
     let mediaItem: MPMediaItem?
     let audioFileURL: URL?
-    let dmnShutdown: Bool
+    let fixedScript: Bool
     
     /// Height of the status banner including padding (used for offset calculations)
     /// Calculated from: top padding (8) + banner vertical padding (sm + xs = 12) + content height (icon ~24 or text ~20)
@@ -23,10 +23,10 @@ struct SessionView: View {
         return topPadding + bannerVerticalPadding + contentHeight // 8 + 12 + 24 = 44
     }
     
-    init(song: MPMediaItem? = nil, audioFileURL: URL? = nil, dmnShutdown: Bool = false) {
+    init(song: MPMediaItem? = nil, audioFileURL: URL? = nil, fixedScript: Bool = false) {
         self.mediaItem = song
         self.audioFileURL = audioFileURL
-        self.dmnShutdown = dmnShutdown
+        self.fixedScript = fixedScript
     }
     
     var body: some View {
@@ -104,17 +104,30 @@ struct SessionView: View {
             guard viewModel.state == .idle else { return }
             
             Task { @MainActor in
-                if dmnShutdown {
-                    // DMN-Shutdown mode: Start automatically without audio selection
-                    await viewModel.startDMNShutdownSession()
-                } else if let mediaItem = mediaItem {
-                    await viewModel.startSession(with: mediaItem)
-                } else if let audioFileURL = audioFileURL {
-                    await viewModel.startSession(with: audioFileURL)
+                // Load preferences once for both branches
+                let preferences = UserPreferences.load()
+                let mode = preferences.preferredMode
+                
+                // fixedScript flag takes precedence and starts based on user preferences
+                if fixedScript {
+                    // Start fixed-script session based on preferred mode
+                    await viewModel.startFixedSession(mode: mode)
                 } else {
-                    // No media item or file URL - show error
-                    viewModel.errorMessage = NSLocalizedString("session.noMediaItem", comment: "")
-                    viewModel.state = .error
+                    // Check if we should start a fixed session based on preferred mode
+                    if mode.usesFixedScript {
+                        // Fixed-script modes: Start automatically without audio selection
+                        await viewModel.startFixedSession(mode: mode)
+                    } else if let mediaItem = mediaItem {
+                        // Cinematic mode with media item
+                        await viewModel.startSession(with: mediaItem)
+                    } else if let audioFileURL = audioFileURL {
+                        // Cinematic mode with audio file
+                        await viewModel.startSession(with: audioFileURL)
+                    } else {
+                        // No media item or file URL - show error
+                        viewModel.errorMessage = NSLocalizedString("session.noMediaItem", comment: "")
+                        viewModel.state = .error
+                    }
                 }
             }
         }
@@ -257,12 +270,12 @@ private struct SessionTrackInfoView: View {
             return false
         }
         
-        // For DMN-Shutdown mode, always show frequency
-        if session.mode == .dmnShutdown {
+        // For fixed-script modes, always show frequency (they use frequency overrides)
+        if session.mode.usesFixedScript {
             return true
         }
         
-        // For other modes, only show if it differs significantly from BPM (indicating ramping)
+        // For other modes (cinematic), only show if it differs significantly from BPM (indicating ramping)
         if let bpm = track?.bpm {
             return abs(Int(bpm) - Int(currentFrequency)) >= 2
         }

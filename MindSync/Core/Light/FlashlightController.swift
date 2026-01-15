@@ -362,46 +362,30 @@ final class FlashlightController: BaseLightController, LightControlling {
             return
         }
         
-        // Apply gamma correction for perceptually linear brightness
-        //
-        // **Gamma value: 1.8**
-        //
-        // This reduced gamma (compared to standard display gamma of 2.2) was chosen specifically
-        // for the iPhone LED torch to improve perceived brightness while maintaining safety.
-        //
-        // Rationale:
-        // 1. **Hardware characteristics**: The iPhone LED has a limited dynamic range compared
-        //    to displays. Standard gamma 2.2 makes the mid-to-high intensity range feel too dark,
-        //    reducing entrainment effectiveness.
-        //
-        // 2. **Safety constraints**: The ThermalManager imposes maxFlashlightIntensity limits
-        //    (0.6-0.9 depending on thermal state). With gamma 2.2, these safety limits would
-        //    result in perceived brightness that's too dim for effective neural entrainment,
-        //    potentially leading users to override safety features.
-        //
-        // 3. **Perceptual validation**: Testing with 8 users (ages 24-42) across iPhone 13 Pro,
-        //    14 Pro Max, and 15 Pro showed that gamma 1.8 provides:
-        //    - Adequate perceived brightness at mid-range intensities (0.4-0.7)
-        //    - Clear distinction between intensity levels for entrainment feedback
-        //    - Comfortable viewing during 15-30 minute sessions
-        //    - No reports of excessive brightness or discomfort
-        //
-        // 4. **Safety validation**: This gamma value has been validated against project safety
-        //    requirements:
-        //    - Thermal limits still prevent overheating (max 0.9 in fair state, 0.6 in serious)
-        //    - Photosensitive epilepsy warnings are still displayed
-        //    - Emergency stop functionality remains accessible
-        //    - No adverse effects reported during testing
-        //
-        // 5. **Comparison with gamma 2.2**: At intensity 0.5:
-        //    - Gamma 2.2: output = 0.5^2.2 ≈ 0.22 (22% LED power) - felt too dark
-        //    - Gamma 1.8: output = 0.5^1.8 ≈ 0.29 (29% LED power) - adequate brightness
-        //    This 32% increase in LED power at mid-range improves user experience while
-        //    remaining within safe thermal and optical limits.
-        //
-        // Future consideration: If users report brightness issues, consider making gamma
-        // configurable (range 1.6-2.2) via user preferences, with 1.8 as the default.
-        let perceptionCorrected = pow(intensity, 1.8)
+        // Apply mode-specific gamma correction for optimal entrainment effectiveness.
+        // Most modes use raw intensity (gamma 1.0) to maximize LED power for SSVEP entrainment,
+        // ensuring sharp on/off transitions that drive cortical evoked potentials. Alpha mode uses
+        // gamma 1.2 for gentler transitions during relaxation. Safety limits (thermal management,
+        // duty cycle control) remain active regardless of gamma setting.
+        // See docs/entrainment-gamma-correction.md for detailed scientific rationale.
+        let gammaValue: Float
+        if let mode = currentScript?.mode {
+            switch mode {
+            case .gamma, .theta:
+                gammaValue = 1.0 // Raw mode for maximum entrainment power
+            case .alpha:
+                gammaValue = 1.2 // Slight correction for gentler relaxation
+            case .dmnShutdown, .beliefRewiring:
+                gammaValue = 1.0 // Raw mode for intense experiences
+            case .cinematic:
+                gammaValue = 1.0 // Raw mode for beat-synchronized flashes
+            }
+        } else {
+            // Fallback: Use raw mode if no script is active
+            gammaValue = 1.0
+        }
+        
+        let perceptionCorrected = pow(intensity, gammaValue)
         
         // Apply thermal limits
         let maxIntensity = thermalManager.maxFlashlightIntensity

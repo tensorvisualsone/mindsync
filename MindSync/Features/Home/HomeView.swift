@@ -5,7 +5,7 @@ import MediaPlayer
 enum SessionType: Identifiable {
     case mediaItem(MPMediaItem)
     case audioFile(URL)
-    case dmnShutdown
+    case fixedScript  // Any fixed-script mode (resolved via preferences)
     
     var id: String {
         switch self {
@@ -13,8 +13,8 @@ enum SessionType: Identifiable {
             return "media-\(item.persistentID)"
         case .audioFile(let url):
             return "file-\(url.absoluteString)"
-        case .dmnShutdown:
-            return "dmn-shutdown"
+        case .fixedScript:
+            return "fixed-script"
         }
     }
 }
@@ -42,10 +42,14 @@ struct HomeView: View {
                         style: .filled(.mindSyncAccent)
                     ) {
                         HapticFeedback.light()
-                        // Special case: DMN-Shutdown mode starts automatically without audio selection
-                        if preferences.preferredMode == .dmnShutdown {
-                            sessionToStart = .dmnShutdown
+                        // Fixed-script modes start automatically without audio selection
+                        // Only cinematic mode requires user-selected audio
+                        if preferences.preferredMode.usesFixedScript {
+                            // Trigger fixed-script session; SessionView resolves the actual mode
+                            // based on `preferences.preferredMode`.
+                            sessionToStart = .fixedScript
                         } else {
+                            // Cinematic mode requires audio selection
                             showingSourceSelection = true
                         }
                     }
@@ -128,8 +132,8 @@ struct HomeView: View {
                     SessionView(song: item)
                 case .audioFile(let url):
                     SessionView(audioFileURL: url)
-                case .dmnShutdown:
-                    SessionView(dmnShutdown: true)
+                case .fixedScript:
+                    SessionView(fixedScript: true)
                 }
             }
         }
