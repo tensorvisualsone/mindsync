@@ -11,8 +11,8 @@ This script safely adds the new extension file to project.pbxproj by:
 """
 
 import re
-import sys
 import secrets
+import sys
 from pathlib import Path
 
 def generate_xcode_id():
