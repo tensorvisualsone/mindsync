@@ -1471,8 +1471,15 @@ final class SessionViewModel: ObservableObject {
             
             // Guard against division by zero
             guard currentFreq > 0 else {
-                logger.warning("Frequency is 0 at time \(currentTime), skipping")
-                currentTime += Self.timeSkipInterval // Skip ahead
+                logger.warning("Frequency is 0 at time \(currentTime), skipping to next map point")
+                // Skip to the next frequency map point instead of incrementing by small intervals
+                if mapIndex < frequencyMap.count - 1 {
+                    currentTime = frequencyMap[mapIndex + 1].time
+                    mapIndex += 1
+                } else {
+                    // No more map points, exit loop
+                    break
+                }
                 continue
             }
             
