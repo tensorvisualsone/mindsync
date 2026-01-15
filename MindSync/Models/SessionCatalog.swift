@@ -2,7 +2,7 @@ import Foundation
 
 /// Represents a fixed entrainment session with predefined frequency map and audio file
 struct EntrainmentSession: Identifiable {
-    let id = UUID()
+    let id: UUID
     let title: String
     let description: String
     let duration: TimeInterval
@@ -104,23 +104,25 @@ enum SessionCatalog {
         backgroundAudioFile: "theta_audio.mp3"
     )
     
-    /// Gamma (Focus) session: 10 minutes, 30-40 Hz Gamma band
+    /// Gamma (Focus) session: 11 minutes, 30-40 Hz Gamma band
     private static let gammaSession = EntrainmentSession(
         title: "Gamma Focus",
         description: "Enhanced focus and cognitive performance",
-        duration: 600, // 10 minutes
+        duration: 660, // 11 minutes (matches generateGammaScript)
         targetState: .gamma,
         frequencyMap: [
-            // Phase 1: Entry (1 Min) - 20 Hz → 35 Hz Ramp
+            // Phase 1: Entry (0-1 Min = 0-60s) - 20 Hz → 35 Hz Ramp
             (0, 20.0, 0.5),
             (60, 35.0, 0.7),
-            // Phase 2: Peak Gamma (8 Min) - 40 Hz konstant
+            // Transition: (1-2 Min = 60-120s) - 35 Hz → 40 Hz Ramp to peak
             (60, 35.0, 0.7),
             (120, 40.0, 0.8),
-            (540, 40.0, 0.8),
-            // Phase 3: Exit (1 Min) - 40 Hz → 30 Hz Ramp
-            (540, 40.0, 0.8),
-            (600, 30.0, 0.5)
+            // Phase 2: Peak Gamma (2-10 Min = 120-600s) - 40 Hz konstant
+            (120, 40.0, 0.8),
+            (600, 40.0, 0.8),
+            // Phase 3: Exit (10-11 Min = 600-660s) - 40 Hz → 30 Hz Ramp
+            (600, 40.0, 0.8),
+            (660, 30.0, 0.5)
         ],
         backgroundAudioFile: "gamma_audio.mp3"
     )
@@ -132,17 +134,32 @@ enum SessionCatalog {
         duration: 1800, // 30 minutes (matches generateDMNShutdownScript)
         targetState: .dmnShutdown,
         frequencyMap: [
-            // Frequency map matches generateDMNShutdownScript phases
-            (0, 10.0, 0.4),      // Phase 1: Entry (0-3 Min) - 10 Hz Alpha
-            (180, 4.5, 0.35),    // Phase 2: The Abyss (3-12 Min) - 4.5 Hz Theta
-            (720, 4.5, 0.2),     // Phase 2 continued
-            (1200, 4.5, 0.2),    // Phase 3: Dissolution (12-20 Min) - Randomized Theta
-            (1200, 5.0, 0.3),    // Phase 3 continued (varied frequencies)
-            (1800, 40.0, 0.9),   // Phase 4: The Void (20.5-29 Min) - 40 Hz Gamma
-            (1740, 40.0, 0.9),   // Phase 4 continued
-            (1800, 10.0, 0.3)    // Phase 5: Reintegration (29-30 Min) - Ramp to Alpha
+            // Frequency map matches generateDMNShutdownScript phases (chronologically ordered)
+            // Phase 1: ENTRY (0-3 Min = 0-180s) - 10 Hz Alpha, soft sine waves
+            (0, 10.0, 0.4),
+            (180, 10.0, 0.4),    // Phase 1 end
+            
+            // Phase 2: THE ABYSS / VACUUM (3-12 Min = 180-720s) - 4.5 Hz Theta, alternating intensity
+            (180, 4.5, 0.35),    // Phase 2 start (alternating 0.35/0.1, using 0.35 as representative)
+            (720, 4.5, 0.35),    // Phase 2 end
+            
+            // Phase 3: DISSOLUTION (12-20 Min = 720-1200s) - Randomized Theta (3.5-6.0 Hz)
+            (720, 5.0, 0.3),     // Phase 3 start (representative of randomized 3.5-6.0 Hz range)
+            (1200, 5.0, 0.3),    // Phase 3 end
+            
+            // Transition: (20-20.5 Min = 1200-1230s) - Smooth ramp from 4.5 Hz to 40 Hz
+            (1200, 4.5, 0.5),    // Transition start
+            (1230, 40.0, 0.5),   // Transition end
+            
+            // Phase 4: THE VOID / UNIVERSE (20.5-29 Min = 1230-1740s) - 40 Hz Gamma burst
+            (1230, 40.0, 0.9),   // Phase 4 start
+            (1740, 40.0, 0.9),   // Phase 4 end
+            
+            // Phase 5: REINTEGRATION COOLDOWN (29-30 Min = 1740-1800s) - Ramp from 40 Hz to 10 Hz
+            (1740, 40.0, 0.9),   // Phase 5 start (intensity fades from 0.9 to 0.3)
+            (1800, 10.0, 0.3)    // Phase 5 end
         ],
-        backgroundAudioFile: "dmn_shutdown_audio.mp3"
+        backgroundAudioFile: "void_master.mp3"
     )
     
     /// Belief-Rewiring session: Uses existing script from EntrainmentEngine

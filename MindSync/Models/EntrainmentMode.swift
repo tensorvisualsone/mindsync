@@ -113,7 +113,7 @@ enum EntrainmentMode: String, Codable, CaseIterable, Identifiable {
         case .gamma:
             return "gamma_audio.mp3"
         case .dmnShutdown:
-            return "dmn_shutdown_audio.mp3"
+            return "void_master.mp3"
         case .beliefRewiring:
             return "belief_rewiring_audio.mp3"
         case .cinematic:

@@ -21,9 +21,10 @@ Die folgenden Audiodateien müssen im `MindSync/Resources/` Verzeichnis abgelegt
    - Optional: Subtile 40 Hz Impulse für Frequenz-Sync
    - Format: MP3, 44.1kHz, Mono/Stereo
 
-4. **dmn_shutdown_audio.mp3** - DMN-Shutdown Session (30 Minuten)
-   - Bereits vorhanden: `void_master.mp3` wird verwendet
+4. **void_master.mp3** - DMN-Shutdown Session (30 Minuten)
+   - **Kanonischer Dateiname**: `void_master.mp3` (bereits im Projekt vorhanden)
    - Brown/Pink Noise mit isochronen Tönen
+   - **Hinweis**: Der Code referenziert `void_master.mp3` direkt. Keine Alias- oder Umbenennung erforderlich.
 
 5. **belief_rewiring_audio.mp3** - Belief-Rewiring Session (30 Minuten)
    - Drone/Atmosphere für Unterbewusstseins-Zugang

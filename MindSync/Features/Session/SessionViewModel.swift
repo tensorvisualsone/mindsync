@@ -1287,12 +1287,6 @@ final class SessionViewModel: ObservableObject {
                     logger.warning("Audio did not start in time, using scheduled time")
                     actualStartTime = futureStartTime
                 }
-                
-                // Enable spectral flux for audio-reactive modulation (if not fixed-script mode)
-                // Note: Fixed-script modes don't need audio reactivity, but we enable it for consistency
-                if !mode.usesFixedScript {
-                    enableSpectralFluxForCinematicMode(mode)
-                }
             } else {
                 // No audio file - start immediately
                 logger.info("No audio file - starting light only")
@@ -1376,6 +1370,7 @@ final class SessionViewModel: ObservableObject {
             vibrationController?.stop()
             audioPlayback.stop()
             stopPlaybackProgressUpdates()
+            bluetoothLatencyMonitor.stopMonitoring()
             UIApplication.shared.isIdleTimerDisabled = false
             state = .idle
         } catch {
@@ -1387,6 +1382,7 @@ final class SessionViewModel: ObservableObject {
             vibrationController?.stop()
             audioPlayback.stop()
             stopPlaybackProgressUpdates()
+            bluetoothLatencyMonitor.stopMonitoring()
             UIApplication.shared.isIdleTimerDisabled = false
         }
     }
@@ -1397,6 +1393,8 @@ final class SessionViewModel: ObservableObject {
     ///   - duration: Total session duration
     ///   - intensity: Vibration intensity
     /// - Returns: Array of vibration events
+    /// - Note: Memory usage: For a 30-minute session at 10 Hz, this generates ~18,000 VibrationEvent objects.
+    ///   This is acceptable as VibrationEvent is a small struct (~32 bytes), resulting in ~576 KB total.
     private func generateVibrationEventsForFixedSession(
         mode: EntrainmentMode,
         duration: TimeInterval,
@@ -1407,6 +1405,13 @@ final class SessionViewModel: ObservableObject {
         
         // Generate simple vibration events matching the light script frequency
         let targetFreq = mode.targetFrequency
+        
+        // Guard against division by zero: If targetFrequency is 0, skip vibration events
+        guard targetFreq > 0 else {
+            logger.warning("Target frequency is 0 for mode \(mode.rawValue), skipping vibration events")
+            return []
+        }
+        
         let period = 1.0 / targetFreq
         var currentTime: TimeInterval = 0
         

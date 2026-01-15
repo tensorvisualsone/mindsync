@@ -1620,12 +1620,14 @@ extension EntrainmentEngine {
     }
     
     /// Generates the "Gamma Focus" script for enhanced focus and cognitive performance.
-    /// This creates a fixed 10-minute sequence through the Gamma band (30-40 Hz).
+    /// This creates a fixed 11-minute sequence through the Gamma band (30-40 Hz).
     /// 
     /// Phases:
-    /// - Phase 1: Entry (1 Min) - 20 Hz → 35 Hz Ramp
-    /// - Phase 2: Peak Gamma (8 Min) - 40 Hz konstant
-    /// - Phase 3: Exit (1 Min) - 40 Hz → 30 Hz Ramp
+    /// - Phase 1: Entry (0-1 Min) - 20 Hz → 35 Hz Ramp
+    /// - Transition: (1-2 Min) - 35 Hz → 40 Hz Ramp to peak
+    /// - Phase 2: Peak Gamma (2-10 Min) - 40 Hz konstant
+    /// - Phase 3: Exit (10-11 Min) - 40 Hz → 30 Hz Ramp
+    /// Total duration: 11 minutes (660 seconds)
     static func generateGammaScript() -> LightScript {
         var events: [LightEvent] = []
         var currentTime: TimeInterval = 0.0

@@ -104,29 +104,29 @@ struct SessionView: View {
             guard viewModel.state == .idle else { return }
             
             Task { @MainActor in
-                // Check if we should start a fixed session
-                let preferences = UserPreferences.load()
-                let mode = preferences.preferredMode
-                
-                if dmnShutdown || mode.usesFixedScript {
-                    // Fixed-script modes: Start automatically without audio selection
-                    if mode == .dmnShutdown {
-                        // Use existing DMN-Shutdown method for backward compatibility
-                        await viewModel.startDMNShutdownSession()
-                    } else {
-                        // Use new generic fixed session method for other modes
-                        await viewModel.startFixedSession(mode: mode)
-                    }
-                } else if let mediaItem = mediaItem {
-                    // Cinematic mode with media item
-                    await viewModel.startSession(with: mediaItem)
-                } else if let audioFileURL = audioFileURL {
-                    // Cinematic mode with audio file
-                    await viewModel.startSession(with: audioFileURL)
+                // dmnShutdown flag takes precedence over preferences
+                if dmnShutdown {
+                    // DMN-Shutdown mode: Start automatically without audio selection
+                    await viewModel.startDMNShutdownSession()
                 } else {
-                    // No media item or file URL - show error
-                    viewModel.errorMessage = NSLocalizedString("session.noMediaItem", comment: "")
-                    viewModel.state = .error
+                    // Check if we should start a fixed session based on preferred mode
+                    let preferences = UserPreferences.load()
+                    let mode = preferences.preferredMode
+                    
+                    if mode.usesFixedScript {
+                        // Fixed-script modes: Start automatically without audio selection
+                        await viewModel.startFixedSession(mode: mode)
+                    } else if let mediaItem = mediaItem {
+                        // Cinematic mode with media item
+                        await viewModel.startSession(with: mediaItem)
+                    } else if let audioFileURL = audioFileURL {
+                        // Cinematic mode with audio file
+                        await viewModel.startSession(with: audioFileURL)
+                    } else {
+                        // No media item or file URL - show error
+                        viewModel.errorMessage = NSLocalizedString("session.noMediaItem", comment: "")
+                        viewModel.state = .error
+                    }
                 }
             }
         }
