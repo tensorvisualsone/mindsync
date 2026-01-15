@@ -1387,8 +1387,8 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
-    /// Time interval to skip ahead when frequency is zero (in seconds)
-    private static let timeSkipInterval: TimeInterval = 0.1
+    /// Epsilon value to ensure loop progress when timestamps are equal (in seconds)
+    private static let timeProgressEpsilon: TimeInterval = 0.001
     
     /// Generates vibration events for a fixed session mode
     /// - Parameters:
@@ -1469,7 +1469,7 @@ final class SessionViewModel: ObservableObject {
                     mapIndex += 1
                     // Ensure we make progress even if times are equal
                     if currentTime == point2.time {
-                        currentTime += 0.001 // Small epsilon to ensure progress
+                        currentTime += Self.timeProgressEpsilon
                     }
                     continue
                 }

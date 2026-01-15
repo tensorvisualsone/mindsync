@@ -5,6 +5,9 @@ import Combine
 /// Tests for SessionViewModel thermal warning handling
 @MainActor
 final class SessionViewModelTests: XCTestCase {
+    /// Time delay for async state transitions in tests (in nanoseconds)
+    private static let testTransitionDelay: UInt64 = 100_000_000 // 0.1 seconds
+    
     var cancellables: Set<AnyCancellable>!
     var mockHistoryService: MockSessionHistoryService!
     
@@ -321,7 +324,7 @@ final class SessionViewModelTests: XCTestCase {
         }
         
         // Give it a moment to transition to analyzing
-        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        try await Task.sleep(nanoseconds: Self.testTransitionDelay)
         
         // State should be analyzing or beyond
         XCTAssertNotEqual(viewModel.state, .idle)
@@ -339,7 +342,7 @@ final class SessionViewModelTests: XCTestCase {
         }
         
         // Give it a moment to start processing
-        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        try await Task.sleep(nanoseconds: Self.testTransitionDelay)
         
         // Should have transitioned from idle
         XCTAssertNotEqual(viewModel.state, .idle)
@@ -354,7 +357,7 @@ final class SessionViewModelTests: XCTestCase {
             await viewModel.startFixedSession(mode: .gamma)
         }
         
-        try await Task.sleep(nanoseconds: 100_000_000)
+        try await Task.sleep(nanoseconds: Self.testTransitionDelay)
         
         XCTAssertNotEqual(viewModel.state, .idle)
         
@@ -397,7 +400,7 @@ final class SessionViewModelTests: XCTestCase {
             await viewModel.startFixedSession(mode: .dmnShutdown)
         }
         
-        try await Task.sleep(nanoseconds: 100_000_000)
+        try await Task.sleep(nanoseconds: Self.testTransitionDelay)
         
         XCTAssertNotEqual(viewModel.state, .idle)
         
@@ -414,7 +417,7 @@ final class SessionViewModelTests: XCTestCase {
             await viewModel.startFixedSession(mode: .beliefRewiring)
         }
         
-        try await Task.sleep(nanoseconds: 100_000_000)
+        try await Task.sleep(nanoseconds: Self.testTransitionDelay)
         
         XCTAssertNotEqual(viewModel.state, .idle)
         
