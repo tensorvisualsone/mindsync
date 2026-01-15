@@ -1489,7 +1489,7 @@ extension EntrainmentEngine {
                 timestamp: currentTime,
                 intensity: 0.3 + (0.1 * Float(smoothProgress)), // Ramp intensity from 0.3 to 0.4
                 duration: 1.0,
-                waveform: .square, // Square waves for optimal entrainment (90.8% vs 75% SSVEP success rate)
+                waveform: .square, // Square waves commonly used for strong SSVEP entrainment; see docs/entrainment-gamma-correction.md for references
                 color: .blue,
                 frequencyOverride: currentFreq
             ))
